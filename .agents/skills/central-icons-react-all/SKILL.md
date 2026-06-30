@@ -1,0 +1,2252 @@
+---
+name: central-icons-react-all
+description: Use when inserting icons in React code that imports from @central-icons-react/all — provides icon lookup by name, alias, or category, documents the CentralIcon component, and recommends switching to a variant package once the user commits to a style.
+---
+
+# Central Icons — React (all)
+
+This skill helps you find and insert icons from the `@central-icons-react/all` package (version 1.1.255). The package exposes 2006 icons across 30 variants (round/square × filled/outlined × multiple corner radii and stroke widths) through a single dynamic `CentralIcon` component.
+
+## Prefer a variant package when possible
+
+The `all` package loads every variant's metadata at runtime and is significantly larger than a single-variant package. **If the user has committed to a specific style**, recommend migrating to a variant package:
+
+```bash
+# e.g. if the user wants round + filled + radius-0 + stroke-1
+npm install @central-icons-react/round-filled-radius-0-stroke-1
+```
+
+Then use per-icon imports from that variant instead of `CentralIcon`. Only keep `CentralIcon` when the user truly needs to switch styles at runtime (theming systems, per-user preferences).
+
+Full list of variant packages:
+
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-0-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-0-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-0-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-1-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-1-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-1-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-2-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-2-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-2-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-3-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-3-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-filled-radius-3-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-0-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-0-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-0-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-1-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-1-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-1-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-2-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-2-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-2-stroke-2
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-3-stroke-1
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-3-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/round-outlined-radius-3-stroke-2
+- https://npmjs.com/package/@central-icons-react/square-filled-radius-0-stroke-1
+- https://npmjs.com/package/@central-icons-react/square-filled-radius-0-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/square-filled-radius-0-stroke-2
+- https://npmjs.com/package/@central-icons-react/square-outlined-radius-0-stroke-1
+- https://npmjs.com/package/@central-icons-react/square-outlined-radius-0-stroke-1.5
+- https://npmjs.com/package/@central-icons-react/square-outlined-radius-0-stroke-2
+
+## When to use this skill
+
+Trigger when:
+
+- The user asks for a specific icon and is using `@central-icons-react/all`.
+- You are editing a file that already imports `CentralIcon`.
+- The user asks "what icons are available".
+
+## How to pick the right icon
+
+1. **Match against aliases first.** Search the catalog below for the user's phrasing.
+2. **Fall back to category browse.**
+3. **Prefer the icon whose primary name matches the user's phrasing.**
+4. **Never fabricate an icon name.** If no match, offer the two or three closest alternatives.
+
+## How to use `CentralIcon`
+
+```jsx
+import { CentralIcon } from "@central-icons-react/all";
+
+function MyComponent() {
+  return (
+    <CentralIcon
+      name="IconHome"
+      iconJoin="round" // "round" | "square"
+      iconFill="filled" // "filled" | "outlined"
+      iconStroke="1" // "1" | "1.5" | "2"
+      iconRadius="1" // "0" | "1" | "2" | "3"
+      size={24}
+      color="currentColor"
+    />
+  );
+}
+```
+
+| Prop         | Type                       | Default        | Notes                                         |
+| ------------ | -------------------------- | -------------- | --------------------------------------------- |
+| `name`       | `CentralIconName`          | required       | Use a `componentName` from the catalog below. |
+| `iconJoin`   | `"round" \| "square"`      | `"round"`      | Corner join style.                            |
+| `iconFill`   | `"filled" \| "outlined"`   | `"filled"`     | Fill style.                                   |
+| `iconStroke` | `"1" \| "1.5" \| "2"`      | `"1"`          | Stroke width in px.                           |
+| `iconRadius` | `"0" \| "1" \| "2" \| "3"` | `"1"`          | Corner radius in px.                          |
+| `size`       | `number \| string`         | `24`           | Width and height.                             |
+| `color`      | `string`                   | `currentColor` | SVG fill.                                     |
+| `ariaHidden` | `boolean`                  | `true`         | Flip to `false` for meaningful icons.         |
+| `title`      | `string`                   | —              | Required when `ariaHidden={false}`.           |
+
+## Decorative vs meaningful icons
+
+```jsx
+// Decorative
+<CentralIcon name="IconHome" />
+
+// Meaningful
+<CentralIcon name="IconHome" ariaHidden={false} title="Go to home page" />
+```
+
+## Common mistakes to avoid
+
+- **Using `CentralIcon` when a variant package would do.** If the user isn't switching styles dynamically, switch them to a variant package.
+- **Guessing icon names.** Use the catalog.
+- **Omitting required variant props and relying on defaults in production.** Be explicit about `iconJoin`/`iconFill`/`iconStroke`/`iconRadius` so a default change doesn't silently shift styles.
+- **Forgetting accessibility props for meaningful icons.**
+
+## Icon catalog
+
+### AI & Magic
+
+- **IconAiSlop** — ai-slop, trash
+- **IconAiTokens** — ai-tokens, credits
+- **IconAiTranslate** — ai-translate, language, auto-translate
+- **IconAppleIntelligenceIcon** — apple-intelligence-icon, ai, tools
+- **IconArrowRotateSparkle** — arrow-rotate-sparkle, repeat, refresh, generate
+- **IconAutoCrop** — auto-crop, ai-crop
+- **IconBag2Sparkle** — bag 2-sparkle, shopping, add, plus
+- **IconBoxSparkle** — box-sparkle, magic box
+- **IconBrain1** — brain-1, ai, thinking, database, ki
+- **IconBrain2** — brain-2, ai, thinking, database, ki
+- **IconBroomSparkle** — broom-sparkle, clean, brush
+- **IconBubbleSparkle** — bubble-sparkle, message, like, heart
+- **IconBubbleWideSparkle** — bubble-wide-sparkle, message, chat
+- **IconBurnTokens** — burn-tokens, limit
+- **IconCalenderSparkle** — calender-sparkle, date, plan
+- **IconCameraSparkle** — camera-sparkle, picture, image, cam
+- **IconClapboardSparkle** — clapboard-sparkle, movie, film, ai
+- **IconClaw** — claw, openclaw, ai, qclaw
+- **IconClipboard2Sparkle** — clipboard 2-sparkle, copy, list, auto-fill, form-fill
+- **IconCloudySparkle** — cloudy-sparkle, clouds
+- **IconConsoleSparkle** — console-sparkle, Terminal
+- **IconCursorAi** — cursor-ai, agent, magic
+- **IconCuteRobot** — cute-robot
+- **IconEmail1Sparkle** — email-1-sparkle, envelope
+- **IconEyeSparkle** — eye-sparkle, magic eyes
+- **IconFileSparkle** — file-sparkle, document, locked, password
+- **IconFolderSparkle** — Folder-sparkle, plus
+- **IconFortuneTellerBall** — fortune-teller-ball, future
+- **IconGoblin** — goblin, troll, agent, helper
+- **IconGoblin2** — goblin-2, troll, agent, helper
+- **IconHatBunny** — hat-bunny, surprise, magic hat
+- **IconHatSparkle** — hat-sparkle, magic hat
+- **IconImageAvatarSparkle** — image-avatar-sparkle, generated avatar, profile ai, magic avatar
+- **IconImageSparkle** — image-sparkle, midjourney, ai generated, star
+- **IconImagesSparkle** — images-sparkle, photos, pictures, shot, generate
+- **IconImagine** — imagine, head, thinking
+- **IconImagineAi** — imagine-ai, cube, room, 3d, opject, vector
+- **IconImagineHead** — imagine-head, thinking, ai
+- **IconLightbulbSparkle** — lightbulb-sparkle, idea, reasoning, think
+- **IconListSparkle** — list-sparkle, ai text, text generation
+- **IconLiveVoiceTranslate** — live-voice-translate
+- **IconLocationSparkle** — location-sparkle, map, route
+- **IconMagicBook** — magic-book, magician, sparkles
+- **IconMagicEdit** — magic-edit, magic-writing
+- **IconMagicWand** — magic-wand, magic stick, star
+- **IconMagicWand2** — magic-wand-2, magic stick, star
+- **IconMagicWand3** — magic-wand-3, magic stick, star
+- **IconMicrophoneSparkle** — microphone-sparkle, mic, sound, podcast
+- **IconPencilSparkle** — pencil-sparkle, magic pencil, magic brush
+- **IconPrompt** — prompt, scan-text
+- **IconPrompt** — prompt, vibe-designing, box-sparkle
+- **IconPromptSuggestion** — prompt-suggestion, auto-prompt
+- **IconPromptTextToImage** — prompt-text-to-image
+- **IconPromptTextToVideo** — prompt-text-to-video
+- **IconQuickAi** — quick-ai, rising
+- **IconReceiptionBellSparkle** — receiption-bell-sparkle, ai-concierge, ai-assistant
+- **IconRobot** — robot
+- **IconRobot2** — robot-2, agent, scout
+- **IconRobot3** — robot-3, agent, scout
+- **IconRobotHeadSlop** — robot-head-slop
+- **IconScanTextSparkle** — scan-text-sparkle, scan, arrows-all-sides, focus, list
+- **IconScriptAi** — script-ai, paper, page, contract, file, document, skills
+- **IconSearchIntelligence** — search-intelligence, search-ai
+- **IconSearchlinesSparkle** — search lines-sparkle, magnifier, document, list, page, file
+- **IconSeparateVideoVoice** — separate-video-voice, video-audio
+- **IconShieldAi** — shield-ai, security, safety, privacy, cyber
+- **IconSparkle** — sparkle, star, ai
+- **IconSparkle2** — sparkle-2, star, magic, ai
+- **IconSparkle3** — sparkle-3, ai, star, magic
+- **IconSparkleCentral** — sparkle-central, star, magic, ai
+- **IconSparkleHightlight** — sparkle-hightlight, special, ai, magic
+- **IconSparkles2Bold** — sparkles-2-bold, ai, magic
+- **IconSparkles3Bold** — sparkles-3-bold, ai, magic
+- **IconSparklesSoft** — sparkles-soft
+- **IconSparklesThree** — sparkles-three, ai 3 stars, sparkles, ✨
+- **IconSparklesTwo** — sparkles-two, ai 2 stars, sparkles, ✨
+- **IconSparklesTwo2** — sparkles-two-2, ai 2 stars, sparkles, ✨
+- **IconSpeachToText** — speach-to-text, voice-to-text
+- **IconStarWand** — star-wand, magic
+- **IconSwitchVoice** — switch-voice, change-voice
+- **IconTextToImage** — text-to-image
+- **IconTextToSpeach** — text-to-speach
+- **IconVisualIntelligence** — visual-intelligence
+- **IconVoice2** — voice-2, siri, wave
+- **IconVoiceCircle** — voice-circle, waves
+- **IconVoiceSparkle** — voice-sparkle, ai, sound
+- **IconWindowSparkle** — window-sparkle, whisper, api, app, software
+- **IconWizardHat** — wizard-hat, magician, fantasy
+
+### Accessibility
+
+- **IconCircleHalfFill** — circle-half-fill, contrast
+- **IconCirclePerson** — circle-person, accessibility, a11y
+- **IconEar** — ear, hearing, loud
+- **IconEyeClosed** — eye-closed, see, hidden
+- **IconEyeOpen** — eye-open, show, see, reveal, look, visible
+- **IconEyeSlash** — eye-slash, hide, eye off, see, look, not visible
+- **IconEyeSlash2** — eye-slash-2, accessibility eye, a11y
+- **IconImageAltText** — image-alt-text
+- **IconReduceMotion** — reduce-motion
+- **IconSquareLinesBottom** — square-lines-bottom, transcription
+- **IconVoiceControl** — voice-control
+- **IconVoiceover** — voiceover, sound
+- **IconVoiceover2** — voiceover-2, sound, eye, accessibility
+
+### Arrows
+
+- **IconArrow** — arrow, refresh, renew
+- **IconArrowBottomTop** — arrow-bottom-top, sort 2, switch vertical
+- **IconArrowCornerDownLeft** — arrow-corner-down-left
+- **IconArrowCornerDownRight** — arrow-corner-down-right
+- **IconArrowCornerLeftDown** — arrow-corner-left-down
+- **IconArrowCornerLeftUp** — arrow-corner-left-up
+- **IconArrowCornerRightDown** — arrow-corner-right-down
+- **IconArrowCornerRightUp** — arrow-corner-right-up
+- **IconArrowCornerUpLeft** — arrow-corner-up-left
+- **IconArrowCornerUpRight** — arrow-corner-up-right
+- **IconArrowDown** — arrow-down
+- **IconArrowDownCircle** — arrow-down-circle, arrow-bottom
+- **IconArrowDownLeft** — arrow-down-left
+- **IconArrowDownRight** — arrow-down-right
+- **IconArrowDownSquare** — arrow-down-square, bottom
+- **IconArrowDownWall** — arrow-down-wall
+- **IconArrowExpandHor** — arrow-expand-hor
+- **IconArrowExpandVer** — arrow-expand-ver
+- **IconArrowLeft** — arrow-left
+- **IconArrowLeftCircle** — arrow-left-circle
+- **IconArrowLeftDownCircle** — arrow-left-down-circle
+- **IconArrowLeftRight** — arrow-left-right, sort 2, switch horizonatl
+- **IconArrowLeftSquare** — arrow-left-square
+- **IconArrowLeftUpCircle** — arrow-left-up-circle
+- **IconArrowLoopDownLeft** — arrow-loop-down-left, restore, reset
+- **IconArrowPathDown** — arrow-path-down
+- **IconArrowPathLeft** — arrow-path-left
+- **IconArrowPathRight** — arrow-path-right
+- **IconArrowPathUp** — arrow-path-up
+- **IconArrowRedoDown** — arrow-redo-down, forward
+- **IconArrowRight** — arrow-right
+- **IconArrowRightCircle** — arrow-right-circle
+- **IconArrowRightDownCircle** — arrow-right-down-circle
+- **IconArrowRightLeft** — arrow-right-left, sort 1, switch horizontal
+- **IconArrowRightSquare** — arrow-right-square
+- **IconArrowRightUpCircle** — arrow-right-up-circle
+- **IconArrowRotateClockwise** — arrow-rotate-clockwise, rotate-right
+- **IconArrowRotateCounterClockwise** — arrow-rotate-counter-clockwise, rotate-left
+- **IconArrowRotateLeftRight** — arrow-rotate-left-right, repeat, refresh
+- **IconArrowRotateRightLeft** — arrow-rotate-right-left, repeat, refresh, routines
+- **IconArrowShareLeft** — arrow-share-left, back, last, reply
+- **IconArrowShareRight** — arrow-share-right, next, forward
+- **IconArrowSplitDown** — arrow-split-down, branch
+- **IconArrowSplitDown** — arrow-split-down, rules, direction, split
+- **IconArrowSplitLeft** — arrow-split-left, rules, direction, split
+- **IconArrowSplitRight** — arrow-split-right, rules, direction, split
+- **IconArrowSplitUp** — arrow-split-up, rules, direction, split
+- **IconArrowTopBottom** — arrow-top-bottom, sort 1, switch vertical
+- **IconArrowTriangleBottom** — arrow-triangle-bottom
+- **IconArrowTriangleLeft** — arrow-triangle-left
+- **IconArrowTriangleRight** — arrow-triangle-right
+- **IconArrowTriangleTop** — arrow-triangle-top
+- **IconArrowUndoUp** — arrow-undo-up, back, top
+- **IconArrowUp** — arrow-up, arrow-top
+- **IconArrowUpCircle** — arrow-up-circle, arrow-top
+- **IconArrowUpDownLeftRight** — arrow-up-down-left-right, move
+- **IconArrowUpLeft** — arrow-up-left
+- **IconArrowUpRight** — arrow-up-right
+- **IconArrowUpSquare** — arrow-up-square, top
+- **IconArrowUpWall** — arrow-up-wall
+- **IconArrowWall2Down** — arrow-wall-2-down, align bottom
+- **IconArrowWall2Left** — arrow-wall-2-left, align left
+- **IconArrowWall2Right** — arrow-wall-2-right, align right
+- **IconArrowWall2Up** — arrow-wall-2-up, align top
+- **IconArrowWallDown** — arrow-wall-down, align bottom
+- **IconArrowWallLeft** — arrow-wall-left, align left
+- **IconArrowWallRight** — arrow-wall-right, align right
+- **IconArrowWallUp** — arrow-wall-up, align top
+- **IconArrowsHide** — arrows-hide, collapse, minimize
+- **IconArrowsRepeat** — arrows-repeat, repost
+- **IconArrowsRepeatCircle** — arrows-repeat-circle, repost
+- **IconArrowsRepeatRightLeft** — arrows-repeat-right-left, repost
+- **IconArrowsRepeatRightLeftOff** — arrows-repeat-right-left-off, repost-off
+- **IconArrowsShow** — arrows-show, expand, maximize
+- **IconArrowsZoom** — arrows-zoom, scale, motion, move, directions
+- **IconChevronBottom** — chevron-bottom
+- **IconChevronDoubleLeft** — chevron-double-left
+- **IconChevronDoubleRight** — chevron-double-right
+- **IconChevronDownMedium** — chevron-down-medium
+- **IconChevronDownSmall** — chevron-down-small
+- **IconChevronGrabberHorizontal** — chevron-grabber-horizontal
+- **IconChevronGrabberVertical** — chevron-grabber-vertical
+- **IconChevronLargeDown** — chevron-large-down, chev down, down
+- **IconChevronLargeLeft** — chevron-large-left, chev left, last
+- **IconChevronLargeRight** — chevron-large-right, chev right, next
+- **IconChevronLargeTop** — chevron-large-top, chev top, up
+- **IconChevronLeft** — chevron-left
+- **IconChevronLeftMedium** — chevron-left-medium
+- **IconChevronLeftSmall** — chevron-left-small
+- **IconChevronRight** — chevron-right
+- **IconChevronRightMedium** — chevron-right-medium
+- **IconChevronRightSmall** — chevron-right-small
+- **IconChevronTop** — chevron-top
+- **IconChevronTopMedium** — chevron-top-medium
+- **IconChevronTopSmall** — chevron-top-small
+- **IconChevronTriangleDownMedium** — chevron-triangle-down-medium, dropdown, caret
+- **IconChevronTriangleDownSmall** — chevron-triangle-down-small, dropdown, caret
+- **IconChevronTriangleLeftMedium** — chevron-triangle-left-medium, dropdown, caret
+- **IconChevronTriangleRightMedium** — chevron-triangle-right-medium, dropdown, caret
+- **IconChevronTriangleUpMedium** — chevron-triangle-up-medium, dropdown, caret
+- **IconChevronTriangleUpSmall** — chevron-triangle-up-small, dropdown, caret
+- **IconCollaborationPointerLeft** — collaboration-pointer-left, cursor, agents
+- **IconCollaborationPointerRight** — collaboration-pointer-right, cursor, agents
+- **IconComputerUse** — computer-use, cursor
+- **IconCursor1** — cursor-1, arrow
+- **IconCursor3** — cursor-3, arrow
+- **IconCursorClick** — cursor-click, arrow, clickbait
+- **IconCursorList** — cursor-list, cursor, list
+- **IconExpand315** — expand-315, enlarge
+- **IconExpand45** — expand-45, enlarge
+- **IconExpandSimple** — expand-simple
+- **IconExpandSimple2** — expand-simple-2
+- **IconIncrease** — increase, scale, show-more, change-position
+- **IconJump** — jump, skip
+- **IconMinimize315** — minimize-315, arrow, shrink
+- **IconMinimize45** — minimize-45, arrow, shrink
+- **IconMouseDown** — mouse-down, press, depth, deep-dive
+- **IconMouseUp** — mouse-up, hover, turn-up
+- **IconOngoing** — ongoing, moving
+- **IconRandom** — random, productivity, smart
+- **IconRedirectArrow** — redirect-arrow
+- **IconRemix** — remix, new-try, repeat
+- **IconRemixCircle** — remix-circle, mix, new-try
+- **IconRotate360Left** — rotate-360-left
+- **IconRotate360Right** — rotate-360-right
+- **IconShareArrowDown** — share-arrow-down, save
+- **IconSquareArrowBottomLeftCorner** — square-arrow-bottom-left-corner
+- **IconSquareArrowBottomRight** — square-arrow-bottom-right, resize small, box, arrow
+- **IconSquareArrowBottomRightCorner** — square-arrow-bottom-right-corner
+- **IconSquareArrowCenter** — square-arrow-center, resize big, box, arrow
+- **IconSquareArrowInTopLeft** — square-arrow-in-top-left, dock, box, arrow
+- **IconSquareArrowOutTopLeft** — square-arrow-out-top-left, undock, box, arrow
+- **IconSquareArrowTopLeftCorner** — square-arrow-top-left-corner
+- **IconSquareArrowTopRight** — square-arrow-top-right, open, new, link, open link, box, arrow
+- **IconSquareArrowTopRight2** — square-arrow-top-right-2, open, new, link, open link, box, arrow
+- **IconSquareArrowTopRightCorner** — square-arrow-top-right-corner
+- **IconSquareCursor** — square-cursor, cursor box, arrow
+- **IconSquized** — squized, centered, aligned
+- **IconStepBack** — step-back, undo
+- **IconStepForwards** — step-forwards, continue
+
+### Augmented Reality
+
+- **Icon3dBoxBottom** — 3d-box-bottom, shaders, model, room
+- **Icon3dBoxTop** — 3d-box-top, shaders, model, cube, ar
+- **Icon3dSphere** — 3d-sphere
+- **IconAr** — ar, augmented-reality, card-box, 3d, virtual reality, VR
+- **IconArCube3** — ar-cube-3
+- **IconArScanCube1** — ar-scan-cube-1
+- **IconArScanCube2** — ar-scan-cube-2
+- **IconAround** — around, spatial
+- **IconOculus** — oculus
+- **IconPanoramaView** — panorama-view
+- **IconQm3** — qm3, room, transform, xyz, 3d
+- **IconRotate** — rotate, rotation, x-axis
+- **IconSpatialCapture** — spatial-capture
+- **IconVisionPro** — vision-pro, goggles
+- **IconVisionProApp** — vision-pro-app, window
+
+### Building
+
+- **IconBank** — bank
+- **IconBank2** — bank-2, library, gov
+- **IconBlock** — block, workspace
+- **IconBuildings** — buildings, company, workspace
+- **IconCourt** — court
+- **IconDoor** — door, login, logout
+- **IconGarage** — garage
+- **IconGoldenGateBridge** — golden-gate-bridge, silicon-valley, sf
+- **IconGovernment** — government, bank, building
+- **IconHome** — home, house
+- **IconHomeCircle** — home-circle
+- **IconHomeDoor** — home-door, house
+- **IconHomeLine** — home-line
+- **IconHomeOpen** — home-open, house
+- **IconHomePersonalFeed** — home-personal-feed, for-you
+- **IconHomeRoof** — home-roof, house
+- **IconHomeRoofDoor** — home-roof-door, house
+- **IconHomeRoundDoor** — home-round-door
+- **IconMall** — mall, store, shop, business
+- **IconSchool** — school, building
+- **IconStore1** — store-1
+- **IconStore2** — store-2
+- **IconStore3** — store-3
+- **IconStore4** — store-4, shop, business
+- **IconStores** — stores, shops, mall
+- **IconTower** — tower, terminal
+
+### Clouds
+
+- **IconCloud** — cloud
+- **IconCloud2** — cloud-2
+- **IconCloudApi** — cloud-api, cloud-network
+- **IconCloudCheck** — cloud-check, save
+- **IconCloudDownload** — cloud-download
+- **IconCloudOff** — cloud-off, offline
+- **IconCloudOff2** — cloud-off-2, offline
+- **IconCloudSimple** — cloud-simple
+- **IconCloudSimpleDisconnected** — cloud-simple-disconnected
+- **IconCloudSimpleDownload** — cloud-simple-download
+- **IconCloudSimpleUpload** — cloud-simple-upload
+- **IconCloudSync** — cloud-sync
+- **IconCloudSync2** — cloud-sync-2
+- **IconCloudTransfer** — cloud-transfer, move-data, move-cloud-files
+- **IconCloudUpload** — cloud-upload
+
+### Code
+
+- **IconAgent** — agent, flow, diagram, org
+- **IconAgenticCoding** — agentic-coding, ai-code, vibe-code
+- **IconAgents** — agents, connections, flow
+- **IconAnchor** — anchor, webhooks
+- **IconAnimatePath** — animate-path, animation, jump
+- **IconAnimation** — animation
+- **IconAnimationAuto** — animation-auto
+- **IconAnimationEase** — animation-ease
+- **IconAnimationEaseIn** — animation-ease-in
+- **IconAnimationEaseOut** — animation-ease-out
+- **IconAnimationElastic** — animation-elastic, bezier-curves
+- **IconAnimationLinear** — animation-linear
+- **IconAnimationNone** — animation-none
+- **IconAnimationOvershoot** — animation-overshoot
+- **IconAnimationUndershoot** — animation-undershoot
+- **IconApiAggregate** — api-aggregate
+- **IconApiConnection** — api-connection
+- **IconBezierCurves** — bezier-curves, animation, motion, spring
+- **IconBrackets1** — brackets-1
+- **IconBrackets2** — brackets-2
+- **IconBranch** — branch
+- **IconBranchSimple** — branch-simple
+- **IconBridge** — bridge, connection
+- **IconBug** — bug, issue
+- **IconBugFace** — bug-face, issue
+- **IconChanges** — changes, plus-minus, compare
+- **IconCode** — code
+- **IconCodeAnalyze** — code-analyze, vibe-coding
+- **IconCodeAssistant** — code-assistant, vibe-coding
+- **IconCodeBrackets** — code-brackets
+- **IconCodeInsert** — code-insert
+- **IconCodeLarge** — code-large, syntax, brackets
+- **IconCodeLines** — code-lines
+- **IconCodeMedium** — code-medium, syntax, brackets, dev
+- **IconCodeTree** — code-tree, file-tree
+- **IconCommits** — commits
+- **IconConsole** — console, terminal
+- **IconConsoleSimple** — console-simple
+- **IconConsoleSimple** — console-simple, terminal
+- **IconDebugger** — debugger, debug
+- **IconDifferenceIgnored** — difference-ignored
+- **IconDifferenceModified** — difference-modified
+- **IconDraft** — draft
+- **IconDraftSimple** — draft-simple
+- **IconForkCode** — fork-code
+- **IconForkSimple** — fork-simple, agents
+- **IconHammer** — hammer, craft, build
+- **IconHammer2** — hammer-2, crafting, building
+- **IconHook** — hook, phishing
+- **IconLadybug** — ladybug, issue
+- **IconMergeConflict** — merge-conflict
+- **IconMergeConflictSimple** — merge-conflict-simple
+- **IconMerged** — merged
+- **IconMergedSimple** — merged-simple
+- **IconPullRequest** — pull-request, pr-create
+- **IconPullRequestClosedSimple** — pull-request-closed-simple
+- **IconPullRequestSimple** — pull-request-simple
+- **IconPush** — push, launch, rocket
+- **IconRequestClosed** — request-closed
+- **IconSandbox** — sandbox, playground
+- **IconShip** — ship, changelog
+- **IconSpeedDots** — speed-dots, motion, animation
+- **IconTestflight** — testflight, beta
+- **IconVibeCoding** — vibe-coding, ai, ide, syntax
+- **IconVibeCoding2** — vibe-coding-2, ai, ide, syntax
+- **IconWebsite** — website, webbuilder, coding
+
+### Communication
+
+- **IconBook** — book, guide, info, faq
+- **IconBookSimple** — book-simple, guide, info, faq
+- **IconBubble2** — bubble-2, message, chat
+- **IconBubble3** — bubble-3, message, chat
+- **IconBubble4** — bubble-4, message, chat
+- **IconBubble5** — bubble-5, message, chat
+- **IconBubble6** — bubble-6, message, chat
+- **IconBubbleAlert** — bubble-alert, comment, feedback
+- **IconBubbleAnnotation2** — bubble-annotation-2, message, chat
+- **IconBubbleAnnotation3** — bubble-annotation-3, message, chat
+- **IconBubbleAnnotation4** — bubble-annotation-4, message, chat
+- **IconBubbleAnnotation5** — bubble-annotation-5, message, chat
+- **IconBubbleAnnotation6** — bubble-annotation-6, message, chat
+- **IconBubbleCheck** — bubble-check, comment, feedback
+- **IconBubbleCrossed** — bubble-crossed, comment, feedback
+- **IconBubbleDots** — bubble-dots, comment, feedback
+- **IconBubbleHeart** — bubble-heart, comment, feedback
+- **IconBubbleInfo** — bubble-info, comment, feedback
+- **IconBubblePlus** — bubble-plus, comment, feedback
+- **IconBubbleQuestion** — bubble-question, comment, feedback
+- **IconBubbleQuotes** — bubble-quotes
+- **IconBubbleSparkle** — bubble-sparkle, comment, feedback
+- **IconBubbleText** — bubble-text, comment, feedback
+- **IconBubbleText6** — bubble-text-6, message, chat
+- **IconBubbleWide** — bubble-wide, message, chat
+- **IconBubbleWideAnnotation** — bubble-wide-annotation, message, chat
+- **IconBubbleWideNotification** — bubble-wide-notification, badge, message, chat
+- **IconBubbles** — bubbles, messages, chat, communicate
+- **IconCall** — call, phone
+- **IconCallCancel** — call-cancel, phone
+- **IconCallIncoming** — call-incoming, phone
+- **IconCallOutgoing** — call-outgoing, phone
+- **IconChatBubble7** — chat-bubble-7
+- **IconChatBubbles** — chat-bubbles
+- **IconEmail1** — email-1, envelope
+- **IconEmail2** — email-2, envelope
+- **IconEmail3** — email-3, envelope
+- **IconEmailNotification** — email-notification, badge, envelope
+- **IconEmailPlus** — email-plus, envelope, add, plus
+- **IconEmailSettings** — email-settings, envelope, gear
+- **IconInvite** — invite, briefing
+- **IconMailbox** — mailbox, inbox
+- **IconNewspaper** — newspaper, News, paper
+- **IconNewspaper1** — newspaper-1, guide, info, faq, book
+- **IconNewspaper2** — newspaper-2, guide, info, faq, book
+- **IconNewspaper3** — newspaper-3
+- **IconPaperPlane** — paper-plane, send
+- **IconPaperPlaneTopRight** — paper-plane-top-right, send
+- **IconPostcard1** — postcard-1, address
+- **IconPostcard2** — postcard-2, address
+- **IconReference** — reference, books, study, library, knowledge
+- **IconTelephone** — telephone, phone, contact
+- **IconVoiceAndVideo** — voice-and-video, media
+
+### Crypto
+
+- **IconAirdrop2** — airdrop-2, free, drop, parachute
+- **IconBitcoin** — bitcoin
+- **IconCoin1** — coin-1, credits, money
+- **IconCoin2** — coin-2, credits
+- **IconCoinStack** — coin-stack, tokens, data, money
+- **IconCoins** — coins, money, transfer
+- **IconCoinsAdd** — coins-add, money
+- **IconCrypto** — crypto
+- **IconCryptoCoin** — crypto-coin
+- **IconCryptoWallet** — crypto-wallet
+- **IconCryptopunk** — cryptopunk, nft, pfp, profile, avatar
+- **IconEthereum** — ethereum
+- **IconGas** — gas
+- **IconSecretPhrase** — secret-phrase, code, private-phrase
+- **IconTradingViewCandles** — trading-view-candles
+- **IconTradingViewLine** — trading-view-line
+- **IconTradingViewSteps** — trading-view-steps
+- **IconWeb3** — web3, crypto-space, nft
+
+### Devices & Signals
+
+- **IconAgentNetwork** — agent-network, connections, atoms
+- **IconAirdrop** — airdrop, file-sharing, radar
+- **IconAirplay** — airplay
+- **IconAirplayAudio** — airplay-audio, audio-stream
+- **IconAirpodCase** — airpod-case, airpods
+- **IconBatteryEmpty** — battery-empty, power
+- **IconBatteryError** — battery-error, power
+- **IconBatteryFull** — battery-full, power
+- **IconBatteryLoading** — battery-loading, power
+- **IconBatteryLow** — battery-low, power
+- **IconBatteryMedium** — battery-medium, power
+- **IconBluetooth** — bluetooth
+- **IconCalculator** — calculator
+- **IconChip** — chip, esim
+- **IconChipSimple** — chip-simple, processor
+- **IconChromecast** — chromecast, cast
+- **IconCircleRecord** — circle-record, voicemail, band, tape
+- **IconConnectors1** — connectors-1, connection, apps
+- **IconConnectors2** — connectors-2, connection, apps
+- **IconDevices** — devices, macbook, iphone, phone, connected
+- **IconDevices2** — devices-2, laptop-phone
+- **IconFullscreen1** — fullscreen-1
+- **IconFullscreen2** — fullscreen-2
+- **IconGyroscopeSensor** — gyroscope-sensor
+- **IconHaptic** — haptic, waves
+- **IconHapticFeedback** — haptic-feedback, vibration
+- **IconImac** — imac, computer
+- **IconKeyboardCable** — keyboard-cable
+- **IconKeyboardDown** — keyboard-down
+- **IconKeyboardUp** — keyboard-up
+- **IconLiveFull** — live-full, signal, podcast
+- **IconLiveNoSignal** — live-no-signal, signal
+- **IconLiveWeak** — live-weak, signal
+- **IconMacMini** — mac-mini
+- **IconMacbook** — macbook, laptop, computer
+- **IconMacbookAir** — macbook-air
+- **IconMacintosh** — macintosh, mac
+- **IconMagicMouse** — magic-mouse
+- **IconMouse** — mouse
+- **IconMouseClassic** — mouse-classic, click
+- **IconMouseClassic2** — mouse-classic-2, click
+- **IconMouseScrollDown** — mouse-scroll-down
+- **IconMouseScrollUp** — mouse-scroll-up
+- **IconNfc1** — nfc-1
+- **IconNfc2** — nfc-2
+- **IconOffline** — offline, disconnect, energy
+- **IconOldPhone** — old-phone
+- **IconPhone** — phone, iphone, mobile
+- **IconPhoneDynamicIsland** — phone-dynamic-island
+- **IconPhoneHaptic** — phone-haptic, vibration
+- **IconPhoneTopDynamicIsland** — phone-top-dynamic-island
+- **IconPhoneTopPunchHoleCenter** — phone-top-punch-hole-center
+- **IconPrinter** — printer, print
+- **IconProcessor** — processor, chip
+- **IconRadar** — radar, control, check
+- **IconRadio** — radio, antenna, signal, broadcast, speaker
+- **IconSatellite1** — satellite-1, radar, feed
+- **IconSatellite2** — satellite-2, radar, feed
+- **IconServer1** — server-1, storage, data, coins, money
+- **IconServer2** — server-2, storage, data, coins, money
+- **IconSignalTower** — signal-tower, live, podcast
+- **IconSmartwatch1** — smartwatch-1, clock, time
+- **IconSmartwatch2** — smartwatch-2, clock, time
+- **IconSpeaker** — speaker, music, sound
+- **IconStorage** — storage, hdd, ssd
+- **IconStudioDisplay** — studio-display, thunderbolt
+- **IconStudioDisplay** — studio-display, xdr, imac
+- **IconTablet** — tablet, ipad, mobile
+- **IconTape** — tape
+- **IconTape2** — tape-2, cassette, record, music
+- **IconTelevision** — television, tv, monitor, video, screen, display
+- **IconTelevisionOld** — television-old, tv, monitor, video, screen, display
+- **IconUsb** — usb, connection, connect, save, data
+- **IconUsbC** — usb-c, type-c
+- **IconWebcam** — webcam, camera, view
+- **IconWifiFull** — wifi-full, spot, signal, hot spot
+- **IconWifiNoSignal** — wifi-no-signal, spot, signal, hot spot
+- **IconWifiSquare** — wifi-square, spot, signal, hot spot
+- **IconWifiWeak** — wifi-weak, spot, signal, hot spot
+
+### Edit
+
+- **Icon3d** — 3d, shaders
+- **IconAddKeyframe** — add-keyframe, rhombus
+- **IconBezier** — bezier, vector, nodes
+- **IconBezierAdd** — bezier-add, vector, nodes
+- **IconBezierCircle** — bezier-circle, vector, nodes
+- **IconBezierCurve** — bezier-curve, bezier, vector, svg
+- **IconBezierCurves** — bezier-curves, path
+- **IconBezierEdit** — bezier--edit
+- **IconBezierPointer** — bezier-pointer
+- **IconBezierRemove** — bezier-remove, vector, nodes
+- **IconBooleanGroupExclude** — boolean-group-exclude
+- **IconBooleanGroupIntersect** — boolean-group-intersect
+- **IconBooleanGroupIntersect2** — boolean-group-intersect-2
+- **IconBooleanGroupIntersect3** — boolean-group-intersect-3
+- **IconBooleanGroupSubstract** — boolean-group-substract
+- **IconBooleanGroupSubstract2** — boolean-group-substract-2
+- **IconBooleanGroupUnion** — boolean-group-union
+- **IconBooleanGroupUnion2** — boolean-group-union-2
+- **IconBrush** — brush, color
+- **IconCircle** — circle, line, paint
+- **IconColorPalette** — color-palette, colours
+- **IconColorPalette2** — color-palette-2, design, coloring
+- **IconColorRoll** — color-roll, paint-roller
+- **IconColorSwatch** — color-swatch, palette, colours
+- **IconColors** — colors, rgb, adjustments
+- **IconComponents** — components, figma
+- **IconCornerRadius** — corner-radius, border-radius
+- **IconDispersion** — dispersion, refraction
+- **IconDistortion** — distortion, liquid, material
+- **IconDraw** — draw, sketch, scratch
+- **IconEditBig** — edit-big, box, pencil, pen, write, draw
+- **IconEditSmall1** — edit-small-1, box, pencil, pen, write, draw
+- **IconEditSmall2** — edit-small-2
+- **IconEraser** — eraser, rubber, clean-up
+- **IconEraserSimple** — eraser-simple, rubber, clean-up
+- **IconEyedropper** — eyedropper, color-picker, pipette, suction-tube, labor
+- **IconEyedropper2** — eyedropper-2, color-picker, pipette, suction-tube, labor
+- **IconFeather** — feather, writing
+- **IconFeather2** — feather-2, writing
+- **IconGlass** — glass, material, shader, liquid-glass
+- **IconGooey** — gooey, morph, liquid-glass
+- **IconHdr** — hdr, lighting, brightness
+- **IconHighlight** — highlight, mark, freehand, drawing, paint
+- **IconInputForm** — input-form, text-area, prompt, rename
+- **IconIntegrations** — integrations, frames, keyframes, interactions
+- **IconKeyframe** — keyframe, rhombus
+- **IconLineThickness** — line-thickness, lines, border
+- **IconMagnet** — magnet, snap-pixel, snap
+- **IconMarkdown** — markdown
+- **IconMarker** — marker, highlight
+- **IconMarker2** — marker-2, highlight
+- **IconMarkerCircle** — marker-circle, highlight
+- **IconMarkup** — markup, marker, highlight
+- **IconPaintBrush** — paint-brush, design, color, appearance
+- **IconPaintBucket** — paint-bucket, design, color, appearance
+- **IconPaintBucketDrop** — paint-bucket-drop
+- **IconPencil** — pencil, edit, write
+- **IconPencil2** — pencil-2, edit, write, prompt
+- **IconPencil3** — pencil-3, edit, write, prompt
+- **IconPencilAi** — pencil-ai, edit, write, auto-write, prompt-suggestion, auto-prompt
+- **IconPencilLine** — pencil-line, signature, write
+- **IconPencilWave** — pencil-wave, signature, write
+- **IconRecKeyframe** — rec-keyframe, rhombus
+- **IconRecKeyframe2** — rec-keyframe-2, rhombus
+- **IconRemoveKeyframe** — remove-keyframe, rhombus
+- **IconRepaint** — repaint, recreate, redo
+- **IconRewrite** — rewrite, re-edit, redo
+- **IconRewrite1** — rewrite-1, resummarize, text-edit
+- **IconRewrite2** — rewrite-2, write-again, text-edit
+- **IconRuler** — ruler
+- **IconSelectLasso** — select-lasso, circle-to-search, encircle, mark
+- **IconSelectLassoDashed** — select-lasso-dashed, circle-to-search-dashed, encircle, mark
+- **IconShaderEffect** — shader-effect, material
+- **IconShaders** — shaders, material, effect
+- **IconShimmer** — shimmer, waves, shader, effect
+- **IconSignature** — signature, sign
+- **IconSlice** — slice, knife
+- **IconSummary** — summary, summarize
+- **IconTextEdit** — text-edit, prompts, comment, draft
+- **IconToolbox** — toolbox
+- **IconVariables** — variables, figma
+- **IconVectorAnchorPointAsymmetric** — vector-anchor-point-asymmetric
+- **IconVectorAnchorPointDisconnected** — vector-anchor-point-disconnected
+- **IconVectorAnchorPointMirrored** — vector-anchor-point-mirrored, mirror-angle
+- **IconVectorAnchorPointStraight** — vector-anchor-point-straight, no-smoothing
+- **IconVectorLogo** — vector-logo, svg
+- **IconWhiteboard** — whiteboard, sketch, forms
+- **IconWrite1** — write-1, fountain-pen
+- **IconWrite2** — write-2, fountain-pen
+- **IconWrite3** — write-3, fountain-pen, vector, ink
+- **IconWriting** — writing, sketching, drawing
+
+### Emoji
+
+- **IconAlien** — alien
+- **IconEmojiAddReaction** — emoji-add-reaction, emoji-plus
+- **IconEmojiAngry** — emoji-angry
+- **IconEmojiGrinning** — emoji-grinning
+- **IconEmojiLol** — emoji-lol, laugh, comedy, joke
+- **IconEmojiMouthless** — emoji-mouthless
+- **IconEmojiNeutral** — emoji-neutral
+- **IconEmojiProfile** — emoji-profile
+- **IconEmojiSad** — emoji-sad, unhappy
+- **IconEmojiSadTear** — emoji-sad-tear
+- **IconEmojiSleep** — emoji-sleep, snooze
+- **IconEmojiSmile** — emoji-smile
+- **IconEmojiSmiley** — emoji-smiley, face, smile
+- **IconEmojiSmilingFace** — emoji-smiling-face, heart-eyes
+- **IconEmojiSmirking** — emoji-smirking
+- **IconEmojiStarStruck** — emoji-star-struck, star-eyes
+- **IconEmojiTongue** — emoji-tongue, fun
+- **IconEmojiWink** — emoji-wink
+- **IconEmojiWinkTongue** — emoji-wink-tongue, fun
+- **IconMask** — mask, theatre
+- **IconPoop** — poop, spam
+
+### Filter & Settings
+
+- **IconBlockSortAscending** — block-sort-ascending
+- **IconBlockSortDescending** — block-sort-descending
+- **IconFilter1** — filter-1, sort
+- **IconFilter2** — filter-2, sort
+- **IconFilterAsc** — filter-asc
+- **IconFilterAscending** — filter-ascending, sort, az
+- **IconFilterCircle** — filter-circle, sort
+- **IconFilterDesc** — filter-desc
+- **IconFilterDescending** — filter-descending, sort, za
+- **IconFilterTimeline** — filter-timeline, sort
+- **IconLiquidGlass** — liquid-glass, glass-effect
+- **IconMaintenance** — maintenance, settings, service, tweak
+- **IconReorder** — reorder
+- **IconSettingsGear1** — settings-gear-1, preferences
+- **IconSettingsGear2** — settings-gear-2, preferences
+- **IconSettingsGear3** — settings-gear-3, preferences
+- **IconSettingsGear4** — settings-gear-4, preferences
+- **IconSettingsKnob** — settings-knob
+- **IconSettingsSliderHor** — settings-slider-hor
+- **IconSettingsSliderThree** — settings-slider-three
+- **IconSettingsSliderVer** — settings-slider-ver
+- **IconSettingsToggle1** — settings-toggle-1
+- **IconSettingsToggle2** — settings-toggle-2
+- **IconSortArrowUpDown** — sort-arrow-up-down
+- **IconToggle** — toggle, settings, control
+
+### Folders & Files
+
+- **IconArchive** — archive, folder, box
+- **IconBlankPageLandscape** — blank-page-landscape
+- **IconBlankPagePortrait** — blank-page-portrait
+- **IconDossier** — dossier
+- **IconFaceIdFace** — face-id-face
+- **IconFileArrowLeftIn** — file-arrow-left-in, document-arrow-left-in, incoming
+- **IconFileArrowLeftOut** — file-arrow-left-out, document-arrow-left-out, outgoing
+- **IconFileArrowRightIn** — file-arrow-right-in, document-arrow-right-in, incoming
+- **IconFileArrowRightOut** — file-arrow-right-out, document-arrow-right-out, outgoing
+- **IconFileBend** — file-bend, document
+- **IconFileChart** — file-chart, document
+- **IconFileCloud** — file-cloud, document
+- **IconFileDownload** — file-download, document
+- **IconFileEdit** — file-edit, document, cloud, sync
+- **IconFileJpg** — file-jpg, image, jpeg
+- **IconFileLink** — file-link, hyperlink
+- **IconFileLock** — file-lock, document
+- **IconFilePdf** — file-pdf, document
+- **IconFilePng** — file-png, document
+- **IconFileText** — file-text, document
+- **IconFileZip** — file-zip
+- **IconFiles** — files, documents
+- **IconFinder** — finder, files, os
+- **IconFinderFace** — finder-face
+- **IconFloppyDisk1** — floppy-disk-1, save
+- **IconFloppyDisk2** — floppy-disk-2, save
+- **IconFolder1** — folder-1
+- **IconFolder2** — folder-2
+- **IconFolderAddLeft** — folder-add-left
+- **IconFolderAddRight** — folder-add-right
+- **IconFolderBookmarks** — folder-bookmarks
+- **IconFolderCloud** — folder-cloud
+- **IconFolderDelete** — folder-delete
+- **IconFolderDownload** — folder-download
+- **IconFolderLink** — folder-link, link, attachment
+- **IconFolderLink2** — folder-link-2, link, attachment
+- **IconFolderOpen** — folder-open
+- **IconFolderOpenFront** — folder-open-front
+- **IconFolderPaper** — folder-paper
+- **IconFolderRestricted** — folder-restricted
+- **IconFolderShared** — folder-shared
+- **IconFolderShield** — folder-shield, folder-security
+- **IconFolderUpload** — folder-upload
+- **IconFolders** — folders
+- **IconFolders2** — folders-2, collection, stuff
+- **IconLibrary** — library, stuff, vinyl-records
+- **IconListBulletsSquare** — list-bullets-square
+- **IconMoveFolder** — move-folder
+- **IconNote1** — note-1
+- **IconNote2** — note-2
+- **IconNoteText** — note-text
+- **IconNotebook** — notebook, cover
+- **IconNotepad** — notepad, notes
+- **IconNotes** — notes
+- **IconPageAdd** — page-add
+- **IconPageAttachment** — page-attachment
+- **IconPageCheck** — page-check, signed, document
+- **IconPageCloud** — page-cloud
+- **IconPageCross** — page-cross, close, x, document, list, file
+- **IconPageCrossText** — page-cross-text, close, x, document, list, file
+- **IconPageEdit** — page-edit, document
+- **IconPageEditText** — page-edit-text, document, file
+- **IconPageEmpty** — page-empty
+- **IconPageLink** — page-link
+- **IconPageLock** — page-lock
+- **IconPagePieChart** — page-pie-chart
+- **IconPageSearch** — page-search
+- **IconPageSearchLines** — page-search-lines
+- **IconPageText** — page-text
+- **IconPageTextAdd** — page-text-add
+- **IconPageTextCloud** — page-text-cloud
+- **IconPageTextLink** — page-text-link
+- **IconPageTextLock** — page-text-lock
+- **IconPageTextPieChart** — page-text-pie-chart
+- **IconPageTextSearch** — page-text-search
+- **IconScript** — script, paper, page, contract, file, document, skills
+- **IconScript2** — script-2, paper, page, contract, file, document, skills
+- **IconSdCard** — sd-card, memory-stick
+- **IconServer** — server, data, storage
+- **IconSimCard1** — sim-card-1
+- **IconSimCard2** — sim-card-2
+- **IconSketchbook** — sketchbook
+- **IconTable** — table, spreedsheet, chart
+- **IconZip** — zip, rar, compressed, archive
+
+### Food
+
+- **IconAppleNewton** — apple-newton, low-hanging-fruits, fall
+- **IconApples** — apples, fruit
+- **IconAvocado** — avocado
+- **IconBaking** — baking, cooking
+- **IconBanana** — banana, fruit
+- **IconBananas** — bananas, fruits
+- **IconBeer** — beer, cheers
+- **IconBirthdayCake** — birthday-cake
+- **IconBottle** — bottle, wine, campaign
+- **IconBreakfast** — breakfast, fried-egg
+- **IconBurger** — burger, hamburger, sandwich
+- **IconCandy** — candy, sweet
+- **IconCereals** — cereals, wheat, gluten, corn, grain
+- **IconCheeseburger** — cheeseburger, hamburger, sandwich
+- **IconCherry** — cherry
+- **IconCherryOnTop** — cherry-on-top, cake, birthday
+- **IconCocktail** — cocktail, drink
+- **IconCookies** — cookies
+- **IconCooking** — cooking, stirring
+- **IconCup** — cup, tea, coffee, mug
+- **IconCupHot** — cup-hot, coffee, tea, milk, mug
+- **IconDonut** — donut
+- **IconDonutGlaze** — donut-glaze
+- **IconDrink** — drink, cup, straw, mug
+- **IconFoodBell** — food-bell, serving-bell, glosche, serve
+- **IconFoodExperiences** — food-experiences, plate
+- **IconFork** — fork, caple, food, restaurant
+- **IconForkKnife** — fork-knife, cable, restaurant, cutlery
+- **IconForkSpoon** — fork-spoon, cable, restaurant, cutlery
+- **IconGarlic** — garlic
+- **IconGlassWater** — glass-water, drink
+- **IconHotDrinkCup** — hot-drink-cup, coffee-mug, dup, mug
+- **IconIcebowl** — icebowl, cooling, vibe
+- **IconOrange** — orange
+- **IconPan** — pan, cooking, skills
+- **IconPancakes** — pancakes, maple-syrup, breakfast
+- **IconPizza** — pizza
+- **IconPopcorn** — popcorn, movies, series
+- **IconPopsicle1** — popsicle-1, ice-cream, sweets
+- **IconPopsicle2** — popsicle-2, ice-cream, sweets
+- **IconSteak** — steak, t-bone, raw
+- **IconSteakSteamLines** — steak-steam-lines, t-bone
+- **IconStrawberry** — strawberry, ai, dessert
+- **IconSushi** — sushi, nigiri, sashime, maki
+- **IconTapas** — tapas, canabes
+- **IconTea** — tea, cafe, coffee, vibe
+- **IconToast** — toast, breakfest
+- **IconToque** — toque, chefs-cap, cook
+
+### Forms & Shapes
+
+- **IconFlowerShape** — flower-shape
+- **IconFormCapsule** — form-capsule, button
+- **IconFormCircle** — form-circle
+- **IconFormDiamond** — form-diamond, square-45-degrees
+- **IconFormFlower** — form-flower
+- **IconFormHexagon** — form-hexagon
+- **IconFormOctagon** — form-octagon
+- **IconFormOctagonRotate** — form-octagon-rotate
+- **IconFormOval** — form-oval
+- **IconFormPentagon** — form-pentagon
+- **IconFormRectangle** — form-rectangle
+- **IconFormRhombus** — form-rhombus
+- **IconFormSeal** — form-seal, badge
+- **IconFormSquare** — form-square
+- **IconFormsCircleSquare** — forms-circle-square, shapes, designs, templates
+
+### Furniture & Household
+
+- **IconArmchair** — armchair, seat, chill
+- **IconBed** — bed
+- **IconCabinet** — cabinet
+- **IconChair** — chair, seat
+- **IconChairModern** — chair-modern, seat
+- **IconDeskOffice** — desk-office
+- **IconDeskOffice2** — desk-office-2
+- **IconDishwasher** — dishwasher, clean
+- **IconDrawer1** — drawer-1
+- **IconDrawer2** — drawer-2
+- **IconDrawer3** — drawer-3
+- **IconDrawer4** — drawer-4
+- **IconDresser** — dresser, drawer
+- **IconFridge** — fridge
+- **IconSofa** — sofa, couch, chill
+- **IconWardrobe** — wardrobe
+- **IconWashingMachine** — washing-machine, laundry, clean
+
+### Gaming
+
+- **IconDice1** — dice-1, roll
+- **IconDice2** — dice-2, roll
+- **IconDice3** — dice-3, roll
+- **IconDice4** — dice-4, roll
+- **IconDice5** — dice-5, roll
+- **IconDice6** — dice-6, roll
+- **IconDices** — dices, random, roll
+- **IconGamecontroller** — gamecontroller, joystick, play
+- **IconGamepad** — gamepad, gaming, joystick
+- **IconGamepadControls** — gamepad-controls, joystick
+- **IconGamepadControlsDown** — gamepad-controls-down, joystick
+- **IconGamepadControlsLeft** — gamepad-controls-left, joystick
+- **IconGamepadControlsRight** — gamepad-controls-right, joystick
+- **IconGamepadControlsRound** — gamepad-controls-round, joystick
+- **IconGamepadControlsRoundDown** — gamepad-controls-round-down
+- **IconGamepadControlsRoundLeft** — gamepad-controls-round-left
+- **IconGamepadControlsRoundRight** — gamepad-controls-round-right
+- **IconGamepadControlsRoundUp** — gamepad-controls-round-up
+- **IconGamepadControlsUp** — gamepad-controls-up, joystick
+- **IconOldJoystick** — old-joystick, gamepad, gaming, control
+- **IconRoulette1** — roulette-1, coincidence, gambling
+- **IconRoulette2** — roulette-2, coincidence, gambling
+- **IconScratchCard** — scratch-card
+- **IconSlots** — slots, slot-mashine, gambling
+- **IconSword** — sword, action, gaming
+
+### Hands
+
+- **IconBecepsLeftArm** — beceps-left-arm, strong, flex, power
+- **IconBecepsRightArm** — beceps-right-arm, strong, flex, power
+- **IconBlip** — blip, flick, snip, snap, easy, thanos
+- **IconFistbump** — fistbump, boom, hands, friends
+- **IconHand4Finger** — hand-4-finger, select
+- **IconHand5Finger** — hand-5-finger, select
+- **IconHandshake** — handshake, heart
+- **IconHumanMashine** — human-mashine, high-five, ai, hands
+- **IconMagicHands** — magic-hands, rainbow-hands
+- **IconMoneyHand** — money-hand, coins, pay
+- **IconPinch** — pinch
+- **IconPointer** — pointer, hand
+- **IconRaisingHand4Finger** — raising-hand-4-finger, hey, hello
+- **IconRaisingHand5Finger** — raising-hand-5-finger, hey, hello, high-five
+- **IconShaka1** — shaka-1, call me, hang-ten
+- **IconShaka2** — shaka-2, call me, hang-ten
+- **IconThumbDownCurved** — thumb-down-curved
+- **IconThumbUpCurved** — thumb-up-curved
+- **IconThumbsDown** — thumbs-down, thumb, hand, no, contra
+- **IconThumbsUp** — thumbs-up, thumb, hand, yes, pro
+- **IconTouch** — touch, tab, click
+- **IconTouchGrass** — touch-grass, nature, logout
+
+### Health & Medical
+
+- **IconIcon** — icon
+- **IconInjection** — injection
+- **IconMask** — mask, medical-mask, covid
+- **IconMedicalCross** — medical-cross, first-aid, emergency
+- **IconMedicalCrossCircle** — medical-cross-circle, first-aid, emergency
+- **IconMedicalCrossSquare** — medical-cross-square, first-aid, emergency
+- **IconMedicinePill** — medicine-pill
+- **IconMedicinePill2** — medicine-pill-2, tablett
+- **IconMedicineTablett** — medicine-tablett, pill
+- **IconStethoscope** — stethoscope, check, diagnostics, analyze
+
+### Interface General
+
+- **IconAnchor1** — anchor-1, link
+- **IconAnchor2** — anchor-2, link
+- **IconAppearanceDarkMode** — appearance-dark-mode, switch
+- **IconAppearanceLightMode** — appearance-light-mode, switch
+- **IconArchive1** — archive-1, inbox, file
+- **IconArchiveJunk** — archive-junk
+- **IconArrowBoxLeft** — arrow-box-left, logout, leave, door
+- **IconArrowBoxRight** — arrow-box-right, login, enter, door
+- **IconArrowInbox** — arrow-inbox, download, file, down, save
+- **IconArrowLeftX** — arrow-left-x, delete, remove, backspace
+- **IconArrowOutOfBox** — arrow-out-of-box, upload, share
+- **IconArrowRounded** — arrow-rounded, share, arrow, login
+- **IconArrowsAllSides** — arrows-all-sides, move, focus
+- **IconArrowsAllSides2** — arrows-all-sides-2, scan, move, focus
+- **IconArrowsAllSides2** — arrows-all-sides-2, scan-text, text, focus, list
+- **IconBarcode** — barcode, qr code, scan
+- **IconBarsThree** — bars-three, menu, list, hamburger
+- **IconBarsThree2** — bars-three-2, menu, list, hamburger
+- **IconBarsThree3** — bars-three-3, menu, list, hamburger
+- **IconBarsTwo** — bars-two, menu simple, nav simple
+- **IconBarsTwo2** — bars-two-2, menu, nav
+- **IconBell** — bell, notification, activity, alert
+- **IconBell2** — bell-2, notification, activity, alert
+- **IconBell2Snooze** — bell-2-snooze, notification, activity, alert
+- **IconBellCheck** — bell-check, notification alarm, activity, alert
+- **IconBellOff** — bell-off, notification off, activity, alert
+- **IconBookmark** — bookmark, banner, flag, tag
+- **IconBookmarkCheck** — bookmark-check, add, check
+- **IconBookmarkDelete** — bookmark-delete, remove, banner, flag, tag, x
+- **IconBookmarkPlus** — bookmark-plus, banner, flag, tag
+- **IconBookmarkRemove** — bookmark-remove, off
+- **IconBox2** — box-2, inbox, archive, tray, shelf
+- **IconBox2AltFill** — box-2-alt-fill, inbox, archive, tray, shelf
+- **IconBrokenChainLink1** — broken-chain-link-1, unlink
+- **IconBrokenChainLink2** — broken-chain-link-2, unlink
+- **IconBrokenChainLink3** — broken-chain-link-3, unlink
+- **IconBrokenHeart** — broken-heart, delete-account
+- **IconBrowserTabs** — browser-tabs, tab-groups
+- **IconBucket** — bucket, trash, can
+- **IconCard** — card, profile, avatar, account
+- **IconChainLink1** — chain-link-1, url
+- **IconChainLink2** — chain-link-2, url
+- **IconChainLink3** — chain-link-3, url
+- **IconChainLink4** — chain-link-4
+- **IconCheckCircle2** — check-circle-2, done, confirm, save, success
+- **IconCheckCircle2Dashed** — check-circle-2-dashed, progress
+- **IconCheckCircleDashed** — check-circle-dashed, done, confirm, save, success
+- **IconChecklist** — checklist, list
+- **IconCheckmark1** — checkmark-1
+- **IconCheckmark1Medium** — checkmark-1-medium
+- **IconCheckmark1Small** — checkmark-1-small
+- **IconCheckmark2** — checkmark-2
+- **IconCheckmark2Medium** — checkmark-2-medium
+- **IconCheckmark2Small** — checkmark-2-small
+- **IconCircleArrowDown** — circle-arrow-down, download square, save
+- **IconCircleBanSign** — circle-ban-sign, circle, block, ads
+- **IconCircleCheck** — circle-check, check radio, circle, checkbox, check, checkmark, confirm
+- **IconCircleDashed** — circle-dashed
+- **IconCircleDotsCenter1** — circle-dots-center-1, menu 1, grid, circle
+- **IconCircleDotsCenter2** — circle-dots-center-2, menu 1, grid, circle
+- **IconCircleDotted** — circle-dotted
+- **IconCircleInfo** — circle-info, info circle, tooltip, information
+- **IconCircleMinus** — circle-minus, remove
+- **IconCirclePlaceholderOff** — circle-placeholder-off
+- **IconCirclePlaceholderOn** — circle-placeholder-on
+- **IconCirclePlus** — circle-plus, add
+- **IconCircleQuestionmark** — circle-questionmark, faq, help, questionaire
+- **IconCircleX** — circle-x, close, checkbox, remove, failed, cancel
+- **IconClipboard** — clipboard, copy, list
+- **IconClipboard2** — clipboard-2, copy, list
+- **IconCloseCircleDashed** — close-circle-dashed, close, checkbox, remove
+- **IconCompassRound** — compass-round, browser, safari, web, internet, navigation
+- **IconCompassSquare** — compass-square, browser, safari, web, internet, navigation
+- **IconCrossLarge** — cross-large, crossed large, close
+- **IconCrossMedium** — cross-medium, crossed medium, close
+- **IconCrossSmall** — cross-small, crossed small, delete, remove
+- **IconDeepSearch** — deep-search, deep-research, focus-search
+- **IconDotGrid1x3Horizontal** — dot-grid-1x3-horizontal, menu, drag, grab
+- **IconDotGrid1x3HorizontalTight** — dot-grid-1x3-horizontal-tight, menu, drag, grab
+- **IconDotGrid1x3Vertical** — dot-grid-1x3-vertical, menu, drag, grab
+- **IconDotGrid1x3VerticalTight** — dot-grid-1x3-vertical-tight, menu, drag, grab
+- **IconDotGrid2x3** — dot-grid-2x3, menu, drag, grab
+- **IconDotGrid3x3** — dot-grid-3x3, menu, drag, grab
+- **IconDoupleCheck** — douple-check
+- **IconDoupleCheckmark1** — douple-checkmark-1
+- **IconDoupleCheckmark1Small** — douple-checkmark-1-small
+- **IconDoupleCheckmark2Small** — douple-checkmark-2-small
+- **IconElectrocardiogram** — electrocardiogram, activity, notification, pulse, heartbeat, beat
+- **IconExclamationCircle** — exclamation-circle, info, warning
+- **IconExclamationCircleBold** — exclamation-circle-bold, info, warning
+- **IconExclamationTriangle** — exclamation-triangle, error, warning, alert
+- **IconFeature** — feature, shine
+- **IconGauge** — gauge, tachometer, performance, speed, scale
+- **IconHandBell** — hand-bell
+- **IconHeart** — heart, like, health, life, favorite
+- **IconHeart2** — heart-2, like, health, life, fav
+- **IconHeartBeat** — heart-beat, heart rate, pulse
+- **IconHeartDonation** — heart-donation, dollar
+- **IconImport** — import, download, save
+- **IconImport2** — import-2, download, save
+- **IconInboxChecked** — inbox-checked, saved
+- **IconInboxEmpty** — inbox-empty
+- **IconInfoSimple** — info-simple, tooltip, information
+- **IconLightBulb** — light-bulb, idea, light
+- **IconLightBulbSimple** — light-bulb-simple, idea
+- **IconLightbulbGlow** — lightbulb-glow, idea, reasoning, think
+- **IconListAdd** — list-add, list-plus, new-list
+- **IconListBullets** — list-bullets
+- **IconLoader** — loader
+- **IconLoadingCircle** — loading-circle, quarter, spinner
+- **IconMagnifyingGlass** — magnifying-glass, search
+- **IconMagnifyingGlass2** — magnifying-glass-2, search
+- **IconMathBasic** — math-basic, calc
+- **IconMathEquals** — math-equals, =
+- **IconMathEqualsCircle** — math-equals-circle
+- **IconMathGreaterThan** — math-greater-than, >
+- **IconMathGreaterThanCircle** — math-greater-than-circle, >
+- **IconMathLessThan** — math-less-than, <
+- **IconMathLessThanCircle** — math-less-than-circle, <
+- **IconMathMultiplication** — math-multiplication
+- **IconMathNotes** — math-notes, function
+- **IconMathScientific** — math-scientific, function
+- **IconMinusLarge** — minus-large, remove, delete
+- **IconMinusMedium** — minus-medium, remove, delete
+- **IconMinusSmall** — minus-small, remove, delete
+- **IconMorningBrief** — morning-brief, daily-todo
+- **IconPaperclip1** — paperclip-1, attachment
+- **IconPaperclip2** — paperclip-2, attachment
+- **IconPaperclip3** — paperclip-3, attachment
+- **IconPin** — pin
+- **IconPin2** — pin-2
+- **IconPlanning** — planning, list, checklist
+- **IconPlusLarge** — plus-large, add large
+- **IconPlusMedium** — plus-medium, add medium
+- **IconPlusSmall** — plus-small, add small
+- **IconPreview** — preview, details
+- **IconProgress100** — progress-100, ideas, open, status, task
+- **IconProgress25** — progress-25, ideas, open, status, task
+- **IconProgress50** — progress-50, ideas, open, status, tas
+- **IconProgress75** — progress-75, ideas, open, status, tas
+- **IconProgressArc** — progress-arc, progress-dynamic, ideas, open, status, task
+- **IconQrCode** — qr-code, barcode, scan
+- **IconQuickSearch** — quick-search, quick-menu, command-k
+- **IconReview** — review, star-square
+- **IconScanCode** — scan-code, barcode
+- **IconSearchMenu** — search-menu, list-search
+- **IconSearchOptions** — search-options, settings
+- **IconShapesPlusXSquareCircle** — shapes-plus-x-square-circle, icon, icons, shapes, games
+- **IconShareAndroid** — share-android
+- **IconShareOs** — share-os
+- **IconShredder** — shredder, permanently
+- **IconSidebar** — sidebar, menu, list, window
+- **IconSquareArrowDown** — square-arrow-down, download square, save
+- **IconSquareBehindSquare1** — square-behind-square-1, copy 1, layers, pages
+- **IconSquareBehindSquare2** — square-behind-square-2, copy 2, layers, pages
+- **IconSquareBehindSquare3** — square-behind-square-3, copy 3, layers, pages
+- **IconSquareBehindSquare4** — square-behind-square-4, copy 4, layers, pages
+- **IconSquareBehindSquare6** — square-behind-square-6, layers, copy 6, pages
+- **IconSquareCheck** — square-check, checkbox, check, checkmark, confirm
+- **IconSquareChecklist** — square-checklist, checklist box, check, list
+- **IconSquareChecklistBell** — square-checklist-bell, checklist box, check, list, search
+- **IconSquareChecklistMagnifyingGlass** — square-checklist-magnifying-glass, checklist box, check, list, search
+- **IconSquareCircleTopRight** — square-circle-top-right, notifications, badge
+- **IconSquareDotedBehindSquare** — square-doted-behind-square, copy, layers, pages
+- **IconSquareGridCircle** — square-grid-circle, layout, grid, list, category, categories
+- **IconSquareGridMagnifyingGlass** — square-grid-magnifying-glass, layout, grid, list, search, find, magifier
+- **IconSquareInfo** — square-info, information, tooltip
+- **IconSquareLines** — square-lines, note, card, text
+- **IconSquareMinus** — square-minus, remove, delete
+- **IconSquarePlaceholder** — square-placeholder
+- **IconSquarePlaceholderDashed** — square-placeholder-dashed
+- **IconSquarePlus** — square-plus, add
+- **IconSquareX** — square-x, close, x, checkbox, remove
+- **IconStar** — star, favorite, award
+- **IconStarLines** — star-lines, features, favorite, award, to the moon, rising
+- **IconTarget** — target, focus, do-not-disdurb
+- **IconTarget1** — target-1, zoom, crosshair
+- **IconTarget2** — target-2, zoom, crosshair
+- **IconTargetArrow** — target-arrow, goal, aim, focus, do-not-disdurb
+- **IconTasks** — tasks, lists, todos
+- **IconTextareaDrag** — textarea-drag
+- **IconThumbtack** — thumbtack, pin, location, bookmark
+- **IconTodos** — todos, check, things, task
+- **IconTrashCan** — trash-can, delete, remove, garbage, waste
+- **IconTrashCanSimple** — trash-can-simple, delete, remove, garbage, waste
+- **IconTrashPaper** — trash-paper
+- **IconTrashPermanently** — trash-permanently, remove
+- **IconTrashRounded** — trash-rounded, delete, remove
+- **IconTrial** — trial, try, money-back, test-phase
+- **IconUnarchiv** — unarchiv, unbox
+- **IconUnblock** — unblock, unban
+- **IconUnpin** — unpin
+- **IconUnpin2** — unpin-2
+- **IconUntrash** — untrash
+- **IconWindow** — window, timeline, feed, posts
+- **IconWindow2** — window-2, browser, app, desktop
+- **IconWindowApp** — window-app, browser, app, desktop
+- **IconWindowCursor** — window-cursor, visit page, open app
+- **IconZoomIn** — zoom-in, search-plus
+- **IconZoomOut** — zoom-out, search-minus
+
+### Keyboard
+
+- **IconAt** — at, handle, @
+- **IconBackward** — backward, delete, remove, key
+- **IconCmd** — cmd, command, apple, key
+- **IconCmdBox** — cmd-box, command, apple, key
+- **IconControlKeyLeft** — control-key-left
+- **IconControlKeyRight** — control-key-right
+- **IconEsc** — esc, power
+- **IconHashtag** — hashtag, #
+- **IconOpt** — opt, option, key
+- **IconOptAlt** — opt-alt, option alt, key
+- **IconOptionKey** — option-key
+- **IconRunShortcut** — run-shortcut, slash, skills
+- **IconShift** — shift
+- **IconShortcut** — shortcut, hotkey, powerkey, skill
+- **IconSpacebar** — spacebar
+
+### Layout
+
+- **IconAlignHorizontalCenter** — align-horizontal-center, alignment
+- **IconAlignVerticalCenter** — align-vertical-center, alignment
+- **IconBento** — bento, layout, grid, flex
+- **IconBoard** — board, moodboard, layout, template
+- **IconBottombarHiddenBottomWide** — bottombar-hidden-bottom-wide
+- **IconCanvasGrid** — canvas-grid, design, app-icon, blueprint
+- **IconCarussel** — carussel, slides
+- **IconColumnWide** — column-wide, colums
+- **IconColumnWideAdd** — column-wide-add
+- **IconColumnWideHalf** — column-wide-half
+- **IconColumnWideHalfAdd** — column-wide-half-add
+- **IconColumnWideHalfRemove** — column-wide-half-remove
+- **IconColumnWideRemove** — column-wide-remove
+- **IconColumns3** — columns-3, layout, third
+- **IconColumns3Wide** — columns-3-wide, layout, third
+- **IconKanbanView** — kanban-view, columns
+- **IconLayersBehind** — layers-behind, slides, pages
+- **IconLayersThree** — layers-three, stack
+- **IconLayersTwo** — layers-two, stack
+- **IconLayoutAlignBottom** — layout-align-bottom
+- **IconLayoutAlignLeft** — layout-align-left
+- **IconLayoutAlignRight** — layout-align-right
+- **IconLayoutAlignTop** — layout-align-top
+- **IconLayoutBottom** — layout-bottom, grid, window
+- **IconLayoutColumn** — layout-column, grid, column
+- **IconLayoutDashboard** — layout-dashboard, grid, window
+- **IconLayoutGrid1** — layout-grid-1, grid, window
+- **IconLayoutGrid2** — layout-grid-2, grid
+- **IconLayoutHalf** — layout-half
+- **IconLayoutLeft** — layout-left, grid, window
+- **IconLayoutRight** — layout-right, grid, window
+- **IconLayoutSidebar** — layout-sidebar, grid, window
+- **IconLayoutThird** — layout-third
+- **IconLayoutTop** — layout-top, grid, window
+- **IconLayoutTopbar** — layout-topbar, grid, window
+- **IconLayoutWindow** — layout-window, grid, window
+- **IconPlaceholder** — placeholder, generate
+- **IconProjects** — projects, stack, templates, timeline
+- **IconSidebarFloating** — sidebar-floating, floating-window
+- **IconSidebarHiddenLeftWide** — sidebar-hidden-left-wide
+- **IconSidebarHiddenRightWide** — sidebar-hidden-right-wide
+- **IconSidebarLeftArrow** — sidebar-left-arrow
+- **IconSidebarSimpleLeftSquare** — sidebar-simple-left-square
+- **IconSidebarSimpleLeftWide** — sidebar-simple-left-wide
+- **IconSidebarSimpleRightSquare** — sidebar-simple-right-square
+- **IconSidebarSimpleRightWide** — sidebar-simple-right-wide
+- **IconSidebarWideLeftArrow** — sidebar-wide-left-arrow
+- **IconSlideAdd** — slide-add
+- **IconSlideTallAdd** — slide-tall-add
+- **IconSlideWideAdd** — slide-wide-add
+- **IconSlidesTall** — slides-tall
+- **IconSlidesTallAdd** — slides-tall-add
+- **IconSlidesWide** — slides-wide
+- **IconSlidesWideAdd** — slides-wide-add
+- **IconTopbarHiddenTopWide** — topbar-hidden-top-wide
+
+### Location
+
+- **IconDirection1** — direction-1, route
+- **IconDirection2** — direction-2, route
+- **IconEarth** — earth, globe, world
+- **IconGlobe** — globe, network, translate
+- **IconGlobe2** — globe-2, network, translate
+- **IconInitiatives** — initiatives, nav, rooting
+- **IconLocation** — location, explore, compass
+- **IconMap** — map, paper
+- **IconMapEditFlat** — map-edit-flat, route, plan
+- **IconMapPin** — map-pin, location
+- **IconMapPin2** — map-pin-2, location
+- **IconMapPinFlat** — map-pin-flat, route
+- **IconPinCircle** — pin-circle, location
+- **IconPinFlag** — pin-flag, location
+- **IconPinLocation** — pin-location
+- **IconRadar** — radar, location, search
+- **IconSend** — send, email, paper-plane, arrow
+- **IconStandingGlobe** — standing-globe, travel, language
+- **IconWorld** — world, globus, internet, web, globe
+
+### Nature & Energy
+
+- **IconAtom** — atom
+- **IconBlossom** — blossom, flower, growing
+- **IconChargingStation** — charging-station, electric-current, power, e-charge
+- **IconDrillingRig** — drilling-rig, oil, gas
+- **IconExposure2** — exposure-2, macro, flower
+- **IconGrass** — grass, logout, signout
+- **IconGreenPower** — green-power, green-energy
+- **IconGrowth** — growth, grow, leafs
+- **IconHomeEnergy** — home-energy, electric current, power
+- **IconHomeEnergy2** — home-energy-2, electric-current, power
+- **IconNuclearPowerPlant** — nuclear-power-plant, radiation
+- **IconPark** — park, tree, nature
+- **IconPowerPlant** — power-plant, coal, gas, factory
+- **IconPumpjack** — pumpjack, oil
+- **IconRainbow** — rainbow
+- **IconRose** — rose, flower, romance, love
+- **IconSolar** — solar
+- **IconSolarPanel** — solar-panel, Photovoltaics, energy, electricity
+- **IconTree** — tree
+- **IconWindPower** — wind-power, electric-current, power, green-energy
+
+### People
+
+- **IconAura** — aura, enlighten
+- **IconBathMan1** — bath-man-1, man, male
+- **IconBathWoman1** — bath-woman-1, women, female
+- **IconBrain** — brain, thinking, human, clever
+- **IconBrainSideview** — brain-sideview, thinking
+- **IconContacts** — contacts, address-book
+- **IconEinstein** — einstein, thinking, physics
+- **IconFocusMode** — focus-mode, hearing, headphones, music, do-not-disdurb
+- **IconGenderFemale** — gender-female
+- **IconGenderMale** — gender-male
+- **IconGroup1** — group-1, users
+- **IconGroup2** — group-2, users
+- **IconGroup3** — group-3
+- **IconHead** — head, avatar
+- **IconPeople** — people, user, person, avatar
+- **IconPeople2** — people-2, user, person, member
+- **IconPeopleAdd** — people-add, user-add
+- **IconPeopleAdd2** — people-add-2, user-add, user, person
+- **IconPeopleAdded** — people-added, user-added
+- **IconPeopleCircle** — people-circle, user-circle, avatar, profile
+- **IconPeopleCopy** — people-copy, members
+- **IconPeopleEdit** — people-edit, edit-user, edit-rights, user-rights
+- **IconPeopleGear** — people-gear, user-settings, preferences, person
+- **IconPeopleGroup2** — people-group-2, user, friend
+- **IconPeopleIdCard** — people-id-card, profile, user-account, badge, person
+- **IconPeopleIdCard2** — people-id-card-2, profile, user-account, badge, person
+- **IconPeopleLike** — people-like, inner circle
+- **IconPeopleNoise** — people-noise, audio-quality, user-noise
+- **IconPeopleRemove** — people-remove, user-remove
+- **IconPeopleRemove2** — people-remove-2
+- **IconPeopleSparkles** — people-sparkles, star, aura
+- **IconPeopleVersus** — people-versus, vs, match, 1v1
+- **IconPeopleVoice** — people-voice, user, person
+- **IconPersona** — persona, thanos-effect, remove-user, remove-account, blip
+- **IconSteveJobs** — steve-jobs, professor, innovation
+- **IconStreaming** — streaming, live, stream
+- **IconSurfing** — surfing, wave, vibe
+- **IconTeacher** — teacher
+- **IconTeacherWhiteboard** — teacher-whiteboard
+- **IconTeam** — team, group, people, community, users
+- **IconUser** — user, people, person, member
+- **IconUserAdd** — user-add, people, person, member
+- **IconUserAddRight** — user-add-right, people, person, member
+- **IconUserAdded** — user-added, people, person, member, checked
+- **IconUserBlock** — user-block, people, person, member, blocked
+- **IconUserDuo** — user-duo, team, members, persons
+- **IconUserEdit** — user-edit, people, person, member
+- **IconUserGroup** — user-group, team, club, member, friends, community
+- **IconUserHeart** — user-heart, people, person, member, favorite
+- **IconUserKey** — user-key, people, person, member, passkeys, access
+- **IconUserRemove** — user-remove, people, person, member
+- **IconUserRemoveRight** — user-remove-right, people, person, member
+- **IconUserSettings** — user-settings, people, person, member, cog
+- **IconVibeCodingBird** — vibe-coding-bird, laptop, work
+- **IconVibeCodingStar** — vibe-coding-star, working, home-office
+- **IconWheelchair** — wheelchair, bathroom accessible, toilet, wc
+
+### Photography & Video
+
+- **Icon4k** — 4k
+- **IconAddImage** — add-image, upload-image
+- **IconAdjustPhoto** — adjust-photo, tuning, settings
+- **IconAlt** — alt
+- **IconAspectRatio11** — aspect-ratio-1-1, square
+- **IconAspectRatio169** — aspect-ratio-16-9, landscape
+- **IconAspectRatio219** — aspect-ratio-21-9, wide, landscape
+- **IconAspectRatio34** — aspect-ratio-3-4, portrait
+- **IconAspectRatio43** — aspect-ratio-4-3, landscape
+- **IconAutoFlash** — auto-flash
+- **IconAutoSize** — auto-size, automatic-size, page
+- **IconBlackpoint** — blackpoint, target
+- **IconBlur** — blur
+- **IconBrightness** — brightness
+- **IconBrilliance** — brilliance, yin yang, ballance
+- **IconCamera1** — camera-1, picture, image, cam
+- **IconCamera2** — camera-2, picture, image, cam
+- **IconCamera3** — camera-3, picture, image, cam
+- **IconCamera4** — camera-4
+- **IconCamera5** — camera-5, action cam, GoPro
+- **IconCameraAuto** — camera-auto
+- **IconCameraOff** — camera-off
+- **IconCameraOff1** — camera-off-1, cam-off
+- **IconCapture** — capture, screen
+- **IconCat** — cat, image, animal, cute
+- **IconClapboard** — clapboard, movie, film
+- **IconClapboardWide** — clapboard-wide, movie, film
+- **IconClosedCaptioning** — closed-captioning, cc
+- **IconContrast** — contrast
+- **IconCrop** — crop
+- **IconDownsize** — downsize, exit-full-screen, scale-down
+- **IconDownsize2** — downsize-2, exit-full-screen, scale-down
+- **IconExpand** — expand, window, layout
+- **IconExposure1** — exposure-1, plus-minus
+- **IconFocusAuto** — focus-auto
+- **IconFocusExposure** — focus-exposure
+- **IconFocusFlash** — focus-flash
+- **IconFocusLock** — focus-lock
+- **IconFocusMacro** — focus-macro
+- **IconFocusMagic** — focus-magic
+- **IconFocusRemove** — focus-remove
+- **IconFocusRenew** — focus-renew
+- **IconFocusSquare** — focus-square
+- **IconFocusZoomIn** — focus-zoom-in
+- **IconFocusZoomOut** — focus-zoom-out
+- **IconFullScreen** — full-screen, focus
+- **IconGif** — gif
+- **IconGifSquare** — gif-square
+- **IconHd** — hd
+- **IconHighlights** — highlights
+- **IconIllustration** — illustration, painting, art
+- **IconImages1** — images-1, photos, pictures, shot
+- **IconImages1Alt** — images-1-alt, photos, pictures, shot
+- **IconImages2** — images-2, photos, pictures, shot
+- **IconImages3** — images-3, photos, pictures, shot
+- **IconImages4** — images-4, photos, macro, shot, picture
+- **IconImages4** — images-4, photos, pictures, shot
+- **IconImages5** — images-5, photos, pictures, shot
+- **IconImagesCircle** — images-circle
+- **IconLens** — lens, camera, focal-length, aperture, f-stop, iso, focus, depth
+- **IconMinimize** — minimize, window, layout
+- **IconMultiMedia** — multi-media, media, image-video
+- **IconNoFlash** — no-flash
+- **IconNoiseReduction** — noise-reduction
+- **IconPictureInPicture** — picture-in-picture
+- **IconRear** — rear, front-back, change-cam, lens
+- **IconRemoveBackground** — remove-background
+- **IconRemoveBackground2** — remove-background-2
+- **IconRetouch** — retouch, face, hair
+- **IconScreenCapture** — screen-capture, recording
+- **IconShadows** — shadows
+- **IconShareScreen** — share-screen, screen-sharing
+- **IconSplit** — split
+- **IconUnblur** — unblur
+- **IconVideo** — video, camera, movie, play
+- **IconVideo2** — video-2, camera, movie, play
+- **IconVideo2Off** — video-2-off, cam-off, movie, play
+- **IconVideoClip** — video-clip, film, movie
+- **IconVideoOff** — video-off, cam-off
+- **IconVideoOn** — video-on, cam-on
+- **IconVideoRoll** — video-roll, movie
+- **IconVideoTimeline** — video-timeline, edit-video
+- **IconVideoTrim** — video-trim
+- **IconVideos** — videos, video-playlist
+- **IconVignette** — vignette
+- **IconWallpaper** — wallpaper, os
+- **IconZap** — zap, lightning, flash, thunder
+
+### Security
+
+- **IconAnonymous** — anonymous, anonym, hidden
+- **IconAsterisk** — asterisk, placeholder
+- **IconFaceId** — face-id
+- **IconFingerPrint1** — finger-print-1, touch-id
+- **IconFingerPrint2** — finger-print-2, touch-id
+- **IconFirewall** — firewall, wall
+- **IconGhost** — ghost, hidden, unknown, horror
+- **IconGhost2** — ghost-2, privacy, hidden, unknown
+- **IconKey1** — key-1, password
+- **IconKey2** — key-2, password
+- **IconKey3** — key-3, password
+- **IconKeyhole** — keyhole, lock, unlock
+- **IconKeyhole2** — keyhole-2, lock, unlock
+- **IconLaw** — law, legal, terms, imprint, balance
+- **IconLock** — lock, private
+- **IconLock2** — lock-2, private
+- **IconPasskeys** — passkeys, passkey, passwordless
+- **IconPassport** — passport, visa
+- **IconPassword** — password, lock, protection
+- **IconPasswordStars** — password-stars
+- **IconSafeSimple** — safe-simple, save
+- **IconShield** — shield, security, protection
+- **IconShield2** — shield-2, safety, privacy
+- **IconShieldAccess** — shield-access, full-access
+- **IconShieldBreak** — shield-break, not-secure
+- **IconShieldCheck** — shield-check, security, protection
+- **IconShieldCheck2** — shield-check-2, protect, security, check
+- **IconShieldCheck3** — shield-check-3, check
+- **IconShieldCode** — shield-code, sandbox
+- **IconShieldCrossed** — shield-crossed, security, protection
+- **IconShieldKeyhole** — shield-keyhole
+- **IconShieldSearch** — shield-search, safety, privacy, security, scan
+- **IconSiren** — siren, alarm
+- **IconUmbrellaSecurity** — umbrella-security
+- **IconUnlocked** — unlocked, unlock, private
+- **IconUnlocked2** — unlocked-2, unlock, private
+- **IconVault** — vault, safe
+
+### Shopping & Payment
+
+- **Icon3dPackage** — 3d-package, box
+- **Icon3dPackage2** — 3d-package-2, box, delivery
+- **IconAddToBasket** — add-to-basket
+- **IconAddToBasket2** — add-to-basket-2
+- **IconBanknote1** — banknote-1, money, bill
+- **IconBanknote2** — banknote-2, money, bill
+- **IconBasket1** — basket-1, cart, shopping
+- **IconBasket2** — basket-2, shopping-bag
+- **IconCoinLira** — coin-lira, currency, money
+- **IconCoinPesos** — coin-pesos, currency, money
+- **IconCoinRand** — coin-rand, currency, money
+- **IconCoinRupees** — coin-rupees, currency, money
+- **IconCoinWon** — coin-won, currency, money
+- **IconCreditCard1** — credit-card-1, card, payment
+- **IconCreditCard2** — credit-card-2, card, payment
+- **IconCreditCardAdd** — credit-card-add, card, payment
+- **IconCurrencyDollar** — currency-dollar, money
+- **IconCurrencyEuro** — currency-euro, money
+- **IconCurrencyLira** — currency-lira, money
+- **IconCurrencyPesos** — currency-pesos, money
+- **IconCurrencyPounds** — currency-pounds, money
+- **IconCurrencyRupees** — currency-rupees, money
+- **IconCurrencyYen** — currency-yen, money
+- **IconDollar** — dollar, currency, money, coin, USD
+- **IconEuro** — euro, currency, money, coin, EURO
+- **IconFastDelivery** — fast-delivery, quick-commerce
+- **IconGift1** — gift-1, present
+- **IconGift2** — gift-2, present
+- **IconGiftBox** — gift-box, present
+- **IconGiftcard** — giftcard, present
+- **IconGiroCard** — giro-card
+- **IconGiroCards** — giro-cards
+- **IconMoneybag** — moneybag, purse, savings
+- **IconPackage** — package, delivery
+- **IconPackageAdd** — package-add, delivery
+- **IconPackageBlock** — package-block, delivery
+- **IconPackageCkeck** — package-ckeck, delivery
+- **IconPackageDelivery** — package-delivery
+- **IconPackageDelivery1** — package-delivery-1, address
+- **IconPackageDelivery2** — package-delivery-2, address
+- **IconPackageEdit** — package-edit, delivery
+- **IconPackageIn** — package-in, delivery
+- **IconPackageOut** — package-out, return, delivery
+- **IconPackageRemove** — package-remove, delivery
+- **IconPackageSearch** — package-search, delivery
+- **IconPackageSecurity** — package-security, delivery
+- **IconPayment** — payment, flow, connection
+- **IconPercent** — percent, sales
+- **IconPound** — pound, currency, money, coin, GBP
+- **IconReceiptBill** — receipt-bill, purchase, invoice
+- **IconReceiptCheck** — receipt-check, ticket
+- **IconReceiptStorno** — receipt-storno, close, remove
+- **IconReceiptTax** — receipt-tax, discount
+- **IconRemoveFromBasket** — remove-from-basket
+- **IconRemoveFromBasket2** — remove-from-basket-2
+- **IconShoppingBag1** — shopping-bag-1
+- **IconShoppingBag2** — shopping-bag-2
+- **IconShoppingBag3** — shopping-bag-3
+- **IconShoppingBag4** — shopping-bag-4
+- **IconShoppingBagAdd2** — shopping-bag-add-2
+- **IconShoppingBagBlock2** — shopping-bag-block-2
+- **IconShoppingBagBookmark2** — shopping-bag-bookmark-2
+- **IconShoppingBagEdit2** — shopping-bag-edit-2
+- **IconShoppingBagLike1** — shopping-bag-like-1
+- **IconShoppingBagLike2** — shopping-bag-like-2
+- **IconWallet1** — wallet-1
+- **IconWallet2** — wallet-2
+- **IconWallet3** — wallet-3
+- **IconWallet4** — wallet-4
+- **IconWallet5** — wallet-5
+- **IconYen** — yen, currency, money, coin
+
+### Social Media & Brands
+
+- **IconAdobeAcrobat** — adobe-acrobat
+- **IconAffinity** — affinity
+- **IconAmp** — amp
+- **IconAngularjs** — angularjs
+- **IconAnthropic** — anthropic
+- **IconAntigravity** — antigravity
+- **IconApple** — apple
+- **IconAppleIntelligence** — apple-intelligence
+- **IconAppleMusic** — apple-music
+- **IconAppleSpring** — apple-spring
+- **IconAppstore** — appstore
+- **IconArc** — arc
+- **IconArena** — arena
+- **IconArtifactNews** — artifact-news
+- **IconBehance** — behance
+- **IconBitcoinCircle** — bitcoin-circle
+- **IconBitcoinLogo** — bitcoin-logo
+- **IconBluesky** — bluesky
+- **IconBolt** — bolt
+- **IconBun** — bun
+- **IconCash** — cash
+- **IconCentralIconSystem** — central-icon-system
+- **IconChrome** — chrome
+- **IconClaudeai** — claudeai
+- **IconClawd** — clawd
+- **IconCodepen** — codepen
+- **IconCopilot** — copilot
+- **IconCosmos** — cosmos
+- **IconCpp** — c++
+- **IconCursor** — cursor
+- **IconDeepseek** — deepseek
+- **IconDevin** — devin
+- **IconDia** — dia
+- **IconDiscord** — discord
+- **IconDribbble** — dribbble
+- **IconDuolingo** — duolingo
+- **IconEuropeanUnion** — european-union, eu-stars
+- **IconFacebook** — facebook
+- **IconFacebookMessenger** — facebook-messenger
+- **IconFactory** — factory
+- **IconFigma** — figma
+- **IconFigmaSimple** — figma-simple
+- **IconFirefox** — firefox
+- **IconFormula1** — formula1
+- **IconFramer** — framer
+- **IconGemini** — gemini
+- **IconGit** — git
+- **IconGithub** — github
+- **IconGoogle** — google
+- **IconGoogleAistudio** — google-aistudio
+- **IconGoogleDeepmind** — google-deepmind
+- **IconGooglePlayStore** — google-play-store
+- **IconGoose** — goose
+- **IconGranola** — granola
+- **IconGrok** — grok
+- **IconGumroad** — gumroad
+- **IconIconists** — iconists
+- **IconImessage** — imessage
+- **IconInstagram** — instagram
+- **IconIsoOrg** — iso-org
+- **IconJava** — java
+- **IconJavaCoffeeBean** — java-coffee-bean
+- **IconJavascript** — javascript
+- **IconJson** — json
+- **IconLemonsqueezy** — lemonsqueezy
+- **IconLinear** — linear
+- **IconLinkedin** — linkedin
+- **IconLinktree** — linktree
+- **IconLottielab** — lottielab
+- **IconLovable** — lovable
+- **IconManusAi** — manus-ai
+- **IconMastadon** — mastadon
+- **IconMedium** — medium
+- **IconMetaAi** — meta-ai
+- **IconMicrosoftCopilot** — microsoft-copilot
+- **IconMidjourney** — midjourney
+- **IconMistral** — mistral
+- **IconModelcontextprotocol** — modelcontextprotocol, mcp
+- **IconNetify** — netify
+- **IconNintendoSwitch** — nintendo-switch
+- **IconNotebooklm** — notebooklm
+- **IconNotion** — notion
+- **IconNotionAi** — notion-ai
+- **IconNpm** — npm
+- **IconNvidia** — nvidia
+- **IconOllama** — ollama
+- **IconOpenai** — openai, chatgpt
+- **IconOpenaiAtlas** — openai-atlas
+- **IconOpenaiCodex** — openai-codex
+- **IconOpenaiPrism** — openai-prism
+- **IconOpenaiSora** — openai-sora
+- **IconOpenclaw** — openclaw
+- **IconOpencode** — opencode
+- **IconOpera** — opera
+- **IconPatreon** — patreon
+- **IconPerplexity** — perplexity
+- **IconPhp** — php
+- **IconPhpElephant** — php-elephant
+- **IconPhyton** — phyton
+- **IconPinterest** — pinterest
+- **IconPinterestSimple** — pinterest-simple
+- **IconPlaystation** — playstation
+- **IconProducthunt** — producthunt
+- **IconQuora** — quora
+- **IconReact** — react
+- **IconRecraft** — recraft
+- **IconRedDotAward** — red-dot-award
+- **IconReddit** — reddit
+- **IconReplit** — replit
+- **IconRiotGames** — riot-games
+- **IconRive** — rive
+- **IconRobinhood** — robinhood
+- **IconRssFeed** — rss-feed
+- **IconRust** — rust
+- **IconSafari** — safari
+- **IconSiri** — siri
+- **IconSketch** — sketch
+- **IconSlack** — slack
+- **IconSnapchat** — snapchat
+- **IconSolidjs** — solidjs
+- **IconSpotify** — spotify
+- **IconStackOverflow** — stack-overflow
+- **IconSteam** — steam
+- **IconSubstack** — substack
+- **IconSupabase** — supabase
+- **IconSvelte** — svelte
+- **IconSwift** — swift
+- **IconTelegram** — telegram
+- **IconThings** — things
+- **IconThreads** — threads
+- **IconTiktok** — tiktok
+- **IconTumblr** — tumblr
+- **IconTwitch** — twitch
+- **IconTwitter** — twitter, larry
+- **IconTypescript** — typescript
+- **IconV0** — v0
+- **IconVenmo** — venmo
+- **IconVercel** — vercel
+- **IconVkontakte** — vkontakte
+- **IconVue** — vue
+- **IconWarp** — warp
+- **IconWebflow** — webflow
+- **IconWechat** — wechat
+- **IconWhatsapp** — whatsapp
+- **IconWindsurf** — windsurf
+- **IconX** — x
+- **IconXbox** — xbox
+- **IconYoutube** — youtube
+
+### Sound & Music
+
+- **IconAirpodLeft** — airpod-left
+- **IconAirpodRight** — airpod-right
+- **IconAirpods** — airpods, headphones, vibe
+- **IconAlbums** — albums, cover
+- **IconAudio** — audio, music, playlist, musical-note
+- **IconBack** — back
+- **IconBack10s** — back-10s
+- **IconCd** — cd, disc, vinyl, dvd, dj, spin, music, album
+- **IconConductor** — conductor, ochestrator, vibe
+- **IconFastForward** — fast-forward
+- **IconFastForward10s** — fast-forward-10s
+- **IconFastForward15s** — fast-forward-15s
+- **IconFastForward30s** — fast-forward-30s
+- **IconFastForward5s** — fast-forward-5s
+- **IconForwards10s** — forwards-10s
+- **IconHeadphones** — headphones, support
+- **IconKeyboard** — keyboard, midi, keys, piano
+- **IconMegaphone** — megaphone, loud, speak, promote, feedback
+- **IconMegaphone2** — megaphone-2, loud, speak, promote, feedback
+- **IconMicrophone** — microphone, mic, sound, podcast
+- **IconMicrophoneOff** — microphone-off
+- **IconMute** — mute, sound-off
+- **IconPause** — pause
+- **IconPlay** — play, go
+- **IconPlayCircle** — play-circle
+- **IconPlaylist** — playlist
+- **IconPodcast1** — podcast-1, broadcast, mic
+- **IconPodcast2** — podcast-2, broadcast, mic
+- **IconRecord** — record
+- **IconRepeat** — repeat
+- **IconReplay** — replay, play-again
+- **IconRewind** — rewind
+- **IconRewind10s** — rewind-10s
+- **IconRewind15s** — rewind-15s
+- **IconRewind30s** — rewind-30s
+- **IconRewind5s** — rewind-5s
+- **IconScanVoice** — scan-voice
+- **IconShuffle** — shuffle, random
+- **IconSkip** — skip, next
+- **IconSoundFx** — sound-fx, sound-effects
+- **IconStableVoice** — stable-voice, stable-volume, voice-circle, voice-control
+- **IconStop** — stop
+- **IconStopCircle** — stop-circle
+- **IconVocalMicrophone** — vocal-microphone, singing, karaoke
+- **IconVoice3** — voice-3, wave
+- **IconVoiceHigh** — voice-high, wave
+- **IconVoiceLow** — voice-low, wave
+- **IconVoiceMemo** — voice-memo, voice-control
+- **IconVoiceMid** — voice-mid, wave
+- **IconVoiceMode** — voice-mode, voice-settings
+- **IconVoiceRecord** — voice-record
+- **IconVoiceSettings** — voice-settings, edit-voice
+- **IconVoiceShare** — voice-share
+- **IconVolumeDown** — volume-down
+- **IconVolumeFull** — volume-full, speaker, loud, sound
+- **IconVolumeHalf** — volume-half, speaker, loud, sound
+- **IconVolumeMinimum** — volume-minimum, speaker, loud, sound
+- **IconVolumeOff** — volume-off, sound-off
+- **IconVolumeUp** — volume-up
+
+### Sports
+
+- **IconAmericanFootball** — american-football, nfl
+- **IconBaseball** — baseball
+- **IconBasketball** — basketball, nba
+- **IconBowling** — bowling
+- **IconFrisbee** — frisbee
+- **IconFrisbeeGolf** — frisbee-golf
+- **IconGolfBall** — golf-ball
+- **IconIceHockey** — ice-hockey
+- **IconKickball** — kickball
+- **IconPickelball** — pickelball
+- **IconSoccer** — soccer, football, mls
+- **IconTennis** — tennis
+- **IconVersusCircle** — versus-circle, vs
+- **IconVolleyball** — volleyball
+
+### Statistics & Charts
+
+- **IconAnalytics** — analytics, analysis
+- **IconChart1** — chart-1, statistics, flipchart, presentation, graph 2
+- **IconChart2** — chart-2, statistics, flipchart, presentation, graph
+- **IconChart3** — chart-3, statistics, graph, signal
+- **IconChart4** — chart-4, statistics, graph
+- **IconChart5** — chart-5, statistics, graph
+- **IconChart6** — chart-6, statistics, graph
+- **IconChart7** — chart-7, statistics, graph
+- **IconChartCompare** — chart-compare
+- **IconChartCompareHorizontal** — chart-compare-horizontal
+- **IconChartWaterfall** — chart-waterfall
+- **IconChartWaterfallAxis** — chart-waterfall-axis
+- **IconComboChartAxis** — combo-chart-axis
+- **IconInsights** — insights, analyze
+- **IconLeaderboard** — leaderboard, winner, stats, graph
+- **IconLineChart1** — line-chart-1, statistics, graph
+- **IconLineChart2** — line-chart-2, statistics, graph
+- **IconLineChart3** — line-chart-3, statistics, graph
+- **IconLineChart4** — line-chart-4, statistics, graph
+- **IconPieChart1** — pie-chart-1, graph, chart, statistics
+- **IconPieChart2** — pie-chart-2, graph, chart, statistics
+- **IconPieChart3** — pie-chart-3, graph, statistics
+- **IconPointChart** — point-chart, dots
+- **IconSankeyAxis** — sankey-axis
+- **IconSankeyChart** — sankey-chart
+- **IconStackedBarChart** — stacked-bar-chart
+- **IconStackedBarChart100** — stacked-bar-chart-100
+- **IconStackedBarChart100Axis** — stacked-bar-chart-100-axis
+- **IconStackedBarChart2** — stacked-bar-chart-2, revenue
+- **IconStackedBarChartAxis2** — stacked-bar-chart-axis-2
+- **IconStackedBarChartHorizontal100Axis** — stacked-bar-chart-horizontal-100-axis
+- **IconSunburstChart** — sunburst-chart
+- **IconSunburstChart2** — sunburst-chart-2
+- **IconTrending1** — trending-1, trends
+- **IconTrending2** — trending-2, trends
+- **IconTrending3** — trending-3, trends, upward
+- **IconTrending4** — trending-4, chart
+- **IconTrending5** — trending-5, chart, analytics
+- **IconTrending6** — trending-6, trends, downward
+- **IconTrendingCircle** — trending-circle
+- **IconWhiteboard1** — whiteboard-1, artboard
+- **IconWhiteboard2** — whiteboard-2
+
+### Things
+
+- **IconAnvil** — anvil, crafting, hard, strong
+- **IconApps** — apps, skills, circles
+- **IconBackpack** — backpack, travel
+- **IconBag** — bag, luggage, buggage
+- **IconBag2** — bag-2, luggage, buggage
+- **IconBag3** — bag-3, luggage, suitcase, work
+- **IconBalloon** — balloon, birthday
+- **IconBaymax** — baymax, bot, help
+- **IconBean** — bean, java
+- **IconBee** — bee, fly
+- **IconBlackHole** — black-hole, galaxy, delete-forever, hide
+- **IconBlocks** — blocks, integration, apps
+- **IconBomb** — bomb, boom
+- **IconBooks** — books, library
+- **IconBronceMedal** — bronce-medal, third-place
+- **IconBroom** — broom, brush, clear, clean
+- **IconBuildingBlocks** — building-blocks, skills, stack
+- **IconBurst** — burst, pop, boom
+- **IconCap** — cap, fan
+- **IconCelebrate** — celebrate, party, confetti
+- **IconCirclesThree** — circles-three, bubbles
+- **IconConstructionHelmet** — construction-helmet, work, wip
+- **IconCopyright** — copyright
+- **IconCrown** — crown, vip
+- **IconCurtain** — curtain, showtime, theater
+- **IconDashboardFast** — dashboard-fast
+- **IconDashboardLow** — dashboard-low
+- **IconDashboardMiddle** — dashboard-middle
+- **IconDeepDive** — deep-dive, dive-in, fin
+- **IconDeskLamp** — desk-lamp, light, study
+- **IconDiamond** — diamond, pro, premium
+- **IconDiamondShine** — diamond-shine, pop, polish
+- **IconDino** — dino, age, old
+- **IconDirectorChair** — director-chair, chair
+- **IconDiscoBall** — disco-ball, music, dance, party
+- **IconDoorHanger** — door-hanger, sign, do-not-disdurb
+- **IconDumbell** — dumbell, fitness, training
+- **IconEducation** — education, book, reading, freetime, apple
+- **IconElements** — elements, materials, products, tools, teams, skills, circles
+- **IconEmojiAstonished** — emoji-astonished
+- **IconExplosion** — explosion, boom, bang, pop
+- **IconFashion** — fashion, wear, clothes, t-shirt
+- **IconFire1** — fire-1, flame, hot, heat
+- **IconFire2** — fire-2, flame, hot, heat
+- **IconFire3** — fire-3, flame, hot, heat
+- **IconFireExtinguisher** — fire-extinguisher, urgent
+- **IconFlag1** — flag-1, priority
+- **IconFlag2** — flag-2, priority
+- **IconFlashcards** — flashcards, cards, pages
+- **IconFootsteps** — footsteps
+- **IconForYou** — for-you, for-me, event, address, post
+- **IconFormPyramide** — form-pyramide, prism
+- **IconGalaxy** — galaxy, dark-hole
+- **IconGoatHead** — goat-head, goated
+- **IconGold** — gold, goldbars
+- **IconGoldMedal** — gold-medal, first-place, win
+- **IconGraduateCap** — graduate-cap, study, education, academic, student
+- **IconGraduateCap2** — graduate-cap-2, study, education, academic, student
+- **IconHermesHelmet** — hermes-helmet
+- **IconInfinity** — infinity, loop, boomerang
+- **IconJudgeGavel** — judge-gavel, legal, terms, law
+- **IconLab** — lab
+- **IconLifeVest** — life-vest, vest
+- **IconLimit** — limit
+- **IconLiveActivity** — live-activity, fitness
+- **IconMagicLamp** — magic-lamp, wish, agents, genie
+- **IconMakeItPop** — make-it-pop, design
+- **IconMedal** — medal, trophy, badge, winner, win
+- **IconMouth** — mouth, kiss
+- **IconNailedIt** — nailed-it
+- **IconOrganisation** — organisation, organimgram
+- **IconOwlFace** — owl-face, learning, reading, research
+- **IconParachute** — parachute, airdrop
+- **IconParasol** — parasol, umbrella, vacation
+- **IconPeace** — peace
+- **IconPets** — pets, paw, animal
+- **IconPiggyBank** — piggy-bank, save-money
+- **IconPiggyBankCoin** — piggy-bank-coin, money, cashback, savings
+- **IconPillow** — pillow, sleep, snooze
+- **IconPillowZz** — pillow-zz, sleep, snooze
+- **IconPilone** — pilone, maintenance
+- **IconPlan** — plan, process, connect, path
+- **IconPlayground** — playground, forms, shapes, geo
+- **IconPlugin1** — plugin-1, power, adapter
+- **IconPlugin2** — plugin-2, build
+- **IconPokeball** — pokeball, catch
+- **IconPolitics** — politics, speaker, press-conference, speech
+- **IconPropeller** — propeller, flight, test, wind
+- **IconPushTheButton** — push-the-button, hot, alarm
+- **IconPuzzle** — puzzle, plugin
+- **IconRacingFlag** — racing-flag, target
+- **IconReadingList** — reading-list, glasses, steve-jobs
+- **IconReceiptionBell** — receiption-bell, concierge, assistant
+- **IconReceiptionBell2** — receiption-bell-2, concierge, assistant
+- **IconRescueRing** — rescue-ring, swim-boyle, help, support
+- **IconRockingHorse** — rocking-horse, child, kids, toy
+- **IconScissors1** — scissors-1, cut
+- **IconScissors2** — scissors-2, cut
+- **IconShovel** — shovel, spade, pick
+- **IconSilverMedal** — silver-medal, second-place, runner-up
+- **IconSocial** — social, connection
+- **IconSpace** — space, star
+- **IconSpeedHigh** — speed-high, limit, speedometer, level
+- **IconSpeedLow** — speed-low, limit, speedometer, level
+- **IconSpeedMiddle** — speed-middle, limit, speedometer, level
+- **IconStage** — stage, show
+- **IconStamps** — stamps, collection
+- **IconSteeringWheel** — steering-wheel, control, navigate, boot
+- **IconSticker** — sticker, badge
+- **IconStocks** — stocks
+- **IconSubscriptionStar** — subscription-star, verify
+- **IconSubscriptionTick1** — subscription-tick-1, verify
+- **IconSubscriptionTick2** — subscription-tick-2, verify
+- **IconSuitcase** — suitcase, luggage, case
+- **IconSuitcaseSticker** — suitcase-sticker, vacation, travel
+- **IconSuitcaseWork** — suitcase-work, workspace
+- **IconSupport** — support
+- **IconTactics1** — tactics-1, game-plan, prototype, play
+- **IconTactics2** — tactics-2, game-plan, prototype, play
+- **IconTag** — tag, sale
+- **IconTeddyBear** — teddy-bear, play
+- **IconTelescope** — telescope, deep-search, research
+- **IconTestTube** — test-tube
+- **IconTestTube2** — test-tube 2, test, lab, filter
+- **IconThinkingBubble** — thinking-bubble
+- **IconThinkingBubble1** — thinking-bubble-1, thoughts
+- **IconThread** — thread
+- **IconTicket** — ticket, admit, vip
+- **IconToiletPaper** — toilet-paper, wipe
+- **IconTreasure** — treasure, chest
+- **IconTrophy** — trophy, win, champion
+- **IconUnicorn** — unicorn, startup, success
+- **IconWarningSign** — warning-sign, attention, coution
+- **IconWaste** — waste, trash-can
+- **IconWeight** — weight, scale
+- **IconWip** — wip, work, barrier
+- **IconWreath** — wreath, crown, laurel-leafs
+- **IconWreathSimple** — wreath-simple, laurel-leafs, winner
+
+### Time & Date
+
+- **IconCalendar1** — calendar-1, date
+- **IconCalendar2** — calendar-2, date
+- **IconCalendar3** — calendar-3, date
+- **IconCalendar4** — calendar-4, date
+- **IconCalendarAdd4** — calendar-add-4
+- **IconCalendarCheck** — calendar-check, date-check
+- **IconCalendarCheck4** — calendar-check-4
+- **IconCalendarClock** — calendar-clock, date-time
+- **IconCalendarClock4** — calendar-clock-4
+- **IconCalendarDays** — calendar-days
+- **IconCalendarEdit** — calendar-edit, date-edit
+- **IconCalendarRemove4** — calendar-remove-4
+- **IconCalendarRepeat** — calendar-repeat, date-repeat
+- **IconCalendarSearch** — calendar-search, date-search
+- **IconCalendarSearch4** — calendar-search-4
+- **IconCalendarTearOff** — calendar-tear-off, date
+- **IconCalender5** — calender-5, date
+- **IconCalenderAdd** — calender-add, date-add
+- **IconCalenderNextWeek** — calender-next-week
+- **IconCalenderRemove** — calender-remove, date-remove
+- **IconCalenderToday** — calender-today
+- **IconCalenderTomorrow** — calender-tomorrow
+- **IconClock** — clock, time, timer
+- **IconClock3OClock** — clock-3-o-clock, time, 3-00
+- **IconClock9OClock** — clock-9-o-clock, time, 9-00
+- **IconClockAlert** — clock-alert, timer
+- **IconClockSnooze** — clock-snooze, timer, snooze, zz
+- **IconClockSquare** — clock-square, time, timer
+- **IconDateCustom** — date-custom
+- **IconDateDaily** — date-daily
+- **IconDateMonthly** — date-monthly
+- **IconDateWeekdays** — date-weekdays
+- **IconDateWeekly** — date-weekly
+- **IconDateYearly** — date-yearly, fireworks, new-year
+- **IconHistory** — history, back, timeline
+- **IconHourglass** — hourglass
+- **IconHourglass2** — hourglass-2, time
+- **IconSendLater** — send-later, timeslot, clock
+- **IconSleep** — sleep, snooze, zzz
+- **IconStopwatch** — stopwatch, track
+- **IconTimeFlies** — time-flies, speed
+- **IconTimeslot** — timeslot, time, clock
+
+### Typography
+
+- **IconAlignmentCenter** — alignment-center
+- **IconAlignmentJustify** — alignment-justify
+- **IconAlignmentLeft** — alignment-left
+- **IconAlignmentLeftBar** — alignment-left-bar
+- **IconAlignmentRight** — alignment-right
+- **IconAlpha** — alpha
+- **IconAutoCorrect** — auto-correct, autocheck, text-correction
+- **IconBeta** — beta
+- **IconBold** — bold
+- **IconBulletList** — bullet-list
+- **IconCloseQuote1** — close-quote-1, blockquote
+- **IconCloseQuote2** — close-quote-2, blockquote
+- **IconConcise** — concise, text-shorten, squeeze
+- **IconDecimalNumberComma** — decimal-number-comma
+- **IconDecimalNumberDot** — decimal-number-dot
+- **IconDivider** — divider, add-line
+- **IconFontStyle** — font-style, fonts, serif
+- **IconH1** — h1, heading, headline
+- **IconH2** — h2, heading, headline
+- **IconH3** — h3, heading, headline
+- **IconHeadline** — headline, heading
+- **IconHorizontalAlignmentBottom** — horizontal-alignment-bottom
+- **IconHorizontalAlignmentCenter** — horizontal-alignment-center
+- **IconHorizontalAlignmentTop** — horizontal-alignment-top
+- **IconItalic** — italic
+- **IconLetterACircle** — letter-a-circle
+- **IconLetterASquare** — letter-a-square, key
+- **IconLetterZCircle** — letter-z-circle
+- **IconLetterZSquare** — letter-z-square, key
+- **IconLineHeight** — line-height, spacing, eleborate
+- **IconLinebreak** — linebreak, next-line
+- **IconNumber0Circle** — number-0-circle
+- **IconNumber0Square** — number-0-square, key
+- **IconNumber1Circle** — number-1-circle
+- **IconNumber1Square** — number-1-square, key
+- **IconNumber2Circle** — number-2-circle
+- **IconNumber2Square** — number-2-square, key
+- **IconNumber3Circle** — number-3-circle
+- **IconNumber3Square** — number-3-square, key
+- **IconNumber4Circle** — number-4-circle
+- **IconNumber4Square** — number-4-square, key
+- **IconNumber5Circle** — number-5-circle
+- **IconNumber5Square** — number-5-square, key
+- **IconNumber6Circle** — number-6-circle
+- **IconNumber6Square** — number-6-square, key
+- **IconNumber7Circle** — number-7-circle
+- **IconNumber7Square** — number-7-square, key
+- **IconNumber8Circle** — number-8-circle
+- **IconNumber8Square** — number-8-square, key
+- **IconNumber9Circle** — number-9-circle
+- **IconNumber9Square** — number-9-square, key
+- **IconNumberedList** — numbered-list
+- **IconNumbers01** — numbers-01
+- **IconNumbers123** — numbers-123
+- **IconOmega** — omega, special-character
+- **IconOpenQuote1** — open-quote-1, blockquote
+- **IconOpenQuote2** — open-quote-2, blockquote
+- **IconParagraph** — paragraph
+- **IconRemoveTextstyle** — remove-textstyle
+- **IconSpacer** — spacer, seperator
+- **IconStrikeThrough** — strike-through
+- **IconSubscript** — subscript
+- **IconSuperscript** — superscript
+- **IconText1** — text-1
+- **IconText2** — text-2
+- **IconTextBlock** — text-block
+- **IconTextColor** — text-color
+- **IconTextIndentLeft** — text-indent-left
+- **IconTextIndentRight** — text-indent-right
+- **IconTextIndicator** — text-indicator
+- **IconTextMotion** — text-motion, text-animation
+- **IconTextSelect** — text-select, lollipops
+- **IconTextSelectDashed** — text-select-dashed, lollipops
+- **IconTextSize** — text-size
+- **IconTitleCase** — title-case
+- **IconTranslate** — translate, language
+- **IconUnderline** — underline
+- **IconVerticalAlignmentCenter** — vertical-alignment-center
+- **IconVerticalAlignmentLeft** — vertical-alignment-left
+- **IconVerticalAlignmentRight** — vertical-alignment-right
+- **IconWrite** — write, edit-list, list
+
+### Vehicles
+
+- **IconBoat** — boat, ship, sailing
+- **IconCarTaxi** — car-taxi, uber
+- **IconSteeringWheel** — steering-wheel, autopilot, drive
+
+### Vehicles & Aircrafts
+
+- **IconAirplane** — airplane, flight
+- **IconAirplaneDown** — airplane-down, landing
+- **IconAirplaneUp** — airplane-up, takeoff
+- **IconBike** — bike
+- **IconBus** — bus, school-bus
+- **IconCar1** — car-1
+- **IconCar10** — car-10, truck
+- **IconCar10Ev** — car-10-ev, truck
+- **IconCar1Ev** — car-1-ev
+- **IconCar2** — car-2
+- **IconCar2Ev** — car-2-ev
+- **IconCar3** — car-3
+- **IconCar3Ev** — car-3-ev
+- **IconCar4** — car-4
+- **IconCar4Ev** — car-4-ev
+- **IconCar5** — car-5
+- **IconCar5Ev** — car-5-ev
+- **IconCar6** — car-6
+- **IconCar6Ev** — car-6-ev
+- **IconCar7** — car-7, pickup
+- **IconCar7Ev** — car-7-ev, pickup
+- **IconCar8** — car-8, mini-van
+- **IconCar8Ev** — car-8-ev, mini-van
+- **IconCar9** — car-9, van
+- **IconCar9Ev** — car-9-ev, van
+- **IconCarFrontView** — car-front-view
+- **IconDeliveryBike** — delivery-bike
+- **IconFastShipping** — fast-shipping, truck, delivery
+- **IconMountainBike** — mountain-bike
+- **IconRocket** — rocket, startup, launch
+- **IconRoller** — roller, scooter
+- **IconShipping** — shipping, truck, delivery
+- **IconTrainFrontView** — train-front-view, tram
+- **IconTruck** — truck, delivery
+- **IconUfo** — ufo, beam
+
+### Weather
+
+- **IconCloudSnow** — cloud-snow
+- **IconCloudWeather** — cloud-weather, clouds
+- **IconCloudy** — cloudy, clouds
+- **IconCloudySun** — cloudy-sun, clouds
+- **IconDrop** — drop, water, precipitation, liquid
+- **IconFullMoon** — full-moon, dark-mode, nasa
+- **IconLightning** — lightning, zap, flash, thunder
+- **IconLightningBolt** — lightning-bolt, speed, thunder, flash, high woltage
+- **IconLightningBoltOff** — lightning-bolt-off, speed, thunder, flash, high woltage
+- **IconMoon** — moon, dark-mode, night
+- **IconMoonStar** — moon-star, night
+- **IconRainy** — rainy, rain
+- **IconRainyLight** — rainy-light
+- **IconSnowFlakes** — snow-flakes, freeze, frozen
+- **IconSun** — sun, light-mode, day, today
+- **IconSunHigh** — sun-high, light-mode, day, today
+- **IconSunLow** — sun-low, light-mode, day, today
+- **IconSunrise** — sunrise
+- **IconSunriseArrowUp** — sunrise-arrow-up
+- **IconSunset** — sunset
+- **IconSunsetArrowDown** — sunset-arrow-down
+- **IconThermostat** — thermostat, temprature
+- **IconThunder** — thunder, zap, flash
+- **IconWind** — wind, windy

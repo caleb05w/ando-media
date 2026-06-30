@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "central-icons-react-all": {
+      "source": "/Users/calebwu/Documents/Github/ando-media/node_modules/@central-icons-react/all",
+      "sourceType": "local",
+      "computedHash": "3c1d99e5bbbc8c75dd0bbbc2a79fc4e3e750a5ab02b127835910119b34858fae"
+    }
+  }
+}

@@ -476,7 +476,7 @@ export default function AutomationTestPage() {
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 rows={5}
-                placeholder="e.g. Daily at 8:30am, summarize what changed in the PRs assigned to me since yesterday"
+                placeholder="e.g. Summarize what changed in the PRs assigned to me since yesterday"
                 className={`${inputBase} resize-none`}
               />
             </div>

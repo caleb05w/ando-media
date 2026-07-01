@@ -42,7 +42,12 @@ function parseClock(tok) {
   if (t === 'noon') return { h: 12, m: 0 }
   if (t === 'midnight') return { h: 0, m: 0 }
   let m = t.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/)
-  if (m) { let h = +m[1] % 12; if (m[3] === 'pm') h += 12; return { h, m: m[2] ? +m[2] : 0 } }
+  if (m) {
+    let h = +m[1], min = m[2] ? +m[2] : 0
+    if (h < 1 || h > 12 || min > 59) return null // reject "25pm", "12:99pm", etc.
+    h = h % 12; if (m[3] === 'pm') h += 12
+    return { h, m: min }
+  }
   m = t.match(/^(\d{1,2}):(\d{2})$/)
   if (m && +m[1] < 24 && +m[2] < 60) return { h: +m[1], m: +m[2] }
   m = t.match(/^(\d{1,2})$/)
@@ -53,6 +58,18 @@ function parseClock(tok) {
 function fmtClock(t) {
   let h = t.h % 12 || 12
   return `${h}:${String(t.m).padStart(2, '0')}${t.h >= 12 ? 'pm' : 'am'}`
+}
+
+// True when the input contains a time token that's out of range ("25pm", "12:99", "25:00").
+function invalidTime(value) {
+  const s = (value || '').toLowerCase()
+  for (const m of s.matchAll(/\b(\d{1,2})(?::(\d{2}))?\s*([ap]m)\b/g)) {
+    if (+m[1] < 1 || +m[1] > 12 || (m[2] && +m[2] > 59)) return true
+  }
+  for (const m of s.matchAll(/\b(\d{1,2}):(\d{2})\b/g)) {
+    if (+m[1] > 23 || +m[2] > 59) return true
+  }
+  return false
 }
 
 // "Jul 1, 2026"
@@ -341,11 +358,13 @@ function ScheduleField({ value, onChange, now }) {
               placeholder="e.g. 10 days, weekday at 9am"
               className="min-w-0 flex-1 bg-transparent text-[13px] leading-5 text-[#1a1817] outline-none placeholder:text-[#928c88]"
             />
-            {!open && committed && nextRun && (
+            {invalidTime(value) ? (
+              <span className="shrink-0 text-[12px] leading-5 text-[#E11D48]">Invalid time</span>
+            ) : !open && committed && nextRun ? (
               <span className="shrink-0 text-[12px] leading-5 text-[#928c88]">
                 {fmtDateLong(nextRun)} at {fmtClock({ h: nextRun.getHours(), m: nextRun.getMinutes() })}
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* Linear-style dropdown: surface several readings, commit on click */}
@@ -515,7 +534,12 @@ export default function AutomationTestPage() {
             <button onClick={() => setOpen(false)} className="flex h-8 items-center rounded-md bg-[#f5f5f4] px-3 text-[14px] leading-5 text-[#1a1817] hover:bg-[#ebe9e8]">
               Cancel
             </button>
-            <button className="flex h-8 items-center rounded-md bg-[#0f0d0d] px-3 text-[14px] leading-5 text-white hover:bg-[#1a1817]">
+            <button
+              disabled={invalidTime(schedule)}
+              className={`flex h-8 items-center rounded-md bg-[#0f0d0d] px-3 text-[14px] leading-5 text-white ${
+                invalidTime(schedule) ? 'cursor-not-allowed opacity-60' : 'hover:bg-[#1a1817]'
+              }`}
+            >
               Continue
             </button>
           </div>

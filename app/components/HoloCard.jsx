@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { CentralIcon } from "@central-icons-react/all";
 
 const CARD_W = 296;
 
@@ -303,7 +302,9 @@ export default function HoloCard({ containerRef, laminated = false }) {
           }}
         >
           <span className="text-[10px] leading-4 font-normal text-[#a8a4c0]">Profile</span>
-          <CentralIcon name="IconCrossMedium" size={13} color="#6b6785" />
+          <svg width={13} height={13} viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M4 4l8 8m0-8l-8 8" stroke="#6b6785" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
           <div
             className="absolute bg-[#2a2a4a] rounded-full"
             style={{ height: "8.5px", width: "34px", left: "135.95px", top: "10.14px" }}

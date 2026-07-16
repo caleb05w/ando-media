@@ -150,10 +150,21 @@ function parseSchedule(raw, now) {
   const dft = !time
 
   if (/^(hourly|every\s?hour|each\s?hour)$/.test(s)) return { type: 'hourly' }
-  let m = s.match(/^every (\d+)\s*(?:m|min|mins|minute|minutes)$/); if (m) return { type: 'interval-mins', n: +m[1] }
-  m = s.match(/^every (\d+) hours?$/); if (m) return { type: 'interval-hours', n: +m[1] }
-  m = s.match(/^every (\d+) days?$/); if (m) return { type: 'interval-days', n: +m[1], time: T, defaultedTime: dft }
+  let m = s.match(/^every (\d+) days?$/); if (m) return { type: 'interval-days', n: +m[1], time: T, defaultedTime: dft }
   m = s.match(/^every (\d+) weeks?$/); if (m) return { type: 'interval-days', n: +m[1] * 7, time: T, defaultedTime: dft }
+
+  // Interval (mins/hours) anywhere in the phrase, with an optional day constraint:
+  // "every 24 mins", "24 mins on wednesdays", "tuesday and wednesday every 24 minutes"
+  m = s.match(/\bevery (\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/)
+  if (m) {
+    const r = { type: /^m/.test(m[2]) ? 'interval-mins' : 'interval-hours', n: +m[1] }
+    const dset = /\bweekdays?\b/.test(s) ? [1, 2, 3, 4, 5]
+      : /\bweekends?\b/.test(s) ? [0, 6]
+      : (extractDays(s).length ? extractDays(s) : null)
+    if (dset && dset.length < 7) r.days = dset
+    if (time) r.time = time // anchor time-of-day, e.g. "every 24 hours at 10am"
+    return r
+  }
 
   if (/\bweekdays?\b/.test(s)) return { type: 'weekly', days: [1, 2, 3, 4, 5], time: T, defaultedTime: dft }
   if (/\bweekends?\b/.test(s)) return { type: 'weekly', days: [0, 6], time: T, defaultedTime: dft }
@@ -177,14 +188,36 @@ function parseSchedule(raw, now) {
   return null
 }
 
+// Interval anchored to a time-of-day (default midnight) on each allowed weekday,
+// for "every N mins/hours on <days>" and "every N hours at <time>".
+function nextIntervalOnDays(now, stepMin, days, time) {
+  const stepMs = stepMin * 60000
+  const offMs = time ? (time.h * 60 + time.m) * 60000 : 0
+  for (let i = 0; i < 8; i++) {
+    const day = new Date(now); day.setDate(now.getDate() + i); day.setHours(0, 0, 0, 0)
+    if (!days.includes(day.getDay())) continue
+    const anchor = day.getTime() + offMs, end = day.getTime() + 86400000
+    let fire = anchor
+    if (fire <= now) { const k = Math.floor((now - fire) / stepMs) + 1; fire = fire + k * stepMs }
+    if (fire < end) return new Date(fire)
+  }
+  return null
+}
+
 // ── Derived: next run ───────────────────────────────────────────────────────
 function nextRunFor(sch, now) {
   if (!sch) return null
   const T = sch.time
   switch (sch.type) {
     case 'hourly': { const d = new Date(now); d.setMinutes(0, 0, 0); if (d <= now) d.setHours(d.getHours() + 1); return d }
-    case 'interval-mins': { const d = new Date(now); d.setSeconds(0, 0); do { d.setMinutes(d.getMinutes() + sch.n) } while (d <= now); return d }
-    case 'interval-hours': { const d = new Date(now); d.setMinutes(0, 0, 0); do { d.setHours(d.getHours() + sch.n) } while (d <= now); return d }
+    case 'interval-mins': {
+      if (sch.days || sch.time) return nextIntervalOnDays(now, sch.n, sch.days || [0, 1, 2, 3, 4, 5, 6], sch.time)
+      const d = new Date(now); d.setSeconds(0, 0); do { d.setMinutes(d.getMinutes() + sch.n) } while (d <= now); return d
+    }
+    case 'interval-hours': {
+      if (sch.days || sch.time) return nextIntervalOnDays(now, sch.n * 60, sch.days || [0, 1, 2, 3, 4, 5, 6], sch.time)
+      const d = new Date(now); d.setMinutes(0, 0, 0); do { d.setHours(d.getHours() + sch.n) } while (d <= now); return d
+    }
     case 'daily': { const d = new Date(now); d.setHours(T.h, T.m, 0, 0); if (d <= now) d.setDate(d.getDate() + 1); return d }
     case 'interval-days': { const d = new Date(now); d.setHours(T.h, T.m, 0, 0); while (d <= now) d.setDate(d.getDate() + sch.n); return d }
     case 'weekly': {
@@ -221,8 +254,8 @@ function ordinal(n) {
 function describeSchedule(sch) {
   switch (sch.type) {
     case 'hourly': return 'Every hour'
-    case 'interval-mins': return `Every ${sch.n} min`
-    case 'interval-hours': return `Every ${sch.n} hours`
+    case 'interval-mins': return `Every ${sch.n} min${sch.days ? ` on ${daysLabel(sch.days)}` : ''}${sch.time ? ` at ${fmtClock(sch.time)}` : ''}`
+    case 'interval-hours': return `Every ${sch.n} hours${sch.days ? ` on ${daysLabel(sch.days)}` : ''}${sch.time ? ` at ${fmtClock(sch.time)}` : ''}`
     case 'daily': return `Every day at ${fmtClock(sch.time)}`
     case 'interval-days': return `Every ${sch.n} days`
     case 'weekly': return describeDays(sch.days)
@@ -232,6 +265,44 @@ function describeSchedule(sch) {
   }
 }
 const shortDate = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+
+function dayWords(days) {
+  if (days.length === 7) return 'day'
+  if (sameSet(days, [1, 2, 3, 4, 5])) return 'weekday'
+  if (sameSet(days, [0, 6])) return 'weekend'
+  const n = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  return days.map((d) => n[d]).join(', ')
+}
+// "on <days>" wording for compound interval schedules.
+function daysLabel(days) {
+  if (sameSet(days, [1, 2, 3, 4, 5])) return 'weekdays'
+  if (sameSet(days, [0, 6])) return 'weekends'
+  const n = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  return days.map((d) => n[d]).join(', ')
+}
+function daysPhrase(days) {
+  if (sameSet(days, [1, 2, 3, 4, 5])) return 'weekdays'
+  if (sameSet(days, [0, 6])) return 'weekends'
+  const n = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  return days.map((d) => n[d]).join(', ')
+}
+
+// Canonical "Runs every ___" completion for a schedule — what a picked option
+// writes back into the input, so the box always reflects the real interpretation.
+function scheduleToPhrase(sch) {
+  const at = sch.time ? ` at ${fmtClock(sch.time)}` : ''
+  switch (sch.type) {
+    case 'hourly': return 'hour'
+    case 'interval-mins': return `${sch.n} mins${sch.days ? ` on ${daysPhrase(sch.days)}` : ''}${sch.time ? ` at ${fmtClock(sch.time)}` : ''}`
+    case 'interval-hours': return `${sch.n} hours${sch.days ? ` on ${daysPhrase(sch.days)}` : ''}${sch.time ? ` at ${fmtClock(sch.time)}` : ''}`
+    case 'interval-days': return `${sch.n} days`
+    case 'daily': return `day${at}`
+    case 'weekly': return `${dayWords(sch.days)}${at}`
+    case 'monthly': return `on the ${ordinal(sch.monthDay)}`
+    case 'once': return sch.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase()
+    default: return ''
+  }
+}
 
 // The field reads "Runs every ___", so users omit the leading "every". Try the
 // literal text, then an "every"-prefixed reading, preferring the recurring one —
@@ -248,8 +319,10 @@ function parseRunsEvery(value, now) {
     new RegExp(`^${MONTH_RE}\\.?\\s+\\d{1,2}\\b`, 'i').test(s) ||
     new RegExp(`^\\d{1,2}\\s+${MONTH_RE}\\b`, 'i').test(s)
   if (!oneTime) {
+    // Under "Runs every ___", the prefixed reading is the intended one — and it
+    // captures compounds ("24 mins on wednesdays") that the bare reading drops.
     const prefixed = parseSchedule('every ' + s, now)
-    if (prefixed && (!direct || direct.type === 'once')) return prefixed
+    if (prefixed) return prefixed
   }
   return direct
 }
@@ -268,7 +341,7 @@ function interpretations(value, now) {
     const key = `${sch.type}|${date.getTime()}`
     if (seen.has(key)) return
     seen.add(key)
-    out.push({ phrase, schedule: sch, date, label: label || describeSchedule(sch) })
+    out.push({ phrase: scheduleToPhrase(sch), date, label: label || describeSchedule(sch) })
   }
 
   add(raw) // the literal reading (recurring-first via parseRunsEvery)
@@ -317,27 +390,45 @@ function detectZone() { try { return Intl.DateTimeFormat().resolvedOptions().tim
 
 // ── Smart schedule field ────────────────────────────────────────────────────
 function ScheduleField({ value, onChange, now }) {
+  // Draft = what's in the box while typing. The committed schedule (the `value`
+  // prop) only ever changes by selecting a valid option, so it's always valid.
+  const [draft, setDraft] = useState(value)
   const [open, setOpen] = useState(false)
-  // The inline resolved date only shows once a value is committed (picked / Enter),
-  // not live while the user is mid-type. The default value loads committed.
-  const [committed, setCommitted] = useState(true)
   const ref = useRef(null)
   const inputRef = useRef(null)
 
+  const items = useMemo(() => interpretations(draft, now), [draft, now])
+  const draftSch = useMemo(() => (now ? parseRunsEvery(draft, now) : null), [draft, now])
+  const committed = useMemo(() => (now ? parseRunsEvery(value, now) : null), [value, now])
+  const committedNext = useMemo(() => (now && committed ? nextRunFor(committed, now) : null), [committed, now])
+  const badTime = invalidTime(draft)
+  const hasDraft = draft.trim().length > 0
+  // Settled (dropdown closed) text that resolves to no schedule = unreadable.
+  const unreadable = !!now && !open && hasDraft && !draftSch && !badTime
+
+  // Committing sets the box text (normalized) and the schedule. Unreadable text is
+  // left in the box as-is; it just leaves the committed schedule empty.
+  const commit = (phrase) => { setDraft(phrase); setOpen(false); onChange(phrase) }
+  const openCustom = () => { setDraft(''); onChange(''); setOpen(true); inputRef.current?.focus() }
+
+  // Latest state for the document-level blur handler, so it never reads stale values.
+  const snap = useRef(null)
+  snap.current = { draft, now }
+
+  // Clicking away commits the top reading. Unreadable input stays in the box —
+  // it just doesn't commit a schedule (so nothing you typed is deleted).
   useEffect(() => {
-    const h = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const h = (e) => {
+      if (ref.current?.contains(e.target)) return
+      const { draft: d, now: n } = snap.current
+      const reads = d.trim() ? interpretations(d, n) : []
+      if (reads.length && reads[0].phrase) { setDraft(reads[0].phrase); onChange(reads[0].phrase) }
+      else onChange('')
+      setOpen(false)
+    }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
-  }, [])
-
-  const schedule = useMemo(() => (now ? parseRunsEvery(value, now) : null), [value, now])
-  const nextRun = useMemo(() => (now && schedule ? nextRunFor(schedule, now) : null), [schedule, now])
-  const items = useMemo(() => interpretations(value, now), [value, now])
-  const hasText = value.trim().length > 0
-
-  const handleType = (v) => { onChange(v); setCommitted(false); setOpen(true) }
-  const commit = (text) => { if (text !== undefined) onChange(text); setCommitted(true); setOpen(false) }
-  const focusCustom = () => { onChange(''); setCommitted(false); setOpen(true); inputRef.current?.focus() }
+  }, [onChange])
 
   return (
     <div ref={ref} className="flex w-full flex-col gap-3">
@@ -347,8 +438,8 @@ function ScheduleField({ value, onChange, now }) {
           <div className="flex items-center gap-2 rounded-md border-[0.5px] border-[#ebe9e8] bg-white px-2.5 py-2 focus-within:border-[#d3d1ce]">
             <input
               ref={inputRef}
-              value={value}
-              onChange={(e) => handleType(e.target.value)}
+              value={draft}
+              onChange={(e) => { setDraft(e.target.value); setOpen(true) }}
               onFocus={() => setOpen(true)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setOpen(false)
@@ -358,11 +449,13 @@ function ScheduleField({ value, onChange, now }) {
               placeholder="e.g. 10 days, weekday at 9am"
               className="min-w-0 flex-1 bg-transparent text-[13px] leading-5 text-[#1a1817] outline-none placeholder:text-[#928c88]"
             />
-            {invalidTime(value) ? (
+            {badTime ? (
               <span className="shrink-0 text-[12px] leading-5 text-[#E11D48]">Invalid time</span>
-            ) : !open && committed && nextRun ? (
+            ) : unreadable ? (
+              <span className="shrink-0 text-[12px] leading-5 text-[#E11D48]">Invalid schedule</span>
+            ) : !open && committedNext ? (
               <span className="shrink-0 text-[12px] leading-5 text-[#928c88]">
-                {fmtDateLong(nextRun)} at {fmtClock({ h: nextRun.getHours(), m: nextRun.getMinutes() })}
+                {fmtDateLong(committedNext)} at {fmtClock({ h: committedNext.getHours(), m: committedNext.getMinutes() })}
               </span>
             ) : null}
           </div>
@@ -373,7 +466,7 @@ function ScheduleField({ value, onChange, now }) {
               {items.length > 0 ? (
                 items.map((it) => (
                   <button
-                    key={it.phrase}
+                    key={it.label + it.phrase}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => commit(it.phrase)}
                     className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left hover:bg-[#f5f5f4]"
@@ -382,9 +475,9 @@ function ScheduleField({ value, onChange, now }) {
                     <span className="shrink-0 text-[12px] leading-5 text-[#928c88]">{shortDate(it.date)}</span>
                   </button>
                 ))
-              ) : hasText ? (
+              ) : hasDraft ? (
                 <p className="px-2.5 py-1.5 text-[11px] leading-[14px] text-[#928c88]">
-                  Try &ldquo;10 days&rdquo; or &ldquo;weekday at 9am&rdquo;
+                  {badTime ? 'Invalid time — try “9am”' : 'No match — try “10 days” or “weekday at 9am”'}
                 </p>
               ) : (
                 <>
@@ -410,13 +503,13 @@ function ScheduleField({ value, onChange, now }) {
       <div className="flex flex-wrap gap-1">
         {CHIPS.map((c) => {
           const active = c.custom
-            ? !(schedule && PRESET_TYPES.includes(schedule.type))
-            : schedule?.type === c.type
+            ? !(draftSch && PRESET_TYPES.includes(draftSch.type))
+            : draftSch?.type === c.type
           return (
             <button
               key={c.label}
               type="button"
-              onClick={() => (c.custom ? focusCustom() : commit(c.phrase))}
+              onClick={() => (c.custom ? openCustom() : commit(c.phrase))}
               className={`rounded-full px-3 py-1 text-[12px] leading-4 transition-colors ${
                 active ? 'bg-[#f5f5f4] text-[#1a1817]' : 'text-[#635d58] hover:bg-[#f5f5f4]'
               }`}
@@ -433,7 +526,7 @@ function ScheduleField({ value, onChange, now }) {
 export default function AutomationTestPage() {
   const [open, setOpen] = useState(true)
   const [now, setNow] = useState(null)
-  const [schedule, setSchedule] = useState('10 days')
+  const [schedule, setSchedule] = useState('')
   const [name, setName] = useState('')
   const [instructions, setInstructions] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -452,6 +545,10 @@ export default function AutomationTestPage() {
     const zones = TZ_ZONES.includes(timezone) ? TZ_ZONES : [timezone, ...TZ_ZONES]
     return zones.map((z) => ({ value: z, label: tzLabel(z, now) }))
   }, [now, timezone])
+
+  // The schedule is only ever set by picking a valid option, so this is a
+  // safety net (empty / somehow-invalid committed value) rather than the norm.
+  const scheduleInvalid = invalidTime(schedule) || (!!now && !parseRunsEvery(schedule, now))
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F5F5F4] p-6">
@@ -535,9 +632,9 @@ export default function AutomationTestPage() {
               Cancel
             </button>
             <button
-              disabled={invalidTime(schedule)}
+              disabled={scheduleInvalid}
               className={`flex h-8 items-center rounded-md bg-[#0f0d0d] px-3 text-[14px] leading-5 text-white ${
-                invalidTime(schedule) ? 'cursor-not-allowed opacity-60' : 'hover:bg-[#1a1817]'
+                scheduleInvalid ? 'cursor-not-allowed opacity-60' : 'hover:bg-[#1a1817]'
               }`}
             >
               Continue

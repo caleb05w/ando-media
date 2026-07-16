@@ -1,18 +1,27 @@
 "use client";
 
-/* Multi-select interaction, ported from the Ando conversation-surface lab.
+/* Multi-select interaction — Notion-style block selection.
    Self-contained: no external UI deps, CSS-only motion (multi-select.css).
 
-   The gesture contract (settled through prototyping — don't regress):
-   - Dragging text across MORE THAN `STAGE_THRESHOLD` messages stages a
-     prompt ("N messages · Select ⇧E"). Nothing is selected implicitly.
-   - Confirm by clicking the prompt or pressing Shift+E → the same pill cuts
-     instantly into the command bar; staged rows get checkboxes.
-   - Active mode: click rows to toggle; drag more text to add; the count
-     button opens a selection-preview card (hover peeks, ✕ removes, click
-     jumps); Forward keeps bar + selection; Copy-as writes the clipboard and
-     rolls the button to "Copied!".
-   - X / Esc / Shift+E hard-clear. Deselecting the last row clears too. */
+   The gesture contract:
+   - The moment a drag crosses from one message into a second
+     (`SELECT_THRESHOLD` = 1), it converts into block selection: spanned
+     messages tint blue and live-track the drag (grow and shrink). On release
+     the native text highlight clears and the blocks stay selected. A drag
+     within a single message stays plain text selection.
+   - Selected messages carry a checkmark in their top-right corner; while
+     selecting, every message shows one on hover — click it to toggle that
+     message in or out without touching the rest.
+   - Clicking a selected (blue) message unselects just that message. Pressing
+     Esc, or clicking anything that isn't selected, unselects everything.
+   - Dragging more text while active adds the spanned messages. Holding a
+     drag near the list's top/bottom edge auto-scrolls it.
+   - Shift-clicking a checkmark selects the whole range between it and the
+     last toggled message (additive).
+   - The bar: the count button ("N selected") opens a selection-preview card
+     (hover peeks, ✕ removes, click jumps); "Copy as" writes the clipboard
+     and rolls to "Copied!"; "More actions" (⇧E) holds Send to Agent +
+     Forward. */
 
 import {
   useCallback,
@@ -24,19 +33,23 @@ import {
 } from "react";
 import type { DemoMessage } from "./data";
 
-const STAGE_THRESHOLD = 3;
-const EXIT_MS = 200;
-const CLEAR_NATIVE_SELECTION_MS = 200;
+const SELECT_THRESHOLD = 1;
+// Hysteresis: once block selection engages, shrinking the drag back releases
+// rows down to a single message (not back out to text selection) — only
+// leaving every message deselects.
+const RELEASE_THRESHOLD = 0;
+// Covers the bar's exit plus the staggered 350ms wash fade-out
+// (350ms + last row's transition delay), so teardown never truncates it.
+const EXIT_MS = 560;
 const COPIED_TIMEOUT_MS = 1800;
 const COMPOSER_GAP_PX = 12;
 
-export type MultiSelectPhase = "idle" | "staging" | "active";
+export type MultiSelectPhase = "idle" | "active";
 
 type MultiSelectState = {
   phase: MultiSelectPhase;
   exiting: boolean;
   selectedIds: string[];
-  stagedCount: number;
   peekId: string | null;
 };
 
@@ -50,36 +63,37 @@ function rowsSpannedBySelection(selection: Selection): string[] {
   return ids;
 }
 
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
 export function useMultiSelect(messages: DemoMessage[]) {
   const [state, setState] = useState<MultiSelectState>({
     phase: "idle",
     exiting: false,
     selectedIds: [],
-    stagedCount: 0,
     peekId: null,
   });
   const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-  const stagedIdsRef = useRef<string[]>([]);
+  // Whether the in-flight drag started from idle (live-tracks the spanned
+  // set) or on top of an existing selection (appends to it).
+  const dragOriginRef = useRef<"fresh" | "additive" | null>(null);
   const exitTimerRef = useRef(0);
-  const clearSelTimerRef = useRef(0);
 
   const finalize = useCallback(() => {
-    window.clearTimeout(clearSelTimerRef.current);
     setState({
       phase: "idle",
       exiting: false,
       selectedIds: [],
-      stagedCount: 0,
       peekId: null,
     });
-    stagedIdsRef.current = [];
     window.getSelection()?.removeAllRanges();
   }, []);
 
-  // Hard clear with the animated teardown window (bar fades, rows glide home).
+  // Hard clear with the animated teardown window (bar fades out).
   const clearAll = useCallback(() => {
     if (stateRef.current.phase === "idle" || stateRef.current.exiting) return;
     setState((s) => ({ ...s, exiting: true }));
@@ -87,27 +101,12 @@ export function useMultiSelect(messages: DemoMessage[]) {
     exitTimerRef.current = window.setTimeout(finalize, EXIT_MS);
   }, [finalize]);
 
-  const confirmSelection = useCallback(() => {
-    if (stagedIdsRef.current.length <= STAGE_THRESHOLD) return;
-    const ids = [...stagedIdsRef.current];
-    stagedIdsRef.current = [];
-    setState((s) => ({
-      ...s,
-      phase: "active",
-      selectedIds: ids,
-      stagedCount: 0,
-    }));
-    // Keep the native highlight up while checkboxes settle in, then clear it
-    // so the selection reads as landing in the rows.
-    window.clearTimeout(clearSelTimerRef.current);
-    clearSelTimerRef.current = window.setTimeout(
-      () => window.getSelection()?.removeAllRanges(),
-      CLEAR_NATIVE_SELECTION_MS
-    );
-  }, []);
+  // Anchor for shift-click range selection: the last individually toggled row.
+  const rangeAnchorRef = useRef<string | null>(null);
 
   const toggleRow = useCallback(
     (id: string) => {
+      rangeAnchorRef.current = id;
       const current = stateRef.current.selectedIds;
       const next = current.includes(id)
         ? current.filter((x) => x !== id)
@@ -121,20 +120,28 @@ export function useMultiSelect(messages: DemoMessage[]) {
     [clearAll]
   );
 
-  // Row click while active: a click that ends a drag-add keeps the additions
-  // instead of re-toggling the row under the cursor.
-  const onRowClick = useCallback(
+  // Shift-click: select everything between the anchor and this row
+  // (inclusive, additive — Gmail/Finder semantics), then re-anchor here.
+  const selectRangeTo = useCallback(
     (id: string) => {
-      if (stateRef.current.phase !== "active" || stateRef.current.exiting)
-        return;
-      const selection = window.getSelection();
-      if (selection != null && !selection.isCollapsed) {
-        selection.removeAllRanges();
+      const anchor = rangeAnchorRef.current;
+      const order = messages.map((m) => m.id);
+      const from = anchor == null ? -1 : order.indexOf(anchor);
+      const to = order.indexOf(id);
+      if (from < 0 || to < 0 || anchor === id) {
+        toggleRow(id);
         return;
       }
-      toggleRow(id);
+      const [lo, hi] = from < to ? [from, to] : [to, from];
+      const rangeIds = order.slice(lo, hi + 1);
+      rangeAnchorRef.current = id;
+      setState((s) => {
+        const additions = rangeIds.filter((x) => !s.selectedIds.includes(x));
+        if (additions.length === 0) return s;
+        return { ...s, selectedIds: [...s.selectedIds, ...additions] };
+      });
     },
-    [toggleRow]
+    [messages, toggleRow]
   );
 
   // Native drag detection (rAF-throttled selectionchange).
@@ -149,42 +156,43 @@ export function useMultiSelect(messages: DemoMessage[]) {
         !selection.isCollapsed &&
         selection.toString().trim().length > 0;
 
-      if (s.phase === "active") {
-        if (hasText) {
-          const spanned = rowsSpannedBySelection(selection);
-          const additions = spanned.filter(
-            (id) => !s.selectedIds.includes(id)
-          );
-          if (additions.length > 0) {
+      if (!hasText) {
+        dragOriginRef.current = null;
+        return;
+      }
+      if (dragOriginRef.current == null) {
+        dragOriginRef.current = s.phase === "active" ? "additive" : "fresh";
+      }
+      const spanned = rowsSpannedBySelection(selection);
+
+      if (dragOriginRef.current === "fresh") {
+        // Live-track the drag. Entry and exit thresholds differ (hysteresis):
+        // engaging takes >SELECT_THRESHOLD spanned messages, but once active
+        // the selection tracks down to >RELEASE_THRESHOLD — dragging back up
+        // frees rows one at a time without collapsing the whole selection.
+        const threshold =
+          s.phase === "active" ? RELEASE_THRESHOLD : SELECT_THRESHOLD;
+        if (spanned.length > threshold) {
+          if (s.phase !== "active" || !sameIds(s.selectedIds, spanned)) {
             setState((prev) => ({
               ...prev,
-              selectedIds: [...prev.selectedIds, ...additions],
+              phase: "active",
+              selectedIds: spanned,
             }));
           }
+        } else if (s.phase === "active") {
+          setState((prev) => ({ ...prev, phase: "idle", selectedIds: [] }));
         }
         return;
       }
 
-      if (!hasText) {
-        stagedIdsRef.current = [];
-        if (s.phase === "staging") {
-          setState((prev) => ({ ...prev, phase: "idle", stagedCount: 0 }));
-        }
-        return;
-      }
-      const ids = rowsSpannedBySelection(selection);
-      if (ids.length > STAGE_THRESHOLD) {
-        stagedIdsRef.current = ids;
+      // Additive drag on top of an existing selection.
+      const additions = spanned.filter((id) => !s.selectedIds.includes(id));
+      if (additions.length > 0) {
         setState((prev) => ({
           ...prev,
-          phase: "staging",
-          stagedCount: ids.length,
+          selectedIds: [...prev.selectedIds, ...additions],
         }));
-      } else {
-        stagedIdsRef.current = [];
-        if (s.phase === "staging") {
-          setState((prev) => ({ ...prev, phase: "idle", stagedCount: 0 }));
-        }
       }
     };
     const onSelectionChange = () => {
@@ -201,9 +209,124 @@ export function useMultiSelect(messages: DemoMessage[]) {
     };
   }, []);
 
-  // Esc = hard clear; Shift+E = confirm from staging / hard clear from active.
+  // Edge auto-scroll: while a selection drag holds near the top/bottom of
+  // the message list, scroll it (speed ramps with edge proximity) and keep
+  // extending the native selection to the caret under the pointer.
+  useEffect(() => {
+    const EDGE_PX = 56;
+    const MAX_STEP_PX = 16;
+    let pointerX = 0;
+    let pointerY = 0;
+    let dragging = false;
+    let frame = 0;
+
+    const step = () => {
+      frame = 0;
+      if (!dragging) return;
+      const container = document.querySelector<HTMLElement>(".ms-messages");
+      const selection = window.getSelection();
+      if (container != null && selection != null && !selection.isCollapsed) {
+        const rect = container.getBoundingClientRect();
+        let delta = 0;
+        if (pointerY < rect.top + EDGE_PX) {
+          delta = -Math.ceil(((rect.top + EDGE_PX - pointerY) / EDGE_PX) * MAX_STEP_PX);
+        } else if (pointerY > rect.bottom - EDGE_PX) {
+          delta = Math.ceil(((pointerY - (rect.bottom - EDGE_PX)) / EDGE_PX) * MAX_STEP_PX);
+        }
+        if (delta !== 0) {
+          container.scrollTop += delta;
+          const doc = document as Document & {
+            caretRangeFromPoint?: (x: number, y: number) => Range | null;
+          };
+          const clampedY = Math.min(
+            Math.max(pointerY, rect.top + 1),
+            rect.bottom - 1
+          );
+          const caret = doc.caretRangeFromPoint?.(pointerX, clampedY);
+          if (caret != null) {
+            try {
+              selection.extend(caret.startContainer, caret.startOffset);
+            } catch {
+              // Cross-boundary carets can be unextendable; skip the tick.
+            }
+          }
+        }
+      }
+      frame = window.requestAnimationFrame(step);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target == null || target.closest(".ms-messages") == null) return;
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      dragging = true;
+      if (frame === 0) frame = window.requestAnimationFrame(step);
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+    };
+    const onPointerUp = () => {
+      dragging = false;
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  // Release: once a selecting drag ends, drop the native text highlight so
+  // the selection reads as the blue blocks. Deferred a tick so the click
+  // that ends the drag still sees a live selection (and doesn't clear all).
+  useEffect(() => {
+    const onPointerUp = () => {
+      if (stateRef.current.phase !== "active") return;
+      const selection = window.getSelection();
+      if (selection == null || selection.isCollapsed) return;
+      window.setTimeout(() => {
+        window.getSelection()?.removeAllRanges();
+        dragOriginRef.current = null;
+      }, 0);
+    };
+    document.addEventListener("pointerup", onPointerUp);
+    return () => document.removeEventListener("pointerup", onPointerUp);
+  }, []);
+
+  // Click routing while active: selected block → unselect it; the bar and
+  // the corner checkmarks handle themselves; anything else → clear all.
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      const s = stateRef.current;
+      if (s.phase !== "active" || s.exiting) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target == null) return;
+      // A click that ends a drag still carries the live selection — keep it.
+      const selection = window.getSelection();
+      if (selection != null && !selection.isCollapsed) return;
+      if (target.closest("[data-ms-bar]") != null) return;
+      if (target.closest("[data-ms-check]") != null) return;
+      const row = target.closest("[data-msg-id]");
+      const id = row?.getAttribute("data-msg-id") ?? null;
+      if (id != null && s.selectedIds.includes(id)) {
+        toggleRow(id);
+        return;
+      }
+      clearAll();
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [clearAll, toggleRow]);
+
+  // Esc = hard clear.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
       const target = event.target instanceof Element ? event.target : null;
       if (
         target != null &&
@@ -211,30 +334,11 @@ export function useMultiSelect(messages: DemoMessage[]) {
       ) {
         return;
       }
-      if (event.key === "Escape") {
-        if (stateRef.current.phase !== "idle") clearAll();
-        return;
-      }
-      if (
-        event.key === "E" &&
-        event.shiftKey &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.altKey &&
-        !stateRef.current.exiting
-      ) {
-        if (stateRef.current.phase === "staging") {
-          event.preventDefault();
-          confirmSelection();
-        } else if (stateRef.current.phase === "active") {
-          event.preventDefault();
-          clearAll();
-        }
-      }
+      if (stateRef.current.phase !== "idle") clearAll();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [clearAll, confirmSelection]);
+  }, [clearAll]);
 
   const setPeekId = useCallback((peekId: string | null) => {
     setState((s) => (s.peekId === peekId ? s : { ...s, peekId }));
@@ -251,10 +355,9 @@ export function useMultiSelect(messages: DemoMessage[]) {
   return {
     state,
     selectedMessages,
-    confirmSelection,
     clearAll,
     toggleRow,
-    onRowClick,
+    selectRangeTo,
     setPeekId,
   };
 }
@@ -267,37 +370,47 @@ function messagePlainText(message: DemoMessage): string {
 
 const COPY_FORMATS = ["Preview text", "JSON", "Message links"] as const;
 
+// A/B variants under test: "popout" keeps Send to Agent / Forward in a menu;
+// "commandbar" cuts the pill itself into an inline action bar on ⇧E (the
+// pre-popout interaction).
+export type MultiSelectVariant = "popout" | "commandbar";
+
 export function MultiSelectBar({
   state,
+  variant,
   selectedMessages,
-  onConfirm,
   onClear,
   onRemove,
   onPeek,
   onForward,
+  onSendToAgent,
 }: {
   state: MultiSelectState;
+  variant: MultiSelectVariant;
   selectedMessages: DemoMessage[];
-  onConfirm: () => void;
   onClear: () => void;
   onRemove: (id: string) => void;
   onPeek: (id: string | null) => void;
   onForward: (count: number) => void;
+  onSendToAgent: (count: number) => void;
 }) {
-  const { phase, exiting, stagedCount, selectedIds } = state;
-  const count = phase === "staging" ? stagedCount : selectedIds.length;
+  const { exiting, selectedIds } = state;
+  const count = selectedIds.length;
 
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const copiedTimerRef = useRef(0);
   const barRef = useRef<HTMLDivElement>(null);
   const positionerRef = useRef<HTMLDivElement>(null);
+  const actionsClipRef = useRef<HTMLSpanElement>(null);
+  const actionsContentRef = useRef<HTMLSpanElement>(null);
 
   // The bar floats 12px above the composer (measured, like the lab overlay).
   // Written straight to the element so no render depends on it.
   useLayoutEffect(() => {
-    if (phase === "idle") return;
     const update = () => {
       const composer = document.querySelector("[data-composer-region]");
       const positioner = positionerRef.current;
@@ -308,24 +421,77 @@ export function MultiSelectBar({
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, [phase]);
+  }, []);
 
   useEffect(() => {
     return () => window.clearTimeout(copiedTimerRef.current);
   }, []);
 
+  // Commandbar variant: the actions region swaps content instantly while its
+  // width glides on the lab's tiny-fluff curve. The width is measured off the
+  // natural-size inner span and written straight to the clip element, so no
+  // render depends on it. First write lands pre-paint → no enter animation.
+  useLayoutEffect(() => {
+    if (variant !== "commandbar") return;
+    const clip = actionsClipRef.current;
+    const content = actionsContentRef.current;
+    if (clip == null || content == null) return;
+    clip.style.width = `${content.offsetWidth}px`;
+  }, [variant, actionsExpanded]);
+
+  // More actions: a chevron menu in the popout variant; in the commandbar
+  // variant it cuts the pill between collapsed and inline-actions states,
+  // with ⇧E as its shortcut (commandbar only).
+  const toggleMoreActions = useCallback(() => {
+    setPreviewOpen(false);
+    setCopyMenuOpen(false);
+    if (variant === "popout") {
+      setMoreMenuOpen((open) => !open);
+    } else {
+      setMoreMenuOpen(false);
+      setActionsExpanded((expanded) => !expanded);
+    }
+  }, [variant]);
+
+  useEffect(() => {
+    if (variant !== "commandbar") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "E" ||
+        !event.shiftKey ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        target != null &&
+        target.closest('input, textarea, [contenteditable="true"]') != null
+      ) {
+        return;
+      }
+      event.preventDefault();
+      toggleMoreActions();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [variant, toggleMoreActions]);
+
   // Outside pointer-down closes the popovers.
   useEffect(() => {
-    if (!copyMenuOpen && !previewOpen) return;
+    if (!copyMenuOpen && !previewOpen && !moreMenuOpen) return;
     const onPointerDown = (event: PointerEvent) => {
       if (barRef.current?.contains(event.target as Node)) return;
       setCopyMenuOpen(false);
+      setMoreMenuOpen(false);
       setPreviewOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown, true);
     return () =>
       document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [copyMenuOpen, previewOpen]);
+  }, [copyMenuOpen, previewOpen, moreMenuOpen]);
 
   const onCopyFormat = useCallback(() => {
     const text = selectedMessages.map(messagePlainText).join("\n\n");
@@ -348,6 +514,7 @@ export function MultiSelectBar({
   return (
     <div
       ref={positionerRef}
+      data-ms-bar
       className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2"
       style={{ bottom: 96 }}
     >
@@ -356,9 +523,9 @@ export function MultiSelectBar({
         className={`pointer-events-auto relative ${exiting ? "ms-bar-exit" : "ms-bar-enter"}`}
       >
         {/* Selection preview card (opened from the count button). */}
-        {previewOpen && !copyMenuOpen && phase === "active" && !exiting ? (
+        {previewOpen && !copyMenuOpen && !moreMenuOpen && !exiting ? (
           <div className="ms-pop-enter absolute bottom-full left-1/2 mb-1.5 w-[min(360px,calc(100vw-32px))] -translate-x-1/2 rounded-[10px] bg-[#1a1817] p-1 text-white shadow-[0px_2px_12px_0px_rgba(16,16,16,0.24),0px_16px_24px_-12px_rgba(16,16,16,0.24)]">
-            <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto">
               {selectedMessages.map((message) => (
                 <div
                   key={message.id}
@@ -401,154 +568,214 @@ export function MultiSelectBar({
           </div>
         ) : null}
 
-        {/* The pill: one persistent element, instant cut between states. */}
+        {/* The pill. */}
         <div className="flex items-center gap-1.5 rounded-[10px] bg-[#1a1817] px-2 py-1 text-white shadow-[0px_2px_12px_0px_rgba(16,16,16,0.2),0px_16px_24px_-12px_rgba(16,16,16,0.2)]">
-          <div className="relative flex h-8 items-center">
-            {phase === "staging" ? (
-              <button
-                type="button"
-                aria-label={`Select ${count} messages`}
-                onClick={onConfirm}
-                className="absolute inset-0 rounded-md transition-colors hover:bg-white/10"
-              />
-            ) : null}
+          <button
+            type="button"
+            aria-expanded={previewOpen}
+            onClick={() => setPreviewOpen((open) => !open)}
+            className={`flex h-8 items-center whitespace-nowrap rounded-md pl-2 pr-3 text-[14px] leading-5 transition-colors hover:bg-white/10 ${previewOpen ? "bg-white/10" : ""}`}
+          >
+            <span key={count} className="ms-roll-in inline-flex tabular-nums">
+              {count}
+            </span>
+            &nbsp;selected
+          </button>
+
+          <span className="h-5 w-px shrink-0 bg-white/20" />
+
+          {/* Copy as ⌄ — rolls to "Copied!" after a format is picked. */}
+          <span className="relative">
             <button
               type="button"
-              aria-expanded={previewOpen}
-              onClick={() =>
-                phase === "active" && setPreviewOpen((open) => !open)
-              }
-              className={`flex h-8 items-center whitespace-nowrap rounded-md pl-2 pr-3 text-[14px] leading-5 transition-colors ${
-                phase === "active"
-                  ? "hover:bg-white/10"
-                  : "pointer-events-none"
-              } ${previewOpen ? "bg-white/10" : ""}`}
+              aria-haspopup="menu"
+              aria-expanded={copyMenuOpen}
+              onClick={() => {
+                setPreviewOpen(false);
+                setMoreMenuOpen(false);
+                setCopyMenuOpen((open) => !open);
+              }}
+              className={`flex h-8 items-center gap-1.5 rounded-md pl-1.5 pr-2.5 text-[14px] leading-5 transition-colors hover:bg-white/10 ${copyMenuOpen ? "bg-white/10" : ""}`}
             >
-              {phase === "active" && selectedMessages.length > 0 ? (
-                <span aria-hidden className="mr-1.5 flex -space-x-1">
-                  {selectedMessages.slice(0, 3).map((message) => (
-                    <SilhouetteGlyph
-                      key={message.id}
-                      size={16}
-                      ring="#1a1817"
-                    />
-                  ))}
+              <span className="relative size-4 overflow-hidden">
+                <span
+                  className="absolute left-0 top-0 flex flex-col transition-transform duration-200"
+                  style={{
+                    transform: copied ? "translateY(-16px)" : "translateY(0)",
+                  }}
+                >
+                  <span className="flex size-4 items-center justify-center">
+                    <CopyGlyph />
+                  </span>
+                  <span className="flex size-4 items-center justify-center">
+                    <CheckGlyph />
+                  </span>
                 </span>
-              ) : null}
-              <span key={count} className="ms-roll-in inline-flex tabular-nums">
-                {count}
               </span>
-              {phase === "staging" ? " messages" : " selected"}
+              <span className="relative inline-grid h-6 items-center overflow-hidden">
+                <span
+                  aria-hidden
+                  className="invisible col-start-1 row-start-1 flex h-6 items-center whitespace-nowrap"
+                >
+                  Copied!
+                </span>
+                <span
+                  className="col-start-1 row-start-1 flex flex-col whitespace-nowrap transition-transform duration-200"
+                  style={{
+                    transform: copied ? "translateY(-24px)" : "translateY(0)",
+                  }}
+                >
+                  <span className="flex h-6 items-center">Copy as</span>
+                  <span className="flex h-6 items-center">Copied!</span>
+                </span>
+              </span>
+              <span
+                className="flex transition-transform duration-150"
+                style={{
+                  transform: copyMenuOpen ? "rotate(180deg)" : "rotate(0)",
+                }}
+              >
+                <ChevronDownGlyph />
+              </span>
             </button>
+            {copyMenuOpen && !exiting ? (
+              <div
+                role="menu"
+                className="ms-pop-enter absolute bottom-full right-0 mb-1.5 w-max min-w-44 rounded-[10px] bg-[#1a1817] p-1 text-white shadow-[0px_2px_12px_0px_rgba(16,16,16,0.24),0px_16px_24px_-12px_rgba(16,16,16,0.24)]"
+              >
+                <div className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-white/50">
+                  Copy as
+                </div>
+                {COPY_FORMATS.map((format) => (
+                  <button
+                    key={format}
+                    type="button"
+                    role="menuitem"
+                    onClick={onCopyFormat}
+                    className="flex h-8 w-full items-center gap-1.5 whitespace-nowrap rounded-md pl-1.5 pr-3 text-left text-[14px] leading-5 transition-colors hover:bg-white/10"
+                  >
+                    <FormatGlyph />
+                    {format}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </span>
 
-            {phase === "staging" ? (
-              <span className="pointer-events-none flex items-center">
-                <span className="mr-3 h-5 w-px bg-white/20" />
-                <span className="text-[14px] leading-5">Select</span>
-                <span className="ml-1.5 flex items-center gap-px">
-                  <kbd className="flex h-5 w-5 items-center justify-center rounded-l-[4px] rounded-r-[2px] bg-white/15 text-[11px]">
-                    ⇧
-                  </kbd>
-                  <kbd className="flex h-5 w-5 items-center justify-center rounded-l-[2px] rounded-r-[4px] bg-white/15 text-[11px]">
-                    E
-                  </kbd>
-                </span>
-              </span>
-            ) : (
-              <span className="flex items-center">
-                <span className="mr-1.5 h-5 w-px bg-white/20" />
+          {/* More actions — a menu in the popout variant; in the commandbar
+              variant the pill instant-cuts to the actions laid inline while
+              the region's width glides (lab transition). */}
+          {(() => {
+            if (variant === "commandbar") {
+              const trigger = (
                 <button
                   type="button"
-                  onClick={() => onForward(count)}
-                  className="flex h-8 items-center gap-1.5 rounded-md pl-1.5 pr-3 text-[14px] leading-5 transition-colors hover:bg-white/10"
+                  aria-expanded={actionsExpanded}
+                  onClick={toggleMoreActions}
+                  className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md pl-2 pr-2 text-[14px] leading-5 transition-colors hover:bg-white/10"
                 >
-                  <ForwardGlyph />
-                  Forward
+                  More actions
+                  <span className="flex items-center gap-px">
+                    <kbd className="flex h-5 w-5 items-center justify-center rounded-l-[4px] rounded-r-[2px] bg-white/15 text-[11px]">
+                      ⇧
+                    </kbd>
+                    <kbd className="flex h-5 w-5 items-center justify-center rounded-l-[2px] rounded-r-[4px] bg-white/15 text-[11px]">
+                      E
+                    </kbd>
+                  </span>
                 </button>
-                <span className="relative">
+              );
+              return (
+                <span
+                  ref={actionsClipRef}
+                  className="flex items-center overflow-hidden"
+                  style={{
+                    transition: "width 200ms cubic-bezier(0.34,1.3,0.64,1)",
+                  }}
+                >
+                  <span
+                    ref={actionsContentRef}
+                    className="flex w-max items-center"
+                  >
+                    {actionsExpanded ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onSendToAgent(count)}
+                          className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md pl-1.5 pr-3 text-[14px] leading-5 transition-colors hover:bg-white/10"
+                        >
+                          <AgentGlyph />
+                          Send to Agent
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onForward(count)}
+                          className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md pl-1.5 pr-3 text-[14px] leading-5 transition-colors hover:bg-white/10"
+                        >
+                          <ForwardGlyph />
+                          Forward
+                        </button>
+                      </>
+                    ) : (
+                      trigger
+                    )}
+                  </span>
+                </span>
+              );
+            }
+            return (
+              <span className="relative">
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={moreMenuOpen}
+                  onClick={toggleMoreActions}
+                  className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md pl-2 pr-2.5 text-[14px] leading-5 transition-colors hover:bg-white/10 ${moreMenuOpen ? "bg-white/10" : ""}`}
+                >
+                  More actions
+                  <span
+                    className="flex transition-transform duration-150"
+                    style={{
+                      transform: moreMenuOpen ? "rotate(180deg)" : "rotate(0)",
+                    }}
+                  >
+                    <ChevronDownGlyph />
+                  </span>
+                </button>
+                {moreMenuOpen && !exiting ? (
+                <div
+                  role="menu"
+                  className="ms-pop-enter absolute bottom-full right-0 mb-1.5 w-max min-w-44 rounded-[10px] bg-[#1a1817] p-1 text-white shadow-[0px_2px_12px_0px_rgba(16,16,16,0.24),0px_16px_24px_-12px_rgba(16,16,16,0.24)]"
+                >
                   <button
                     type="button"
-                    aria-haspopup="menu"
-                    aria-expanded={copyMenuOpen}
+                    role="menuitem"
                     onClick={() => {
-                      setPreviewOpen(false);
-                      setCopyMenuOpen((open) => !open);
+                      setMoreMenuOpen(false);
+                      onSendToAgent(count);
                     }}
-                    className={`flex h-8 items-center gap-1.5 rounded-md pl-1.5 pr-2.5 text-[14px] leading-5 transition-colors hover:bg-white/10 ${copyMenuOpen ? "bg-white/10" : ""}`}
+                    className="flex h-8 w-full items-center gap-1.5 whitespace-nowrap rounded-md pl-1.5 pr-3 text-left text-[14px] leading-5 transition-colors hover:bg-white/10"
                   >
-                    <span className="relative size-4 overflow-hidden">
-                      <span
-                        className="absolute left-0 top-0 flex flex-col transition-transform duration-200"
-                        style={{
-                          transform: copied
-                            ? "translateY(-16px)"
-                            : "translateY(0)",
-                        }}
-                      >
-                        <span className="flex size-4 items-center justify-center">
-                          <CopyGlyph />
-                        </span>
-                        <span className="flex size-4 items-center justify-center">
-                          <CheckGlyph />
-                        </span>
-                      </span>
-                    </span>
-                    <span className="relative inline-grid h-6 items-center overflow-hidden">
-                      <span
-                        aria-hidden
-                        className="invisible col-start-1 row-start-1 flex h-6 items-center whitespace-nowrap"
-                      >
-                        Copied!
-                      </span>
-                      <span
-                        className="col-start-1 row-start-1 flex flex-col whitespace-nowrap transition-transform duration-200"
-                        style={{
-                          transform: copied
-                            ? "translateY(-24px)"
-                            : "translateY(0)",
-                        }}
-                      >
-                        <span className="flex h-6 items-center">Copy as</span>
-                        <span className="flex h-6 items-center">Copied!</span>
-                      </span>
-                    </span>
-                    <span
-                      className="flex transition-transform duration-150"
-                      style={{
-                        transform: copyMenuOpen
-                          ? "rotate(180deg)"
-                          : "rotate(0)",
-                      }}
-                    >
-                      <ChevronDownGlyph />
-                    </span>
+                    <AgentGlyph />
+                    Send to Agent
                   </button>
-                  {copyMenuOpen && !exiting ? (
-                    <div
-                      role="menu"
-                      className="ms-pop-enter absolute bottom-full right-0 mb-1.5 w-max min-w-44 rounded-[10px] bg-[#1a1817] p-1 text-white shadow-[0px_2px_12px_0px_rgba(16,16,16,0.24),0px_16px_24px_-12px_rgba(16,16,16,0.24)]"
-                    >
-                      <div className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-white/50">
-                        Copy as
-                      </div>
-                      {COPY_FORMATS.map((format) => (
-                        <button
-                          key={format}
-                          type="button"
-                          role="menuitem"
-                          onClick={onCopyFormat}
-                          className="flex h-8 w-full items-center gap-1.5 whitespace-nowrap rounded-md pl-1.5 pr-3 text-left text-[14px] leading-5 transition-colors hover:bg-white/10"
-                        >
-                          <FormatGlyph />
-                          {format}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </span>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      onForward(count);
+                    }}
+                    className="flex h-8 w-full items-center gap-1.5 whitespace-nowrap rounded-md pl-1.5 pr-3 text-left text-[14px] leading-5 transition-colors hover:bg-white/10"
+                  >
+                    <ForwardGlyph />
+                    Forward
+                  </button>
+                </div>
+              ) : null}
               </span>
-            )}
-          </div>
+            );
+          })()}
 
           <span className="h-5 w-px shrink-0 bg-white/20" />
           <button
@@ -594,6 +821,19 @@ function ForwardGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path d="M9 4.5L13 8l-4 3.5v-2.2C5.8 9.3 4 10.4 3 12.5c0-3.8 2.4-6.2 6-6.6V4.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function AgentGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M8 2.5l1.35 3.4 3.4 1.35-3.4 1.35L8 12l-1.35-3.4-3.4-1.35 3.4-1.35L8 2.5z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M12.7 11.2l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5.5-1.3z" fill="currentColor" />
     </svg>
   );
 }

@@ -67,6 +67,22 @@ export const MESSAGES: DemoMessage[] = [
   },
   { id: "m11", author: AUTHORS.jordan, time: "5:35 pm", body: [[{ text: "How about Mongolian BBQ instead?" }]] },
   { id: "m12", author: AUTHORS.oliver, time: "5:36 pm", body: [[{ text: "Working on a new experiment, anyone free to jam?" }]] },
+  { id: "m13", author: AUTHORS.sara, time: "5:38 pm", body: [[{ text: "I can hop on in 10 — wrapping up a review." }]] },
+  { id: "m14", author: AUTHORS.peter, time: "5:39 pm", body: [[{ text: "Same, just pushed the header fixes to staging." }]] },
+  {
+    id: "m15",
+    author: AUTHORS.jordan,
+    time: "5:41 pm",
+    body: [
+      [{ text: "Quick heads up: moving standup to 10:30 tomorrow so we can review the multi-select prototype together." }],
+      [{ text: "Bring notes on the drag threshold — still torn on 3 vs 4." }],
+    ],
+  },
+  { id: "m16", author: AUTHORS.oliver, time: "5:42 pm", body: [[{ text: "3 feels right to me. 4 makes short selections annoying." }]] },
+  { id: "m17", author: AUTHORS.sara, time: "5:42 pm", body: [[{ text: "+1 to 3. Also the blue wash should probably match our brand tint, not raw blue." }]] },
+  { id: "m18", author: AUTHORS.peter, time: "5:44 pm", body: [[{ text: "Agreed. I'll pull the token values before tomorrow." }]] },
+  { id: "m19", author: AUTHORS.jordan, time: "5:45 pm", body: [[{ text: "Perfect. Last thing — anyone else's Figma running slow today or is it just me?" }]] },
+  { id: "m20", author: AUTHORS.oliver, time: "5:45 pm", body: [[{ text: "Just you 😄" }]] },
 ];
 
 export type SidebarEntry =

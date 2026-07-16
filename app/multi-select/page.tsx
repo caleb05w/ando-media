@@ -5,10 +5,14 @@
 // interaction layered onto the message list. All colors/spacing/type come
 // from the Figma design context; every icon/photo is the exported asset.
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import "./multi-select.css";
 import { MESSAGES, SIDEBAR, SIDEBAR_FLAT, type DemoMessage, type SidebarEntry } from "./data";
-import { MultiSelectBar, useMultiSelect } from "./multi-select";
+import {
+  MultiSelectBar,
+  useMultiSelect,
+  type MultiSelectVariant,
+} from "./multi-select";
 
 const A = "/multi-select";
 
@@ -306,7 +310,13 @@ function LocalNav() {
   );
 }
 
-function PageHeader() {
+function PageHeader({
+  variant,
+  onVariantChange,
+}: {
+  variant: MultiSelectVariant;
+  onVariantChange: (variant: MultiSelectVariant) => void;
+}) {
   return (
     <div
       className="flex shrink-0 items-center gap-10 border-b-[0.5px] bg-white px-4 py-1"
@@ -323,6 +333,30 @@ function PageHeader() {
             </span>
           </span>
         </div>
+        {/* A/B switch for the More-actions treatment. */}
+        <span
+          className="flex items-center rounded-[8px] p-0.5"
+          style={{ background: BG_TERTIARY }}
+        >
+          {(
+            [
+              ["popout", "Popout"],
+              ["commandbar", "Command bar"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onVariantChange(value)}
+              className={`flex h-6 items-center rounded-[6px] px-2 text-[12px] leading-4 transition-colors ${
+                variant === value ? "bg-white shadow-[0px_0px_0.5px_0.75px_#ebe9e8]" : ""
+              }`}
+              style={{ color: variant === value ? FG_PRIMARY : FG_SECONDARY }}
+            >
+              {label}
+            </button>
+          ))}
+        </span>
         <span className="flex items-center justify-center gap-1.5 rounded-[6px] bg-white px-2 py-1 shadow-[0px_0px_0.5px_0.75px_#ebe9e8]">
           <img src={`${A}/icon-people-header.svg`} alt="" className="size-4" />
           <span className="text-center text-[12px] leading-4" style={{ color: FG_SECONDARY }}>
@@ -350,64 +384,70 @@ function MessageRow({
   mode,
   selected,
   peeked,
-  onClick,
+  washDelay,
+  onToggle,
 }: {
   message: DemoMessage;
   mode: boolean;
   selected: boolean;
   peeked: boolean;
-  onClick: () => void;
+  washDelay: number;
+  onToggle: (range: boolean) => void;
 }) {
   return (
     <div
       data-msg-id={message.id}
-      onClick={mode ? onClick : undefined}
-      className="relative flex w-full items-start gap-2.5 pb-1.5 pt-2"
-      style={{
-        paddingLeft: mode ? 48 : 16,
-        paddingRight: 16,
-        cursor: mode ? "pointer" : undefined,
-        background: peeked
-          ? "rgba(37,99,235,0.08)"
-          : mode && selected
-            ? BG_TERTIARY
-            : "transparent",
-        transition:
-          "padding-left 180ms cubic-bezier(0.2,0,0,1), background-color 180ms cubic-bezier(0.2,0,0,1)",
-      }}
+      className="group relative flex w-full items-start gap-2.5 px-4 pb-1.5 pt-2"
+      style={{ cursor: mode && selected ? "pointer" : undefined }}
     >
+      {/* Notion-style block wash over the whole message. Always mounted so
+          the fade (and its stagger) runs identically in and out. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-2 inset-y-0.5 z-[1] rounded-md"
+        style={{
+          background: peeked
+            ? "rgba(37,99,235,0.22)"
+            : "rgba(37,99,235,0.14)",
+          opacity: mode && selected ? 1 : 0,
+          transition: `opacity 350ms cubic-bezier(0.2,0,0,1) ${washDelay}ms, background-color 150ms cubic-bezier(0.2,0,0,1)`,
+        }}
+      />
+      {/* Corner checkmark: toggles this message in/out of the selection. */}
       {mode ? (
-        <span
-          className="ms-checkbox absolute left-4 top-3 size-4"
+        <button
+          type="button"
+          data-ms-check
+          aria-label={selected ? "Unselect message" : "Select message"}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggle(event.shiftKey);
+          }}
+          className={`ms-checkbox absolute right-4 top-2 z-[2] flex size-[18px] items-center justify-center rounded-full transition-opacity ${
+            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
           style={
             selected
-              ? { background: BRAND, borderRadius: 4 }
-              : {
-                  background: "white",
-                  borderRadius: 2,
-                  boxShadow: "inset 0 0 0 1.5px #d6d3d1",
-                }
+              ? { background: BRAND }
+              : { background: "white", boxShadow: "inset 0 0 0 1.5px #d6d3d1" }
           }
         >
-          {selected ? (
-            <svg viewBox="0 0 16 16" fill="none" className="size-4">
-              <path
-                d="M4 8.2l2.6 2.6L12 5.4"
-                stroke="white"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          ) : null}
-        </span>
+          <svg viewBox="0 0 16 16" fill="none" className="size-3">
+            <path
+              d="M3.5 8.4l2.8 2.8 6.2-7"
+              stroke={selected ? "white" : "#a8a29e"}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       ) : null}
       {message.threadFooter ? (
         <img
           src={`${A}/thread-spine.svg`}
           alt=""
-          className="absolute bottom-[-14px] h-[60px] w-3"
-          style={{ left: mode ? 60 : 28, transition: "left 180ms cubic-bezier(0.2,0,0,1)" }}
+          className="absolute bottom-[-14px] left-7 h-[60px] w-3"
         />
       ) : null}
       <Silhouette size={24} />
@@ -444,16 +484,10 @@ function MessageRow({
   );
 }
 
-function ThreadFooter({ message, mode }: { message: DemoMessage; mode: boolean }) {
+function ThreadFooter({ message }: { message: DemoMessage }) {
   const footer = message.threadFooter!;
   return (
-    <div
-      className="relative flex w-full items-center gap-2.5 px-4 py-1.5"
-      style={{
-        paddingLeft: mode ? 48 : 16,
-        transition: "padding-left 180ms cubic-bezier(0.2,0,0,1)",
-      }}
-    >
+    <div className="relative flex w-full items-center gap-2.5 px-4 py-1.5">
       <span className="h-3 w-6 shrink-0" />
       <span className="flex items-center gap-2 rounded-[4px]">
         <span className="flex h-4 items-center">
@@ -508,13 +542,23 @@ export default function MultiSelectPage() {
   const {
     state,
     selectedMessages,
-    confirmSelection,
     clearAll,
     toggleRow,
-    onRowClick,
+    selectRangeTo,
     setPeekId,
   } = useMultiSelect(MESSAGES);
-  const [forwardedCount, setForwardedCount] = useState<number | null>(null);
+  const [stubAction, setStubAction] = useState<{
+    label: string;
+    count: number;
+  } | null>(null);
+  const [variant, setVariant] = useState<MultiSelectVariant>("popout");
+  const messagesRef = useRef<HTMLDivElement>(null);
+
+  // Chat surfaces open at the latest message.
+  useLayoutEffect(() => {
+    const list = messagesRef.current;
+    if (list != null) list.scrollTop = list.scrollHeight;
+  }, []);
 
   const mode = state.phase === "active" && !state.exiting;
 
@@ -527,9 +571,16 @@ export default function MultiSelectPage() {
       <div className="relative flex min-h-0 flex-1">
         <GlobalNav />
         <LocalNav />
-        <main className="relative flex min-w-0 flex-1 flex-col bg-white">
-          <PageHeader />
-          <div className="ms-messages flex min-h-0 flex-1 flex-col justify-end overflow-y-auto pr-4">
+        {/* 6px gutter between the two cards — the page bg reads as the divider. */}
+        <main className="relative ml-1.5 flex min-w-0 flex-1 flex-col overflow-clip rounded-tl-[6px] bg-white shadow-[0px_0px_0.5px_0.5px_rgba(15,13,13,0.08),0px_1px_2px_0px_rgba(15,13,13,0.05)]">
+          <PageHeader variant={variant} onVariantChange={setVariant} />
+          {/* mt-auto spacer (not justify-end) pins messages to the bottom:
+              justify-end makes top overflow unscrollable in flex containers. */}
+          <div
+            ref={messagesRef}
+            className="ms-messages flex min-h-0 flex-1 flex-col overflow-y-auto pr-4"
+          >
+            <div aria-hidden className="mt-auto shrink-0" />
             {MESSAGES.map((message) => (
               <div key={message.id} className="flex w-full flex-col">
                 <MessageRow
@@ -537,24 +588,44 @@ export default function MultiSelectPage() {
                   mode={mode}
                   selected={state.selectedIds.includes(message.id)}
                   peeked={state.peekId === message.id}
-                  onClick={() => onRowClick(message.id)}
+                  // Cascade in first→last; on clear-all, cascade out in
+                  // reverse (last selected releases first).
+                  washDelay={(() => {
+                    const index = state.selectedIds.indexOf(message.id);
+                    if (index < 0) return 0;
+                    return (
+                      (state.exiting
+                        ? state.selectedIds.length - 1 - index
+                        : index) * 15
+                    );
+                  })()}
+                  onToggle={(range) =>
+                    range
+                      ? selectRangeTo(message.id)
+                      : toggleRow(message.id)
+                  }
                 />
                 {message.threadFooter ? (
-                  <ThreadFooter message={message} mode={mode} />
+                  <ThreadFooter message={message} />
                 ) : null}
               </div>
             ))}
           </div>
           <Composer />
           {state.phase !== "idle" ? (
+            // Keyed by variant so switching mid-selection resets menu state.
             <MultiSelectBar
+              key={variant}
               state={state}
-            selectedMessages={selectedMessages}
-            onConfirm={confirmSelection}
-            onClear={clearAll}
-            onRemove={toggleRow}
-            onPeek={setPeekId}
-              onForward={setForwardedCount}
+              variant={variant}
+              selectedMessages={selectedMessages}
+              onClear={clearAll}
+              onRemove={toggleRow}
+              onPeek={setPeekId}
+              onForward={(count) => setStubAction({ label: "Forward", count })}
+              onSendToAgent={(count) =>
+                setStubAction({ label: "Send to Agent", count })
+              }
             />
           ) : null}
         </main>
@@ -571,18 +642,22 @@ export default function MultiSelectPage() {
         </div>
       </div>
 
-      {forwardedCount != null ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      {stubAction != null ? (
+        // data-ms-bar: clicks in the dialog must not clear the selection.
+        <div
+          data-ms-bar
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+        >
           <div className="flex flex-col items-start gap-3 rounded-[10px] bg-[#1a1817] p-5 text-white shadow-[0px_16px_24px_-12px_rgba(16,16,16,0.4)]">
             <span className="text-[14px] font-medium leading-5">
-              {`Forward ${forwardedCount} message${forwardedCount === 1 ? "" : "s"}`}
+              {`${stubAction.label}: ${stubAction.count} message${stubAction.count === 1 ? "" : "s"}`}
             </span>
             <span className="text-[12px] leading-4 text-white/60">
-              Forwarding is stubbed in this prototype.
+              This action is stubbed in the prototype.
             </span>
             <button
               type="button"
-              onClick={() => setForwardedCount(null)}
+              onClick={() => setStubAction(null)}
               className="rounded-md bg-white/10 px-3 py-1.5 text-[14px] leading-5 transition-colors hover:bg-white/20"
             >
               Close

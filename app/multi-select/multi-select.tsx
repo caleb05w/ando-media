@@ -9,14 +9,11 @@
      messages tint blue and live-track the drag (grow and shrink). On release
      the native text highlight clears and the blocks stay selected. A drag
      within a single message stays plain text selection.
-   - Selected messages carry a checkmark in their top-right corner; while
-     selecting, every message shows one on hover — click it to toggle that
-     message in or out without touching the rest.
    - Clicking a selected (blue) message unselects just that message. Pressing
      Esc, or clicking anything that isn't selected, unselects everything.
    - Dragging more text while active adds the spanned messages. Holding a
      drag near the list's top/bottom edge auto-scrolls it.
-   - Shift-clicking a checkmark selects the whole range between it and the
+   - Shift-clicking a message selects the whole range between it and the
      last toggled message (additive).
    - The bar: the count button ("N selected") opens a selection-preview card
      (hover peeks, ✕ removes, click jumps); "Copy as" writes the clipboard
@@ -298,8 +295,9 @@ export function useMultiSelect(messages: DemoMessage[]) {
     return () => document.removeEventListener("pointerup", onPointerUp);
   }, []);
 
-  // Click routing while active: selected block → unselect it; the bar and
-  // the corner checkmarks handle themselves; anything else → clear all.
+  // Click routing while active: shift-click a message → range select;
+  // selected block → unselect it; the bar handles itself; anything else →
+  // clear all.
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       const s = stateRef.current;
@@ -310,9 +308,12 @@ export function useMultiSelect(messages: DemoMessage[]) {
       const selection = window.getSelection();
       if (selection != null && !selection.isCollapsed) return;
       if (target.closest("[data-ms-bar]") != null) return;
-      if (target.closest("[data-ms-check]") != null) return;
       const row = target.closest("[data-msg-id]");
       const id = row?.getAttribute("data-msg-id") ?? null;
+      if (id != null && event.shiftKey) {
+        selectRangeTo(id);
+        return;
+      }
       if (id != null && s.selectedIds.includes(id)) {
         toggleRow(id);
         return;
@@ -321,7 +322,7 @@ export function useMultiSelect(messages: DemoMessage[]) {
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [clearAll, toggleRow]);
+  }, [clearAll, toggleRow, selectRangeTo]);
 
   // Esc = hard clear.
   useEffect(() => {
@@ -357,7 +358,6 @@ export function useMultiSelect(messages: DemoMessage[]) {
     selectedMessages,
     clearAll,
     toggleRow,
-    selectRangeTo,
     setPeekId,
   };
 }

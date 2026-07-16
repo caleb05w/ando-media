@@ -385,19 +385,17 @@ function MessageRow({
   selected,
   peeked,
   washDelay,
-  onToggle,
 }: {
   message: DemoMessage;
   mode: boolean;
   selected: boolean;
   peeked: boolean;
   washDelay: number;
-  onToggle: (range: boolean) => void;
 }) {
   return (
     <div
       data-msg-id={message.id}
-      className="group relative flex w-full items-start gap-2.5 px-4 pb-1.5 pt-2"
+      className="relative flex w-full items-start gap-2.5 px-4 pb-1.5 pt-2"
       style={{ cursor: mode && selected ? "pointer" : undefined }}
     >
       {/* Notion-style block wash over the whole message. Always mounted so
@@ -413,36 +411,6 @@ function MessageRow({
           transition: `opacity 350ms cubic-bezier(0.2,0,0,1) ${washDelay}ms, background-color 150ms cubic-bezier(0.2,0,0,1)`,
         }}
       />
-      {/* Corner checkmark: toggles this message in/out of the selection. */}
-      {mode ? (
-        <button
-          type="button"
-          data-ms-check
-          aria-label={selected ? "Unselect message" : "Select message"}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggle(event.shiftKey);
-          }}
-          className={`ms-checkbox absolute right-4 top-2 z-[2] flex size-[18px] items-center justify-center rounded-full transition-opacity ${
-            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
-          style={
-            selected
-              ? { background: BRAND }
-              : { background: "white", boxShadow: "inset 0 0 0 1.5px #d6d3d1" }
-          }
-        >
-          <svg viewBox="0 0 16 16" fill="none" className="size-3">
-            <path
-              d="M3.5 8.4l2.8 2.8 6.2-7"
-              stroke={selected ? "white" : "#a8a29e"}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      ) : null}
       {message.threadFooter ? (
         <img
           src={`${A}/thread-spine.svg`}
@@ -539,14 +507,8 @@ function Composer() {
 }
 
 export default function MultiSelectPage() {
-  const {
-    state,
-    selectedMessages,
-    clearAll,
-    toggleRow,
-    selectRangeTo,
-    setPeekId,
-  } = useMultiSelect(MESSAGES);
+  const { state, selectedMessages, clearAll, toggleRow, setPeekId } =
+    useMultiSelect(MESSAGES);
   const [stubAction, setStubAction] = useState<{
     label: string;
     count: number;
@@ -599,11 +561,6 @@ export default function MultiSelectPage() {
                         : index) * 15
                     );
                   })()}
-                  onToggle={(range) =>
-                    range
-                      ? selectRangeTo(message.id)
-                      : toggleRow(message.id)
-                  }
                 />
                 {message.threadFooter ? (
                   <ThreadFooter message={message} />

@@ -33,28 +33,28 @@ const ENTRIES: Entry[] = [
 export default function Home() {
   return (
     <div className="flex flex-1 justify-center bg-white">
-      <main className="w-full max-w-3xl px-8 pb-24 pt-28">
-        <h1 className="text-[17px] font-semibold leading-6 text-[#1a1817]">
+      <main className="w-full max-w-xl px-6 pb-20 pt-24">
+        <h1 className="text-[14px] font-medium leading-5 text-[#1a1817]">
           Projects &amp; writings
         </h1>
-        <ul className="mt-16">
+        <ul className="mt-10">
           {ENTRIES.map((entry) => (
             <li
               key={entry.href}
-              className="border-b border-[#e7e5e4] last:border-b-0"
+              className="border-b border-[#f0efee] last:border-b-0"
             >
-              <Link href={entry.href} className="group block py-9">
-                <span className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="text-[26px] font-light leading-9 text-[#78716c] transition-colors group-hover:text-[#1a1817]">
+              <Link href={entry.href} className="group block py-5">
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[16px] leading-6 text-[#58524e] transition-colors group-hover:text-[#1a1817]">
                     {entry.title}
                   </span>
                   {entry.tag ? (
-                    <span className="text-[22px] font-light leading-9 text-[#ea580c]">
+                    <span className="text-[13px] leading-6 text-[#ea580c]">
                       {entry.tag}
                     </span>
                   ) : null}
                 </span>
-                <span className="mt-2 block max-w-xl text-[14px] leading-5 text-[#a8a29e]">
+                <span className="mt-1 block text-[13px] leading-[18px] text-[#a8a29e]">
                   {entry.brief}
                 </span>
               </Link>

@@ -37,8 +37,8 @@ export type AgentDef = {
   name: string;
   photo?: string; // photo avatar; omitted = sparkle mark
   tint?: string; // sparkle disc color (default near-black)
-  // Working-comet color, extracted from the portrait (dominant tone,
-  // lightness clamped so it survives the white card). Missing = amber.
+  // Portrait color (dominant tone, lightness clamped for the white card).
+  // Used by the comet when the page is in portrait-hue mode.
   hue?: string;
   // Scripted working narration; index 0 is the spawn state. Long runs cycle
   // the beats from `loopFrom` onward once the script is exhausted.
@@ -615,13 +615,14 @@ export function RingedFace({
       }}
     >
       {/* Working comet — the Kinetic set's W2: one bright head, fading
-          tail, on a 1.6s orbit, colored from the agent's own portrait.
-          Kept mounted while sealing so it fades under the outcome ring
-          instead of vanishing. */}
+          tail, on a 1.6s orbit. Brand blue by default; carries the
+          agent's portrait tone so the page-level .aw-hue-portrait class
+          can flip every comet at once. Kept mounted while sealing so it
+          fades under the outcome ring instead of vanishing. */}
       {working || seal != null ? (
         <span
           className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`}
-          style={{ "--aw-tint": agent.hue ?? "#f59e0b" } as React.CSSProperties}
+          style={agent.hue ? ({ "--aw-tint": agent.hue } as React.CSSProperties) : undefined}
           aria-hidden
         />
       ) : null}

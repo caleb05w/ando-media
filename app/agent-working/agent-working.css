@@ -9,10 +9,10 @@
 
 /* Working comet — the Kinetic set's W2, promoted to be the working state
    itself (it replaced the dashed ring): one bright head with a fading
-   tail on a 1.6s orbit. Board tempo and geometry kept exactly; the hue
-   comes from the agent's own portrait via --aw-tint (extracted dominant
-   tone, amber fallback), with the head softened: a 0.6 peak that decays
-   on both sides rather than a razor edge, plus a half-pixel of blur.
+   tail on a 1.6s orbit, head softened (0.6 peak, decay on both sides,
+   half-pixel blur). Two hue modes, flipped by a root class: brand blue
+   (#2563EB, the page's activity color) by default, or each agent's own
+   portrait tone via --aw-tint when .aw-hue-portrait is set on the page.
    Placed before aw-ring-fade so the fade's shorthand wins during the
    seal. */
 @keyframes aw-comet {
@@ -21,7 +21,6 @@
   }
 }
 .aw-comet {
-  --aw-tint: #f59e0b;
   position: absolute;
   inset: 0;
   border-radius: 9999px;
@@ -29,15 +28,25 @@
   background: conic-gradient(
     from 0deg,
     transparent 0 55%,
-    color-mix(in srgb, var(--aw-tint) 12%, transparent) 66%,
-    color-mix(in srgb, var(--aw-tint) 60%, transparent) 90%,
-    color-mix(in srgb, var(--aw-tint) 18%, transparent) 97%,
+    rgba(37, 99, 235, 0.12) 66%,
+    rgba(37, 99, 235, 0.6) 90%,
+    rgba(37, 99, 235, 0.18) 97%,
     transparent 100%
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   filter: blur(0.5px);
   animation: aw-comet 1.6s linear infinite;
+}
+.aw-hue-portrait .aw-comet {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 55%,
+    color-mix(in srgb, var(--aw-tint, #2563eb) 12%, transparent) 66%,
+    color-mix(in srgb, var(--aw-tint, #2563eb) 60%, transparent) 90%,
+    color-mix(in srgb, var(--aw-tint, #2563eb) 18%, transparent) 97%,
+    transparent 100%
+  );
 }
 
 /* Flyout / mention menu enter, anchored to the corner (bottom right). */

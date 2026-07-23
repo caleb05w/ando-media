@@ -505,7 +505,13 @@ function LocalNav() {
   );
 }
 
-function PageHeader() {
+function PageHeader({
+  hueMode,
+  onHueModeChange,
+}: {
+  hueMode: "blue" | "portrait";
+  onHueModeChange: (mode: "blue" | "portrait") => void;
+}) {
   return (
     <div
       className="flex shrink-0 items-center gap-10 border-b-[0.5px] bg-white px-4 py-1"
@@ -522,6 +528,27 @@ function PageHeader() {
             </span>
           </span>
         </div>
+        {/* Working-hue toggle: brand blue vs each agent's portrait tone. */}
+        <span
+          className="flex items-center rounded-[6px] p-0.5"
+          style={{ background: BG_TERTIARY }}
+          role="group"
+          aria-label="Working indicator color"
+        >
+          {(["blue", "portrait"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => onHueModeChange(mode)}
+              className={`rounded-[5px] px-2 py-0.5 text-[11px] leading-4 transition-colors ${
+                hueMode === mode ? "bg-white shadow-[0px_0px_0.5px_0.75px_#ebe9e8]" : ""
+              }`}
+              style={{ color: hueMode === mode ? FG_PRIMARY : FG_TERTIARY }}
+            >
+              {mode === "blue" ? "Blue" : "Portrait"}
+            </button>
+          ))}
+        </span>
         <span className="flex items-center justify-center gap-1.5 rounded-[6px] bg-white px-2 py-1 shadow-[0px_0px_0.5px_0.75px_#ebe9e8]">
           <img src={`${A}/icon-people-header.svg`} alt="" className="size-4" />
           <span className="text-center text-[12px] leading-4" style={{ color: FG_SECONDARY }}>
@@ -825,6 +852,9 @@ export default function AgentWorkingPage() {
   const [flashId, setFlashId] = useState<string | null>(null);
   // Trace modal target: a live run id, or "seed" for the canned run.
   const [traceRunId, setTraceRunId] = useState<string | null>(null);
+  // Working-comet hue: the page's brand blue, or each agent's portrait
+  // tone (root class .aw-hue-portrait flips the CSS for every comet).
+  const [hueMode, setHueMode] = useState<"blue" | "portrait">("blue");
   const messagesRef = useRef<HTMLDivElement>(null);
 
   // Jump-to-latest pill (dynamic island): agent answers landing while the
@@ -972,7 +1002,9 @@ export default function AgentWorkingPage() {
 
   return (
     <div
-      className="aw-page flex h-dvh w-screen flex-col overflow-hidden"
+      className={`aw-page flex h-dvh w-screen flex-col overflow-hidden ${
+        hueMode === "portrait" ? "aw-hue-portrait" : ""
+      }`}
       style={{ background: BG_TERTIARY, color: FG_PRIMARY }}
     >
       <Titlebar />
@@ -981,7 +1013,7 @@ export default function AgentWorkingPage() {
         <LocalNav />
         {/* 6px gutter between the two cards — the page bg reads as the divider. */}
         <main className="relative ml-1.5 flex min-w-0 flex-1 flex-col overflow-clip rounded-tl-[6px] bg-white shadow-[0px_0px_0.5px_0.5px_rgba(15,13,13,0.08),0px_1px_2px_0px_rgba(15,13,13,0.05)]">
-          <PageHeader />
+          <PageHeader hueMode={hueMode} onHueModeChange={setHueMode} />
           {/* mt-auto spacer (not justify-end) pins messages to the bottom:
               justify-end makes top overflow unscrollable in flex containers. */}
           <div

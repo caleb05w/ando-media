@@ -516,13 +516,7 @@ function SInk() {
 // main card's bottom-right, a composer seam, and an overlapping done
 // neighbor. Judge scannability here, not on a gray stage.
 
-function MiniCorner({
-  workingClass,
-  workingRing,
-}: {
-  workingClass?: string;
-  workingRing?: React.ReactNode;
-}) {
+function MiniCorner({ workingRing }: { workingRing?: React.ReactNode }) {
   return (
     <div
       className="relative h-24 w-44 overflow-hidden rounded-[10px] border-[0.5px] bg-white"
@@ -544,7 +538,7 @@ function MiniCorner({
           </Bubble>
         </span>
         <span
-          className={`relative inline-flex rounded-full ${workingClass ?? ""}`}
+          className="relative inline-flex rounded-full"
           style={{ marginLeft: -8, boxShadow: "0 0 0 3px white" }}
         >
           <Bubble face={TADAO}>{workingRing}</Bubble>
@@ -554,8 +548,13 @@ function MiniCorner({
   );
 }
 
-function CCHaloPulse() {
-  return <MiniCorner workingClass="cc-halopulse" />;
+function CCSheenRing() {
+  return <MiniCorner workingRing={<span className="cc-ring cc-sheen" />} />;
+}
+
+// Control: the identical ring, motionless. Does the sheen earn its place?
+function CCStillRing() {
+  return <MiniCorner workingRing={<span className="cc-ring" />} />;
 }
 
 /* ------------------------------ gesture demos ------------------------------- */
@@ -1160,10 +1159,16 @@ const CORNER_SECTIONS: Section[] = [
     blurb: "Working bubble on the right of the stack; judge at a glance.",
     studies: [
       {
-        title: "Halo pulse",
-        source: "a breath emitted off the rim",
-        note: "A soft sage ring radiates outward, dissolves, and rests — pulse cadence, breath geometry. Scannable in a second; silent between breaths.",
-        demo: <CCHaloPulse />,
+        title: "Sheen ring",
+        source: "constant presence, drifting light",
+        note: "The ring is always fully drawn — working reads in a still frame, no pulse to catch. A denser stretch of sage drifts around the rim every 6s: no gaps, no hard edge, so it's a sheen and not a spinner.",
+        demo: <CCSheenRing />,
+      },
+      {
+        title: "Sheen ring · still",
+        source: "the control",
+        note: "The same ring with the drift switched off. Read the pair side by side: if this one already says working, the shimmer is decoration; if it goes inert next to the done neighbour, the drift is carrying its weight.",
+        demo: <CCStillRing />,
       },
     ],
   },
@@ -1700,9 +1705,9 @@ export default function AgentInteractionsPage() {
           blurb={
             <>
               Two constraints applied to the Still set: clearly scannable in a second, and
-              at home in the bottom-right. One finalist — halo pulse — auditioned in a
-              miniature of the real corner: white card, composer seam, an overlapping done
-              neighbor.
+              at home in the bottom-right. The finalist is a ring that never leaves —
+              shown with its drift and without it — auditioned in a miniature of the real
+              corner: white card, composer seam, an overlapping done neighbor.
             </>
           }
         />

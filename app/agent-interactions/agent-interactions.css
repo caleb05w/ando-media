@@ -1957,20 +1957,46 @@
    The two constraints: scannable in a second, and at home in the bottom-
    right (white card, composer seam, overlapping neighbors). One finalist. */
 
-/* Halo pulse: a soft sage ring emits off the rim, dissolves, and rests —
-   a radiating pulse at a breath's cadence rather than a stationary glow. */
-@keyframes cc-halopulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(138, 164, 141, 0.45);
-  }
-  60% {
-    box-shadow: 0 0 0 9px rgba(138, 164, 141, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(138, 164, 141, 0);
+/* Sheen ring: the ring is drawn at full circumference at all times, so
+   presence survives a still frame — nothing has to be caught mid-pulse.
+   The motion lives inside the stroke: a denser stretch of sage drifts
+   around the rim on a 6s revolution. No gaps to track, no hard edge, so
+   it reads as a sheen rather than a spinner. */
+.cc-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  /* The floor is what scannability rides on — the dimmest arc still has to
+     read as a ring. The peak above it is the shimmer, and only that. */
+  background: conic-gradient(
+    from 0deg,
+    rgba(138, 164, 141, 0.65),
+    rgba(138, 164, 141, 1) 110deg,
+    rgba(138, 164, 141, 0.65) 220deg,
+    rgba(138, 164, 141, 0.65)
+  );
+  /* Band matches RingSvg exactly: r 18.5, stroke 2 → 17.5–19.5px of a
+     20px radius, with a hair of feather for antialiasing. */
+  -webkit-mask: radial-gradient(
+    closest-side,
+    transparent 86.5%,
+    #000 88%,
+    #000 97%,
+    transparent 98.5%
+  );
+  mask: radial-gradient(
+    closest-side,
+    transparent 86.5%,
+    #000 88%,
+    #000 97%,
+    transparent 98.5%
+  );
+}
+@keyframes cc-sheen {
+  to {
+    transform: rotate(360deg);
   }
 }
-.cc-halopulse {
-  border-radius: 9999px;
-  animation: cc-halopulse 3.6s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+.cc-sheen {
+  animation: cc-sheen 6s linear infinite;
 }

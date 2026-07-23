@@ -9,9 +9,12 @@
 
 /* Working comet — the Kinetic set's W2, promoted to be the working state
    itself (it replaced the dashed ring): one bright head with a fading
-   tail on a 1.6s orbit. Board tempo and geometry kept exactly; only the
-   hue moved, amber → sage, with the Garden palette. Placed before
-   aw-ring-fade so the fade's shorthand wins during the seal. */
+   tail on a 1.6s orbit. Board tempo and geometry kept exactly; the hue
+   is the mention-pill violet (#7C3AED) — the same color that spawns a
+   run marks it working — and the head is softened: a 0.6 peak that
+   decays on both sides rather than a razor edge, plus a half-pixel of
+   blur. Placed before aw-ring-fade so the fade's shorthand wins during
+   the seal. */
 @keyframes aw-comet {
   to {
     transform: rotate(360deg);
@@ -25,12 +28,14 @@
   background: conic-gradient(
     from 0deg,
     transparent 0 55%,
-    rgba(138, 164, 141, 0.15) 65%,
-    #8aa48d 92%,
+    rgba(124, 58, 237, 0.12) 66%,
+    rgba(124, 58, 237, 0.6) 90%,
+    rgba(124, 58, 237, 0.18) 97%,
     transparent 100%
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  filter: blur(0.5px);
   animation: aw-comet 1.6s linear infinite;
 }
 

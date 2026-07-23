@@ -2028,9 +2028,10 @@
   animation: cc-mist 9s linear infinite;
 }
 
-/* Comet, in sage — the Kinetic set's W2 auditioned in the corner: same
-   1.6s orbit and rim band, only the hue moved with the Garden palette.
-   This one shipped as the working state on /agent-working. */
+/* Comet — the Kinetic set's W2 auditioned in the corner: same 1.6s orbit
+   and rim band, hue moved to the mention-pill violet and the head
+   softened (0.6 peak, decay on both sides, half-pixel blur). This one
+   shipped as the working state on /agent-working. */
 @keyframes cc-comet {
   to {
     transform: rotate(360deg);
@@ -2044,12 +2045,14 @@
   background: conic-gradient(
     from 0deg,
     transparent 0 55%,
-    rgba(138, 164, 141, 0.15) 65%,
-    #8aa48d 92%,
+    rgba(124, 58, 237, 0.12) 66%,
+    rgba(124, 58, 237, 0.6) 90%,
+    rgba(124, 58, 237, 0.18) 97%,
     transparent 100%
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  filter: blur(0.5px);
   animation: cc-comet 1.6s linear infinite;
 }
 

@@ -1196,12 +1196,12 @@ const CORNER_SECTIONS: Section[] = [
   },
   {
     heading: "Comet",
-    blurb: "The Kinetic set's directed-effort orbit, in the invocation color.",
+    blurb: "The Kinetic set's directed-effort orbit, softened.",
     studies: [
       {
         title: "Comet",
-        source: "the Kinetic set's W2, softened, in the tag violet — shipped",
-        note: "One head, fading tail, on the same 1.6s orbit as the board original — softened to a 0.6 peak that decays on both sides. The hue is the mention pill's violet: the color that spawns a run is the color that marks it working. Now the working state on /agent-working.",
+        source: "the Kinetic set's W2, softened, in the working amber — shipped",
+        note: "One head, fading tail, on the same 1.6s orbit as the board original — softened to a 0.6 peak that decays on both sides, back in the spec's working amber. Now the working state on /agent-working.",
         demo: <CCComet />,
       },
     ],

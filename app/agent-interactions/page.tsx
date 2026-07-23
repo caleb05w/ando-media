@@ -511,6 +511,85 @@ function SInk() {
   );
 }
 
+/* ---------------------------- corner-cut demos ------------------------------ */
+// Candidates auditioned inside a miniature of the real medium: the white
+// main card's bottom-right, a composer seam, and an overlapping done
+// neighbor. Judge scannability here, not on a gray stage.
+
+function MiniCorner({
+  workingClass,
+  workingRing,
+  badge = false,
+}: {
+  workingClass?: string;
+  workingRing?: React.ReactNode;
+  badge?: boolean;
+}) {
+  return (
+    <div
+      className="relative h-24 w-44 overflow-hidden rounded-[10px] border-[0.5px] bg-white"
+      style={{ borderColor: "#ebe9e8" }}
+    >
+      {/* composer seam */}
+      <div
+        className="absolute inset-x-3 bottom-3 h-6 rounded-[6px] border-[0.5px]"
+        style={{ borderColor: STROKE_WEAK }}
+      />
+      <span className="absolute bottom-[18px] left-5 text-[8px]" style={{ color: "#d6d3d1" }}>
+        Send a message…
+      </span>
+      {/* the stack: done neighbor + working candidate */}
+      <div className="absolute bottom-[38px] right-3 flex items-center">
+        <span className="inline-flex rounded-full" style={{ boxShadow: "0 0 0 3px white" }}>
+          <Bubble face={ANDO}>
+            <RingSvg color={GREEN} />
+          </Bubble>
+        </span>
+        <span
+          className={`relative inline-flex rounded-full ${workingClass ?? ""}`}
+          style={{ marginLeft: -8, boxShadow: "0 0 0 3px white" }}
+        >
+          <Bubble face={TADAO}>{workingRing}</Bubble>
+          {badge ? <span className="cc-badge" /> : null}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CCAura() {
+  return (
+    <MiniCorner
+      workingRing={
+        <span className="cc-aura absolute inset-0">
+          <RingSvg color={SAGE} />
+        </span>
+      }
+    />
+  );
+}
+
+function CCBadge() {
+  return <MiniCorner badge />;
+}
+
+function CCBreath() {
+  return (
+    <MiniCorner
+      workingClass="cc-breath"
+      workingRing={
+        <span className="absolute inset-0" style={{ opacity: 0.5 }}>
+          <RingSvg color={SAGE} />
+        </span>
+      }
+    />
+  );
+}
+
+function CCHalo() {
+  return <MiniCorner workingClass="cc-halo" />;
+}
+
 /* ------------------------------ gesture demos ------------------------------- */
 // The moments between states — companionship as motion.
 
@@ -1105,6 +1184,41 @@ const STILL_SECTIONS: Section[] = [
   },
 ];
 
+// Corner cut — the Still ideas that survive the two constraints
+// (one-second scannability, bottom-right medium), auditioned in situ.
+const CORNER_SECTIONS: Section[] = [
+  {
+    heading: "Finalists",
+    blurb: "Working bubble on the right of each stack; judge at a glance.",
+    studies: [
+      {
+        title: "Aura, deepened",
+        source: "solid ring, breathing 0.3 → 0.8",
+        note: "The un-dashed ring with amplitude turned up. Reads in a glance; nothing rotates, nothing counts.",
+        demo: <CCAura />,
+      },
+      {
+        title: "Badge dot",
+        source: "sidebar presence grammar, on-bubble",
+        note: "The presence dot promoted to the bubble's own edge — overlap-safe, seam-safe, already a language users know.",
+        demo: <CCBadge />,
+      },
+      {
+        title: "Breath",
+        source: "the bubble itself",
+        note: "The whole bubble breathes ~4%. Geometric, so it survives any palette and any color vision — and neighbors sit still.",
+        demo: <CCBreath />,
+      },
+      {
+        title: "Halo",
+        source: "a swell off the rim",
+        note: "Soft sage glow rising and falling. The loudest of the four — the ceiling, not the floor.",
+        demo: <CCHalo />,
+      },
+    ],
+  },
+];
+
 // Gestures — the companion lifecycle. Interaction moments rather than
 // states: a coworker arrives, acknowledges, listens, delivers, rests,
 // departs.
@@ -1630,6 +1744,21 @@ export default function AgentInteractionsPage() {
           }
         />
         <StudySections sections={STILL_SECTIONS} />
+
+        <SetHeader
+          title="Corner cut — auditioned in the medium"
+          blurb={
+            <>
+              Two constraints applied to the Still set: clearly scannable in a second, and
+              at home in the bottom-right. That disqualifies the below-bubble treatments
+              (they collide with the composer seam), the breathing gap (a white ring
+              vanishes on the white card), and the sundial (invisible by design). Four
+              survivors, each auditioned in a miniature of the real corner — white card,
+              seam, an overlapping done neighbor.
+            </>
+          }
+        />
+        <StudySections sections={CORNER_SECTIONS} />
 
         <SetHeader
           title="Gestures — the companion lifecycle"

@@ -1566,3 +1566,238 @@
 .mo-leaf-ring {
   animation: mo-leaf-ring 6s ease-in-out infinite;
 }
+
+/* ===================== Gestures — companion lifecycle ====================
+   The moments between states: arrive, acknowledge, listen, deliver, rest,
+   depart. Two studies are hover-triggered (a gesture is a response). */
+
+/* G1 Condense: the bubble forms from gathered droplets, later dissolves. */
+@keyframes mg-condense {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+    filter: blur(2px);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(1.03);
+    filter: blur(0px);
+  }
+  22% {
+    transform: scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+  90%,
+  100% {
+    opacity: 0;
+    transform: scale(0.88);
+    filter: blur(1.5px);
+  }
+}
+.mg-condense {
+  animation: mg-condense 5.5s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+@keyframes mg-droplet-a {
+  0% {
+    transform: translate(-14px, -10px);
+    opacity: 0.8;
+  }
+  14%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+}
+@keyframes mg-droplet-b {
+  0% {
+    transform: translate(13px, -7px);
+    opacity: 0.7;
+  }
+  14%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+}
+@keyframes mg-droplet-c {
+  0% {
+    transform: translate(-4px, 14px);
+    opacity: 0.7;
+  }
+  14%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+}
+.mg-droplet {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 9999px;
+  background: #8fb0c4;
+}
+.mg-droplet-a {
+  animation: mg-droplet-a 5.5s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+.mg-droplet-b {
+  animation: mg-droplet-b 5.5s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+.mg-droplet-c {
+  animation: mg-droplet-c 5.5s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+
+/* G2 Acknowledge (hover): a small bow — it heard you. */
+@keyframes mg-ack {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(2.5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.mg-hover:hover .mg-ack {
+  animation: mg-ack 0.65s cubic-bezier(0.2, 0, 0.2, 1);
+}
+@keyframes mg-ack-ring {
+  0% {
+    opacity: 0.45;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+.mg-ack-ring {
+  opacity: 0.45;
+}
+.mg-hover:hover .mg-ack-ring {
+  animation: mg-ack-ring 0.65s ease-in-out;
+}
+
+/* G3 Listen (hover): the ring leans in while you speak; an outer ear
+   appears, faint. Transitions, not keyframes — it follows you. */
+.mg-listen-ring {
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0, 0.2, 1),
+    opacity 0.5s ease;
+}
+.mg-hover:hover .mg-listen-ring {
+  transform: scale(0.93);
+}
+.mg-listen-outer {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.mg-hover:hover .mg-listen-outer {
+  opacity: 0.35;
+}
+
+/* G4 Deliver: a mote of the answer leaves the bubble and settles into
+   the message; the message accepts it with a brief warmth. */
+@keyframes mg-mote {
+  0%,
+  20% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  26% {
+    opacity: 0.9;
+  }
+  34% {
+    transform: translate(22px, -7px);
+  }
+  44% {
+    transform: translate(46px, 0);
+    opacity: 0.9;
+  }
+  50%,
+  100% {
+    transform: translate(46px, 0);
+    opacity: 0;
+  }
+}
+.mg-mote {
+  position: absolute;
+  left: 36px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 9999px;
+  background: #16a34a;
+  animation: mg-mote 6s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+@keyframes mg-receive {
+  0%,
+  44% {
+    background: #ffffff;
+  }
+  52% {
+    background: #eaf3ea;
+  }
+  74%,
+  100% {
+    background: #ffffff;
+  }
+}
+.mg-receive {
+  animation: mg-receive 6s ease-in-out infinite;
+}
+
+/* G5 Rest: after the work, presence without demand — the slowest breath
+   on the board. */
+@keyframes mg-rest {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+}
+.mg-rest {
+  animation: mg-rest 7s ease-in-out infinite;
+}
+
+/* G6 Depart: dismissed, the bubble becomes mist and rises away, then
+   reforms for the loop. */
+@keyframes mg-depart {
+  0%,
+  30% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+  55% {
+    opacity: 0;
+    transform: translateY(-6px) scale(1.05);
+    filter: blur(2.5px);
+  }
+  86% {
+    opacity: 0;
+    transform: translateY(0) scale(0.92);
+    filter: blur(1.5px);
+  }
+  96%,
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+.mg-depart {
+  animation: mg-depart 6.5s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}

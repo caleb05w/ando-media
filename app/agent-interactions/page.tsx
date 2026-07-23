@@ -340,6 +340,191 @@ function HueRow() {
   );
 }
 
+/* ------------------------------ color systems ------------------------------- */
+// Colors judged as a system, not swatches — each palette shows the full
+// triad together, names what it borrows, and admits its tradeoff.
+
+type ColorSystem = {
+  name: string;
+  philosophy: string;
+  working: string;
+  done: string;
+  failed: string;
+  tradeoff: string;
+};
+
+const COLOR_SYSTEMS: ColorSystem[] = [
+  {
+    name: "Inherited",
+    philosophy: "Amber caution, green success, red error — the dashboard dialect everyone already reads.",
+    working: "#f59e0b",
+    done: "#16a34a",
+    failed: "#dc2626",
+    tradeoff: "Maximum legibility, zero identity — and working borrows urgency it doesn't mean.",
+  },
+  {
+    name: "Garden",
+    philosophy: "One botanical family: sage at work, deep green when it bears out, clay when it dries up.",
+    working: SAGE,
+    done: "#16a34a",
+    failed: "#b08968",
+    tradeoff: "Failure as drought, not blood. Sage and green sit close — form must carry the difference.",
+  },
+  {
+    name: "Ink & weather",
+    philosophy: "Chrome stays monochrome; color appears only when something becomes true. The verdict earns the ink.",
+    working: "#a8a29e",
+    done: "#16a34a",
+    failed: "#57534e",
+    tradeoff: "The most Ando. Failure reads as weight, not alarm — the word 'failed' must live in text nearby.",
+  },
+  {
+    name: "River",
+    philosophy: "Water works, growth completes, earth interrupts — three hue families that never touch.",
+    working: "#8fb0c4",
+    done: "#16a34a",
+    failed: "#b08968",
+    tradeoff: "Best color-vision separation of the four (blue/green/brown). Blue must stay muted or it reads 'info'.",
+  },
+];
+
+function SystemCard({ system }: { system: ColorSystem }) {
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-[10px] border-[0.5px] p-4"
+      style={{ borderColor: STROKE_WEAK }}
+    >
+      <div className="flex flex-col gap-1">
+        <h3 className="text-[13px] font-medium leading-4" style={{ color: FG_PRIMARY }}>
+          {system.name}
+        </h3>
+        <p className="text-[12px] leading-[17px]" style={{ color: FG_SECONDARY }}>
+          {system.philosophy}
+        </p>
+      </div>
+      <div
+        className="flex items-center justify-around rounded-[8px] px-2 py-4"
+        style={{ background: BG_TERTIARY }}
+      >
+        {(
+          [
+            ["working", system.working, true],
+            ["done", system.done, false],
+            ["failed", system.failed, false],
+          ] as const
+        ).map(([label, color, dashed]) => (
+          <span key={label} className="flex flex-col items-center gap-1.5">
+            <Bubble face={TADAO}>
+              <RingSvg color={color} dashed={dashed} className={dashed ? "mi-spin" : ""} />
+            </Bubble>
+            <span className="text-[10px] leading-3" style={{ color: "#a8a29e" }}>
+              {label}
+            </span>
+          </span>
+        ))}
+      </div>
+      <p className="text-[11px] leading-[15px]" style={{ color: FG_TERTIARY }}>
+        {system.tradeoff}
+      </p>
+    </div>
+  );
+}
+
+/* ------------------------------ gesture demos ------------------------------- */
+// The moments between states — companionship as motion.
+
+function GArrive() {
+  return (
+    <span className="relative inline-flex">
+      <span className="mg-condense inline-flex">
+        <Bubble face={TADAO} />
+      </span>
+      <span className="mg-droplet mg-droplet-a" />
+      <span className="mg-droplet mg-droplet-b" />
+      <span className="mg-droplet mg-droplet-c" />
+    </span>
+  );
+}
+
+function GAcknowledge() {
+  // The hover zone is the demo itself, padded out to most of the stage.
+  return (
+    <span className="mg-hover -m-10 inline-flex p-10">
+      <span className="mg-ack inline-flex">
+        <Bubble face={TADAO}>
+          <span className="mg-ack-ring absolute inset-0">
+            <RingSvg color="#a8a29e" />
+          </span>
+        </Bubble>
+      </span>
+    </span>
+  );
+}
+
+function GListen() {
+  return (
+    <span className="mg-hover -m-10 inline-flex p-10">
+      <Bubble face={ANDO}>
+        <span className="mg-listen-ring absolute inset-0">
+          <RingSvg color="#a8a29e" dashed className="mi-spin" />
+        </span>
+        <span className="mg-listen-outer absolute inset-[-5px]">
+          <svg width={SIZE + 10} height={SIZE + 10} aria-hidden>
+            <circle
+              cx={(SIZE + 10) / 2}
+              cy={(SIZE + 10) / 2}
+              r={(SIZE + 10) / 2 - 1}
+              fill="none"
+              strokeWidth={1}
+              stroke="#a8a29e"
+            />
+          </svg>
+        </span>
+      </Bubble>
+    </span>
+  );
+}
+
+function GDeliver() {
+  return (
+    <span className="relative flex items-center gap-8">
+      <Bubble face={ANDO}>
+        <RingSvg color={GREEN} />
+      </Bubble>
+      <span
+        className="mg-receive flex h-7 w-14 items-center rounded-[6px] border-[0.5px] px-2"
+        style={{ borderColor: "#e7e5e4" }}
+      >
+        <span className="flex flex-col gap-1">
+          <span className="h-[3px] w-9 rounded-full" style={{ background: "#e7e5e4" }} />
+          <span className="h-[3px] w-6 rounded-full" style={{ background: "#efedec" }} />
+        </span>
+      </span>
+      <span className="mg-mote" />
+    </span>
+  );
+}
+
+function GRest() {
+  return (
+    <span className="mg-rest inline-flex">
+      <Bubble face={YUMI}>
+        <span style={{ opacity: 0.5 }} className="absolute inset-0">
+          <RingSvg color="#a8a29e" />
+        </span>
+      </Bubble>
+    </span>
+  );
+}
+
+function GDepart() {
+  return (
+    <span className="mg-depart inline-flex">
+      <Bubble face={YUMI} />
+    </span>
+  );
+}
+
 /* ----------------------------- Outside set demos ---------------------------- */
 // Companions in a landscape. Working states wear sage (or no hue);
 // failure explores red-free weather.
@@ -779,6 +964,54 @@ type Study = {
 };
 
 type Section = { heading: string; blurb: string; studies: Study[] };
+
+// Gestures — the companion lifecycle. Interaction moments rather than
+// states: a coworker arrives, acknowledges, listens, delivers, rests,
+// departs.
+const GESTURE_SECTIONS: Section[] = [
+  {
+    heading: "Moments",
+    blurb: "The space between states — where companionship actually lives.",
+    studies: [
+      {
+        title: "Arrive",
+        source: "condensation · spawn",
+        note: "The bubble forms from gathered droplets — presence condenses rather than pops into place.",
+        demo: <GArrive />,
+      },
+      {
+        title: "Acknowledge",
+        source: "a small bow · hover to play",
+        note: "On invocation, one dip: it heard you. No text, no badge — a nod between coworkers.",
+        demo: <GAcknowledge />,
+      },
+      {
+        title: "Listen",
+        source: "leaning in · hover to play",
+        note: "While you address it the ring draws inward and a faint outer ear appears. It follows you, not a clock.",
+        demo: <GListen />,
+      },
+      {
+        title: "Deliver",
+        source: "a mote settles into the message",
+        note: "The answer leaves the agent as a single mote and the message accepts it with a brief warmth — handoff, not broadcast.",
+        demo: <GDeliver />,
+      },
+      {
+        title: "Rest",
+        source: "presence without demand",
+        note: "After the work: the slowest breath on the board, ring at half voice. Nearby, not gone.",
+        demo: <GRest />,
+      },
+      {
+        title: "Depart",
+        source: "mist rises",
+        note: "Dismissed, it becomes weather and leaves upward. Departure should feel like release, not deletion.",
+        demo: <GDepart />,
+      },
+    ],
+  },
+];
 
 // Outside — companions in a landscape. Working wears sage or no hue at
 // all; completion is a change in the light; failure is weather.
@@ -1224,17 +1457,38 @@ export default function AgentInteractionsPage() {
         </p>
 
         <SetHeader
-          title="The working hue"
+          title="Color intent"
           blurb={
             <>
               Amber is inherited from a decade of dashboards, where yellow means caution —
               urgency is exactly the wrong thing to invoke for a companion quietly at work.
-              Same orbit, five temperaments; the dash and the motion already say
-              &ldquo;working,&rdquo; so the hue only has to set a mood.
+              Three principles govern everything here: <em>color budget</em> (the chrome
+              stays monochrome; hue is spent on state alone), <em>the verdict earns the
+              ink</em> (the strongest color belongs to the truest moment), and{" "}
+              <em>never hue alone</em> (dash, form, and motion carry the state too — the
+              done-green / failed-red pair is a classic color-vision collision, so shape
+              must always be sufficient by itself).
             </>
           }
         />
         <HueRow />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {COLOR_SYSTEMS.map((system) => (
+            <SystemCard key={system.name} system={system} />
+          ))}
+        </div>
+
+        <SetHeader
+          title="Gestures — the companion lifecycle"
+          blurb={
+            <>
+              Agents as coworkers means the moments between states deserve motion too:
+              arriving, acknowledging, listening, delivering, resting, departing. Two
+              studies respond to hover — a gesture is a response, not a loop.
+            </>
+          }
+        />
+        <StudySections sections={GESTURE_SECTIONS} />
 
         <SetHeader
           title="Outside — a landscape of companions"

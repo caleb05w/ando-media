@@ -529,3 +529,555 @@
   animation: mi-heartbeat 1.8s cubic-bezier(0.2, 0, 0.4, 1) infinite;
   transform-origin: 50% 50%;
 }
+
+/* ======================= Ma set — water & silence =======================
+   Slow, low-opacity, blurred edges. Working loops run 4–9s; completion and
+   failure replay on a 6s cycle. Nothing should demand the eye. */
+
+/* ---- working ---- */
+
+/* M-W1 Ripples: raindrop rings widening off the bubble and dissolving. */
+@keyframes ma-ripple {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.ma-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  animation: ma-ripple 3.8s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+
+/* M-W2 Waterline: a pool inside the bubble, gently sloshing. */
+@keyframes ma-slosh {
+  0%,
+  100% {
+    transform: rotate(-2.5deg) translateX(-1.5px);
+  }
+  50% {
+    transform: rotate(2.5deg) translateX(1.5px);
+  }
+}
+.ma-water {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -46%;
+  height: 92%;
+  border-radius: 46% 44% 0 0 / 14% 12% 0 0;
+  background: rgba(245, 158, 11, 0.18);
+  transform-origin: 50% 100%;
+  animation: ma-slosh 4.8s ease-in-out infinite;
+}
+
+/* M-W3 Caustics: sunlight patches drifting across the face underwater. */
+@keyframes ma-caustic-a {
+  0%,
+  100% {
+    transform: translate(5px, 7px);
+  }
+  50% {
+    transform: translate(17px, 15px);
+  }
+}
+@keyframes ma-caustic-b {
+  0%,
+  100% {
+    transform: translate(20px, 18px);
+  }
+  50% {
+    transform: translate(8px, 9px);
+  }
+}
+.ma-caustic-a,
+.ma-caustic-b {
+  position: absolute;
+  width: 20px;
+  height: 14px;
+  border-radius: 60% 40% 55% 45%;
+  background: rgba(255, 255, 255, 0.55);
+  filter: blur(4px);
+}
+.ma-caustic-a {
+  animation: ma-caustic-a 8s ease-in-out infinite;
+}
+.ma-caustic-b {
+  animation: ma-caustic-b 11s ease-in-out infinite;
+}
+
+/* M-W4 Drift: a leaf on water — slow bob with a hint of rotation. */
+@keyframes ma-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-2.5px) rotate(1.6deg);
+  }
+  66% {
+    transform: translateY(1.5px) rotate(-1.4deg);
+  }
+}
+.ma-drift {
+  animation: ma-drift 7s ease-in-out infinite;
+}
+
+/* M-W5 Mist: a soft veil circling the rim. */
+@keyframes ma-mist {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ma-mist {
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 30%,
+    rgba(245, 158, 11, 0.28) 50%,
+    transparent 70% 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 5px));
+  filter: blur(2.5px);
+  animation: ma-mist 9s linear infinite;
+}
+
+/* M-W6 Stone garden: three pebbles on their own slow orbits. */
+@keyframes ma-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ma-orbit-a,
+.ma-orbit-b,
+.ma-orbit-c {
+  position: absolute;
+  border-radius: 9999px;
+}
+.ma-orbit-a {
+  inset: -3px;
+  animation: ma-orbit 12s linear infinite;
+}
+.ma-orbit-b {
+  inset: -8px;
+  animation: ma-orbit 17s linear infinite reverse;
+}
+.ma-orbit-c {
+  inset: -13px;
+  animation: ma-orbit 23s linear infinite;
+}
+.ma-pebble {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 9999px;
+  background: rgba(168, 162, 158, 0.9);
+}
+
+/* ---- completion (6s replay) ---- */
+
+/* Working ripples that emit early in the loop, then cease. */
+@keyframes ma-ripple-cease {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.5;
+  }
+  26% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ma-ripple-cease {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  animation: ma-ripple-cease 6s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+
+/* Green settling like dye finding its level — shared by several studies. */
+@keyframes ma-settle {
+  0%,
+  48% {
+    opacity: 0;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+.ma-settle {
+  animation: ma-settle 6s ease-in-out infinite;
+}
+
+/* M-C2 Single drop: the answer arrives as one raindrop. */
+@keyframes ma-drop-fall {
+  0%,
+  30% {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+  34% {
+    opacity: 0.9;
+  }
+  41% {
+    transform: translateY(-1px);
+    opacity: 0.9;
+  }
+  44%,
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+.ma-drop-fall {
+  animation: ma-drop-fall 6s cubic-bezier(0.4, 0, 1, 1) infinite;
+}
+@keyframes ma-drop-ripple {
+  0%,
+  42% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  46% {
+    opacity: 0.55;
+  }
+  74%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.ma-drop-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(22, 163, 74, 0.5);
+  animation: ma-drop-ripple 6s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+
+/* M-C3 Diffusion: the verdict resolves from ink-blur to a line. */
+@keyframes ma-diffuse {
+  0%,
+  40% {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  62% {
+    opacity: 0.55;
+    filter: blur(2.5px);
+  }
+  82% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  92% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  98%,
+  100% {
+    opacity: 0;
+    filter: blur(5px);
+  }
+}
+.ma-diffuse {
+  animation: ma-diffuse 6s ease-in-out infinite;
+}
+
+/* M-C4 Bloom: one soft exhale of green, then rest. */
+@keyframes ma-bloom {
+  0%,
+  40% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  55% {
+    opacity: 0.35;
+  }
+  76%,
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+.ma-bloom {
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: rgba(22, 163, 74, 0.4);
+  filter: blur(5px);
+  animation: ma-bloom 6s cubic-bezier(0.2, 0, 0.2, 1) infinite;
+}
+
+/* M-C5 Sun through: clouds part over the face for a moment. */
+@keyframes ma-sun {
+  0%,
+  34% {
+    transform: translate(-16px, 14px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  66%,
+  100% {
+    transform: translate(16px, -12px);
+    opacity: 0;
+  }
+}
+.ma-sun {
+  position: absolute;
+  width: 26px;
+  height: 20px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  filter: blur(5px);
+  animation: ma-sun 6s ease-in-out infinite;
+}
+@keyframes ma-brighten {
+  0%,
+  36% {
+    filter: brightness(1);
+  }
+  54% {
+    filter: brightness(1.16);
+  }
+  72%,
+  100% {
+    filter: brightness(1);
+  }
+}
+.ma-brighten {
+  animation: ma-brighten 6s ease-in-out infinite;
+}
+
+/* ---- failure (6s replay) ---- */
+
+/* M-F1 Broken surface: one uneven ripple; the water takes longer to still. */
+@keyframes ma-ripple-broken {
+  0%,
+  34% {
+    transform: rotate(14deg) scale(0.55, 0.45);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.5;
+  }
+  88%,
+  100% {
+    transform: rotate(14deg) scale(2, 1.55);
+    opacity: 0;
+  }
+}
+.ma-ripple-broken {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  animation: ma-ripple-broken 6s cubic-bezier(0.2, 0, 0.3, 1) infinite;
+}
+@keyframes ma-settle-red {
+  0%,
+  52% {
+    opacity: 0;
+  }
+  84% {
+    opacity: 0.75;
+  }
+  92% {
+    opacity: 0.75;
+  }
+  98%,
+  100% {
+    opacity: 0;
+  }
+}
+.ma-settle-red {
+  animation: ma-settle-red 6s ease-in-out infinite;
+}
+
+/* M-F2 Sink: the bubble takes on weight and rides lower in the water. */
+@keyframes ma-sink {
+  0%,
+  34% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(4.5px);
+  }
+  88% {
+    transform: translateY(4.5px);
+  }
+  97%,
+  100% {
+    transform: translateY(0);
+  }
+}
+.ma-sink {
+  animation: ma-sink 6s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+@keyframes ma-flood-rise {
+  0%,
+  34% {
+    height: 26%;
+    background: rgba(245, 158, 11, 0.16);
+  }
+  62% {
+    height: 58%;
+    background: rgba(153, 63, 63, 0.2);
+  }
+  88% {
+    height: 58%;
+    background: rgba(153, 63, 63, 0.2);
+  }
+  97%,
+  100% {
+    height: 26%;
+    background: rgba(245, 158, 11, 0.16);
+  }
+}
+.ma-flood-rise {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  bottom: -2px;
+  border-radius: 40% 44% 0 0 / 10% 12% 0 0;
+  animation: ma-flood-rise 6s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+
+/* M-F3 Sediment: fine particles give up and settle at the bottom. */
+@keyframes ma-sediment-a {
+  0%,
+  34% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.8;
+  }
+  66% {
+    transform: translate(-2px, 11px);
+    opacity: 0.8;
+  }
+  90% {
+    transform: translate(-2px, 11px);
+    opacity: 0.8;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ma-sediment-b {
+  0%,
+  38% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  44% {
+    opacity: 0.7;
+  }
+  72% {
+    transform: translate(3px, 9px);
+    opacity: 0.7;
+  }
+  90% {
+    transform: translate(3px, 9px);
+    opacity: 0.7;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+.ma-sediment-a {
+  animation: ma-sediment-a 6s cubic-bezier(0.3, 0, 0.3, 1) infinite;
+}
+.ma-sediment-b {
+  animation: ma-sediment-b 6s cubic-bezier(0.3, 0, 0.3, 1) infinite;
+}
+
+/* M-F4 Eclipse: a shadow slides over the face and stays. */
+@keyframes ma-eclipse {
+  0%,
+  32% {
+    transform: translateX(-34px);
+    opacity: 0;
+  }
+  42% {
+    opacity: 0.32;
+  }
+  56% {
+    transform: translateX(-9px);
+    opacity: 0.32;
+  }
+  88% {
+    transform: translateX(-9px);
+    opacity: 0.32;
+  }
+  97%,
+  100% {
+    transform: translateX(-34px);
+    opacity: 0;
+  }
+}
+.ma-eclipse {
+  position: absolute;
+  inset: 2px;
+  border-radius: 9999px;
+  background: #1a1817;
+  filter: blur(2px);
+  animation: ma-eclipse 6s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+
+/* M-F5 Ember: the working ring cools — amber to red to ash. No verdict
+   line is ever drawn; failure here is a loss of heat. */
+@keyframes ma-ember {
+  0%,
+  30% {
+    stroke: #f59e0b;
+    opacity: 1;
+  }
+  52% {
+    stroke: #dc2626;
+    opacity: 0.9;
+  }
+  76% {
+    stroke: #dc2626;
+    opacity: 0.3;
+  }
+  90% {
+    stroke: #dc2626;
+    opacity: 0.3;
+  }
+  98%,
+  100% {
+    stroke: #f59e0b;
+    opacity: 1;
+  }
+}
+.ma-ember {
+  animation: ma-ember 6s ease-in-out infinite;
+}

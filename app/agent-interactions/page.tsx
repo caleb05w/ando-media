@@ -296,6 +296,223 @@ function FHeartbeat() {
   );
 }
 
+/* ------------------------------- Ma set demos ------------------------------- */
+/* Water & silence: mediums that wrap around or move within the avatar —
+   ripples outside, a pool inside, light over the face, mist at the rim. */
+
+function MWRipples() {
+  return (
+    <Bubble face={TADAO}>
+      {[0, 1.25, 2.5].map((delay) => (
+        <span key={delay} className="ma-ripple" style={{ animationDelay: `${delay}s` }} />
+      ))}
+    </Bubble>
+  );
+}
+
+function MWWaterline() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="ma-water" />
+      </span>
+    </Bubble>
+  );
+}
+
+function MWCaustics() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="ma-caustic-a" />
+        <span className="ma-caustic-b" />
+      </span>
+    </Bubble>
+  );
+}
+
+function MWDrift() {
+  return (
+    <span className="ma-drift inline-flex">
+      <Bubble face={TADAO} />
+    </span>
+  );
+}
+
+function MWMist() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="ma-mist" />
+    </Bubble>
+  );
+}
+
+function MWPebbles() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="ma-orbit-a">
+        <span className="ma-pebble" />
+      </span>
+      <span className="ma-orbit-b">
+        <span className="ma-pebble" style={{ opacity: 0.65 }} />
+      </span>
+      <span className="ma-orbit-c">
+        <span className="ma-pebble" style={{ opacity: 0.4 }} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MCStillWater() {
+  return (
+    <Bubble face={ANDO}>
+      {[0, 0.9].map((delay) => (
+        <span key={delay} className="ma-ripple-cease" style={{ animationDelay: `${delay}s` }} />
+      ))}
+      <span className="ma-settle absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MCDrop() {
+  return (
+    <Bubble face={ANDO}>
+      <span
+        className="ma-drop-fall absolute left-1/2 top-1/2 size-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{ background: GREEN }}
+      />
+      <span className="ma-drop-ripple" />
+      <span className="ma-settle absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MCDiffusion() {
+  return (
+    <Bubble face={ANDO}>
+      <span className="ma-diffuse absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MCBloom() {
+  return (
+    <Bubble face={ANDO}>
+      <span className="ma-bloom" />
+      <span className="ma-settle absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MCSun() {
+  return (
+    <Bubble face={ANDO} faceClassName="ma-brighten">
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="ma-sun" />
+      </span>
+      <span className="ma-settle absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MFBrokenSurface() {
+  return (
+    <Bubble face={YUMI}>
+      <span className="ma-ripple-broken" />
+      <span className="ma-ripple-broken" style={{ animationDelay: "0.7s" }} />
+      <span className="ma-settle-red absolute inset-0">
+        <RingSvg color={RED} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MFSink() {
+  return (
+    <span className="ma-sink inline-flex">
+      <Bubble face={YUMI}>
+        <span className="absolute inset-[2px] overflow-hidden rounded-full">
+          <span className="ma-flood-rise" />
+        </span>
+        <span className="ma-settle-red absolute inset-0">
+          <RingSvg color={RED} />
+        </span>
+      </Bubble>
+    </span>
+  );
+}
+
+function MFSediment() {
+  return (
+    <Bubble face={YUMI}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        {[
+          ["ma-sediment-a", "42%", "34%", 0],
+          ["ma-sediment-b", "58%", "30%", 0.4],
+          ["ma-sediment-a", "66%", "42%", 0.9],
+          ["ma-sediment-b", "34%", "44%", 1.3],
+        ].map(([cls, left, top, delay], index) => (
+          <span
+            key={index}
+            className={`${cls} absolute size-[2.5px] rounded-full`}
+            style={{
+              left: left as string,
+              top: top as string,
+              background: "rgba(153,63,63,0.8)",
+              animationDelay: `${delay}s`,
+            }}
+          />
+        ))}
+      </span>
+      <span className="ma-settle-red absolute inset-0">
+        <RingSvg color={RED} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MFEclipse() {
+  return (
+    <Bubble face={YUMI}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="ma-eclipse" />
+      </span>
+      <span className="ma-settle-red absolute inset-0">
+        <RingSvg color={RED} />
+      </span>
+    </Bubble>
+  );
+}
+
+function MFEmber() {
+  return (
+    <Bubble face={YUMI}>
+      <svg width={SIZE} height={SIZE} className="mi-spin absolute inset-0" aria-hidden>
+        <circle
+          cx={C}
+          cy={C}
+          r={R}
+          fill="none"
+          strokeWidth={2}
+          strokeDasharray="3.2 3.8"
+          strokeLinecap="round"
+          className="ma-ember"
+        />
+      </svg>
+    </Bubble>
+  );
+}
+
 /* ---------------------------------- board ----------------------------------- */
 
 type Study = {
@@ -308,6 +525,127 @@ type Study = {
 
 type Section = { heading: string; blurb: string; studies: Study[] };
 
+// Set 1 · Ma — water & silence. Homage to Tadao Ando: negative space,
+// silence as a design value. The movement lives at the threshold of
+// noticing; completion is stillness, failure is a disturbance.
+const MA_SECTIONS: Section[] = [
+  {
+    heading: "1 · Working",
+    blurb: "A live surface — the water moves because something is underneath.",
+    studies: [
+      {
+        title: "Ripples",
+        source: "rain on still water · around",
+        note: "Rings widen off the bubble and dissolve. The pace of falling rain — never urgent.",
+        demo: <MWRipples />,
+      },
+      {
+        title: "Waterline",
+        source: "a pool inside · within",
+        note: "The bubble holds water that gently sloshes. Effort as a quiet interior tide.",
+        demo: <MWWaterline />,
+      },
+      {
+        title: "Caustics",
+        source: "sunlight through water · over",
+        note: "Light patches drift across the face, as if seen through a stream. Barely there.",
+        demo: <MWCaustics />,
+      },
+      {
+        title: "Drift",
+        source: "a leaf on water · the whole",
+        note: "The bubble floats — slow bob, a hint of rotation. Alive without a single UI pixel.",
+        demo: <MWDrift />,
+      },
+      {
+        title: "Mist",
+        source: "morning fog · at the rim",
+        note: "A soft veil circles the rim on a nine-second walk. Presence you sense, not see.",
+        demo: <MWMist />,
+      },
+      {
+        title: "Stone garden",
+        source: "raked gravel · orbital field",
+        note: "Three pebbles on their own slow orbits — 12s, 17s, 23s — never aligning, never hurrying.",
+        demo: <MWPebbles />,
+      },
+    ],
+  },
+  {
+    heading: "2 · Completion",
+    blurb: "Stillness is the payoff — the water simply stops moving.",
+    studies: [
+      {
+        title: "Still water",
+        source: "Ma · the pause as the event",
+        note: "The working ripples cease, and green settles in like dye finding its level. No fanfare.",
+        demo: <MCStillWater />,
+      },
+      {
+        title: "Single drop",
+        source: "one raindrop",
+        note: "The answer arrives as a drop: it falls, one green ripple widens, the surface stills.",
+        demo: <MCDrop />,
+      },
+      {
+        title: "Diffusion",
+        source: "ink in water",
+        note: "The verdict resolves from blur to line — certainty arriving gradually, then all at once.",
+        demo: <MCDiffusion />,
+      },
+      {
+        title: "Bloom",
+        source: "one exhale",
+        note: "A soft green breath outward, then rest. The gentlest possible celebration.",
+        demo: <MCBloom />,
+      },
+      {
+        title: "Sun through",
+        source: "clouds parting · over",
+        note: "The face brightens for a moment as light passes — done as a change in weather.",
+        demo: <MCSun />,
+      },
+    ],
+  },
+  {
+    heading: "3 · Failure",
+    blurb: "A disturbance of the calm — a stone dropped, not a siren.",
+    studies: [
+      {
+        title: "Broken surface",
+        source: "a stone in the pond",
+        note: "One uneven ripple, and the water takes longer to still. Failure as disturbed symmetry.",
+        demo: <MFBrokenSurface />,
+      },
+      {
+        title: "Sink",
+        source: "waterlogged · within",
+        note: "The bubble takes on weight and rides lower; the interior floods a shade darker.",
+        demo: <MFSink />,
+      },
+      {
+        title: "Sediment",
+        source: "silt settling · within",
+        note: "Fine particles give up and settle at the bottom. The quietest possible bad news.",
+        demo: <MFSediment />,
+      },
+      {
+        title: "Eclipse",
+        source: "a passing shadow · over",
+        note: "A shadow slides across the face and stays. The light will return on rerun.",
+        demo: <MFEclipse />,
+      },
+      {
+        title: "Ember",
+        source: "heat death · the ring itself",
+        note: "The working ring cools — amber to red to ash — and no verdict line is ever drawn.",
+        demo: <MFEmber />,
+      },
+    ],
+  },
+];
+
+// Set 2 · Kinetic references (the earlier exploration, kept for contrast).
 const SECTIONS: Section[] = [
   {
     heading: "1 · Working",
@@ -428,21 +766,29 @@ const SECTIONS: Section[] = [
   },
 ];
 
-export default function AgentInteractionsPage() {
+function SetHeader({
+  title,
+  blurb,
+}: {
+  title: string;
+  blurb: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-1 justify-center bg-white">
-      <main className="w-full max-w-4xl px-6 pb-24 pt-24">
-        <h1 className="text-[14px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
-          Agent motion — state studies
-        </h1>
-        <p className="mt-2 max-w-xl text-[13px] leading-[18px]" style={{ color: FG_TERTIARY }}>
-          Sixteen looping studies for the three run states in the corner-bubble grammar.
-          Working treatments run continuously; completion and failure replay their transition
-          on a 4s cycle. Marked cards are what{" "}
-          <span style={{ color: FG_SECONDARY }}>/agent-working</span> ships today.
-        </p>
+    <div className="mt-16 border-t pt-8 first:mt-10 first:border-t-0 first:pt-0" style={{ borderColor: STROKE_WEAK }}>
+      <h2 className="text-[13px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
+        {title}
+      </h2>
+      <p className="mt-1 max-w-xl text-[12px] leading-[17px]" style={{ color: FG_TERTIARY }}>
+        {blurb}
+      </p>
+    </div>
+  );
+}
 
-        {SECTIONS.map((section) => (
+function StudySections({ sections }: { sections: Section[] }) {
+  return (
+    <>
+      {sections.map((section) => (
           <section key={section.heading} className="mt-12">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h2
@@ -496,7 +842,43 @@ export default function AgentInteractionsPage() {
               ))}
             </div>
           </section>
-        ))}
+      ))}
+    </>
+  );
+}
+
+export default function AgentInteractionsPage() {
+  return (
+    <div className="flex flex-1 justify-center bg-white">
+      <main className="w-full max-w-4xl px-6 pb-24 pt-24">
+        <h1 className="text-[14px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
+          Agent motion — state studies
+        </h1>
+        <p className="mt-2 max-w-xl text-[13px] leading-[18px]" style={{ color: FG_TERTIARY }}>
+          Looping studies for the three run states in the corner-bubble grammar. Working
+          treatments run continuously; completion and failure replay their transition on a
+          cycle. Marked cards are what{" "}
+          <span style={{ color: FG_SECONDARY }}>/agent-working</span> ships today.
+        </p>
+
+        <SetHeader
+          title="Set 1 · Ma — water & silence"
+          blurb={
+            <>
+              Homage to Tadao Ando: negative space, silence as a design value. Flowing water,
+              ripples, weather — nothing that demands the eye. Completion is stillness;
+              failure is a disturbance, not an alarm. Each source line names the medium:
+              around the avatar, within it, over it, or at the rim.
+            </>
+          }
+        />
+        <StudySections sections={MA_SECTIONS} />
+
+        <SetHeader
+          title="Set 2 · Kinetic references"
+          blurb="The earlier exploration — Dynamic Island, watchOS breathe, Chrome downloads. Louder language, kept for contrast."
+        />
+        <StudySections sections={SECTIONS} />
       </main>
     </div>
   );

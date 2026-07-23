@@ -6,6 +6,14 @@
 // downloads, Linear, classic squash-and-stretch.
 
 import "./agent-interactions.css";
+import {
+  ShippedArrive,
+  ShippedWorking,
+  ShippedCompleted,
+  ShippedFailed,
+  ShippedStopped,
+  ShippedDepart,
+} from "./shipped";
 
 const P = "/agent-working";
 
@@ -1685,6 +1693,54 @@ function StudySections({ sections }: { sections: Section[] }) {
   );
 }
 
+// Shipped states — the live /agent-working states, rendered by the
+// production component and CSS. The reference row everything below is
+// judged against.
+const SHIPPED_SECTIONS: Section[] = [
+  {
+    heading: "Lifecycle",
+    blurb: "Production RingedFace, production CSS — if it drifts here, it drifted there.",
+    studies: [
+      {
+        title: "Arrive",
+        source: "aw-chip-in · 880ms condensation",
+        note: "The bubble condenses into presence — width, blur, and scale bloom while the slot opens. Replayed every 2.6s.",
+        demo: <ShippedArrive />,
+      },
+      {
+        title: "Working",
+        source: "comet · brand blue / portrait",
+        note: "The softened comet on its 1.6s orbit, in both hue modes of the header toggle: the page's brand blue, and the agent's portrait tone.",
+        demo: <ShippedWorking />,
+      },
+      {
+        title: "Completed",
+        source: "seal → pop → ping",
+        note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs 5s later in the product.",
+        demo: <ShippedCompleted />,
+      },
+      {
+        title: "Not completed — failed",
+        source: "seal → shake → throb",
+        note: "Red draws closed with a jolt, then the verdict ring breathes in place — solid to 0.35 and back on a 1.8s ease — until addressed.",
+        demo: <ShippedFailed />,
+      },
+      {
+        title: "Not completed — stopped",
+        source: "seal → shake, then still",
+        note: "Same red seal and jolt, but still afterwards: a stop was your own act, so it doesn't call for attention.",
+        demo: <ShippedStopped />,
+      },
+      {
+        title: "Depart",
+        source: "aw-chip-out · the arrival reversed",
+        note: "The bloom reverses — fade, blur, shrink — while the slot closes. The exact keyframes the corner plays when a chip leaves.",
+        demo: <ShippedDepart />,
+      },
+    ],
+  },
+];
+
 export default function AgentInteractionsPage() {
   return (
     <div className="flex flex-1 justify-center bg-white">
@@ -1698,6 +1754,18 @@ export default function AgentInteractionsPage() {
           cycle. Marked cards are what{" "}
           <span style={{ color: FG_SECONDARY }}>/agent-working</span> ships today.
         </p>
+
+        <SetHeader
+          title="Shipped — the states live on /agent-working"
+          blurb={
+            <>
+              The current production states, rendered by the production component and the
+              production stylesheet — arrive, work, resolve, depart. Use this row to test:
+              every card loops its transition on the white the corner actually lives on.
+            </>
+          }
+        />
+        <StudySections sections={SHIPPED_SECTIONS} />
 
         <SetHeader
           title="Color intent"

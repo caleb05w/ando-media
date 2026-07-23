@@ -7,14 +7,15 @@
   background: rgba(37, 99, 235, 0.16);
 }
 
-/* Working ring: slow clockwise crawl of the dashed amber ring. */
+/* Working ring: slow clockwise crawl of the dashed sage ring — Garden
+   palette; slowed so presence sits at the threshold of noticing. */
 @keyframes aw-ring-spin {
   to {
     transform: rotate(360deg);
   }
 }
 .aw-ring-spin {
-  animation: aw-ring-spin 5.5s linear infinite;
+  animation: aw-ring-spin 8s linear infinite;
   transform-origin: 50% 50%;
 }
 
@@ -79,9 +80,8 @@
 }
 
 /* Corner bubbles condense into presence and dissolve out of it — promoted
-   from the Gestures board (Arrive/Depart, sans droplets). Arrival: blur
-   and scale resolve into focus with a whisper of settle, no bounce. */
-/* Arrival at the Gestures-board tempo: one continuous 880ms bloom
+   from the Gestures board (Arrive/Depart, sans droplets).
+   Arrival at the Gestures-board tempo: one continuous 880ms bloom
    (opacity, blur, and scale resolve monotonically — no plateau, no
    late blink) while the slot opens underneath, finishing early. The
    margin is only pinned at 0% — it eases to each bubble's own inline
@@ -110,35 +110,32 @@
      margin on the right, never over the neighbor. */
   transform-origin: left center;
 }
-/* Two-phase exit at the Gestures-board tempo and geometry: the bubble
-   rises and expands as it dissolves — mist released, not matter sucked
-   away — then the slot folds (width and overlap margin) so neighbors
-   slide together instead of snapping. */
+/* Exit is the arrival played backward: the bloom reverses (fade, blur,
+   shrink) while the slot closes over the back half — one symmetric
+   gesture in, one out. */
 @keyframes aw-chip-out {
   0% {
+    width: 34px;
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: blur(0px);
-    width: 34px;
   }
-  72% {
-    opacity: 0;
-    transform: translateY(-6px) scale(1.05);
-    filter: blur(2.5px);
+  45% {
     width: 34px;
   }
   100% {
-    opacity: 0;
-    transform: translateY(-6px) scale(1.05);
-    filter: blur(2.5px);
-    width: 0;
+    width: 0px;
     /* Eases from each bubble's own inline overlap value. */
     margin-left: 0;
+    opacity: 0;
+    transform: translateY(1px) scale(0.45);
+    filter: blur(2.5px);
   }
 }
 .aw-chip-out {
-  animation: aw-chip-out 1800ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+  animation: aw-chip-out 880ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
   pointer-events: none;
+  transform-origin: left center;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

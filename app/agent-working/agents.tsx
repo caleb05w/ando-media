@@ -7,7 +7,7 @@
 //  1. Inline session chips under the invoking message
 //     ("Starting agent session · 6s · stop" → red "Failed"/"Stopped").
 //  2. Corner presence: one ringed avatar per live agent, bottom-right above
-//     the composer. Ring grammar: orbiting amber dashes = working, solid
+//     the composer. Ring grammar: orbiting sage dashes = working, solid
 //     green = done, solid red = failed/stopped. Click toggles the flyout.
 //  3. Dark "Active agents" flyout (single list, per the multi-agent mock —
 //     no Complete tab). Rows: ringed avatar, live status line (chevron →
@@ -425,7 +425,7 @@ export function AgentFace({ agent, size }: { agent: AgentDef; size: number }) {
 }
 
 const RING_COLOR: Record<RunStatus, string> = {
-  working: "#F59E0B",
+  working: "#8aa48d",
   done: "#16A34A",
   failed: "#DC2626",
   stopped: "#DC2626",

@@ -260,26 +260,21 @@
   animation: aw-shake 320ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-/* Failure pulse: the Discord incoming-call grammar — a red ring rolls
-   off the bubble and dissolves, on a steady beat with a rest between
-   pulses, looping until the failure is addressed. Base opacity 0 +
-   450ms delay hide it while the seal draws the verdict ring first. */
-@keyframes aw-fail-pulse {
-  0% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  70%,
+/* Failure throb: the call-pulse grammar without the growth — the red
+   verdict ring stays where it sealed and its opacity breathes, solid →
+   faint → solid, looping until the failure is addressed. The 450ms
+   delay lets the seal draw at full strength first. */
+@keyframes aw-fail-throb {
+  0%,
   100% {
-    opacity: 0;
-    transform: scale(1.55);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }
-.aw-fail-pulse {
-  pointer-events: none;
-  opacity: 0;
-  border: 2px solid #dc2626;
-  animation: aw-fail-pulse 1.8s cubic-bezier(0.2, 0, 0.4, 1) 450ms infinite;
+.aw-fail-throb {
+  animation: aw-fail-throb 1.8s ease-in-out 450ms infinite;
 }
 
 /* Completion ping: a green ring rolls off a bubble after the seal closes

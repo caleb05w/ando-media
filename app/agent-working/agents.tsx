@@ -443,12 +443,15 @@ export function RingedFace({
   size = 28,
   strokeWidth = 1.5,
   disc = false,
+  failPulse = false,
 }: {
   agent: AgentDef;
   status: RunStatus;
   size?: number;
   strokeWidth?: number;
   disc?: boolean;
+  /** Corner attention grammar: the red verdict ring breathes while failed. */
+  failPulse?: boolean;
 }) {
   // "Adjust state during render" pattern — detect the status flip without
   // an effect, so the seal overlay mounts on the exact transition frame.
@@ -503,9 +506,16 @@ export function RingedFace({
       {working || seal != null ? (
         <span className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`} aria-hidden />
       ) : null}
-      {/* Outcome ring: draws itself closed during the seal, solid after. */}
+      {/* Outcome ring: draws itself closed during the seal, solid after.
+          On a corner failure it throbs in place (class on the svg, so it
+          never fights the circle's seal-draw animation shorthand). */}
       {!working ? (
-        <svg width={size} height={size} className="absolute inset-0" aria-hidden>
+        <svg
+          width={size}
+          height={size}
+          className={`absolute inset-0 ${failPulse && status === "failed" ? "aw-fail-throb" : ""}`}
+          aria-hidden
+        >
           <circle
             cx={center}
             cy={center}
@@ -640,19 +650,16 @@ export function CornerStack({
           // newcomer never touches an existing bubble's styles (no snap).
           style={{
             marginLeft: index > 0 ? -8 : 0,
-            boxShadow: "0 0 0 4px white",
+            boxShadow: "0 0 0 2px white",
           }}
         >
-          <RingedFace agent={run.agent} status={run.status} size={30} strokeWidth={2} disc />
+          {/* failPulse: the red verdict ring breathes in place until the
+              failure is addressed. Failed only — a stop was the user's
+              own act, so it rests. */}
+          <RingedFace agent={run.agent} status={run.status} size={30} strokeWidth={2} disc failPulse />
           {/* Completion ping — mounts exactly when the run turns green. */}
           {run.status === "done" ? (
             <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
-          ) : null}
-          {/* Failure pulses for attention (Discord call grammar) — a red
-              ring rolls off the bubble on a steady beat until addressed.
-              Failed only: a stop was the user's own act, so it rests. */}
-          {run.status === "failed" ? (
-            <span aria-hidden className="aw-fail-pulse absolute inset-0 rounded-full" />
           ) : null}
         </button>
       ))}
@@ -664,7 +671,7 @@ export function CornerStack({
           // (and gives touch a path to it).
           onClick={() => onHoverChange(true)}
           className="aw-chip-in flex rounded-full"
-          style={{ marginLeft: -8, boxShadow: "0 0 0 4px white" }}
+          style={{ marginLeft: -8, boxShadow: "0 0 0 2px white" }}
         >
           <OverflowDisc count={hidden.length} />
         </button>

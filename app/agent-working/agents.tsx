@@ -147,6 +147,114 @@ export const AGENTS: AgentDef[] = [
         : { durationMs: 9000, outcome: "done" },
     toolCalls: (attempt) => (attempt <= 1 ? 18 : 27),
   },
+  {
+    id: "juno",
+    name: "Juno",
+    photo: `${P}/agent-3.png`,
+    hue: "#2c76c5", // snow-globe blue
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Reading the ask", ms: 1800 },
+      { text: "Pulling five calendars", ms: 2600 },
+      { text: "Checking Thursday's conflicts", ms: 2800 },
+      { text: "Holding the 10:30 slot", ms: 2400 },
+      { text: "Cross-checking timezones", ms: 2800 },
+      { text: "Finding a 6-seat room", ms: 2600 },
+      { text: "Drafting the invite", ms: 2600 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "Booked: design review Thursday 10:30–11:00 in Koto (6 seats). Everyone's free — Jordan had a soft hold I bumped past. Invite is out with the Figma link attached.",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "availability sweep across 5 calendars" },
+      { verb: "Read", desc: "Jordan's soft hold on Thursday" },
+      { verb: "Searched", desc: "rooms with 6 seats free at 10:30" },
+      { verb: "Wrote", desc: "the invite draft" },
+    ],
+    script: () => ({ durationMs: 10000, outcome: "done" }),
+    toolCalls: () => 21,
+  },
+  {
+    id: "trey",
+    name: "Trey",
+    photo: `${P}/agent-4.png`,
+    hue: "#86463c", // portrait's warm brick
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Reading the diff on #482", ms: 2400 },
+      { text: "Tracing the drag-threshold change", ms: 3000 },
+      { text: "Running the unit suite", ms: 3200 },
+      { text: "Checking bundle size delta", ms: 2600 },
+      { text: "Leaving inline notes", ms: 2800 },
+      { text: "Summarizing the review", ms: 2400 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "Reviewed #482: logic's sound, two nits inline (dead import, magic 3 → constant). Tests green — 212 passing — and bundle is +0.4kb. Approving with comments.",
+    ],
+    traceSteps: [
+      { verb: "Read", desc: "the diff on #482" },
+      { verb: "Ran", desc: "unit suite — 212 passing" },
+      { verb: "Searched", desc: "usages of DRAG_THRESHOLD" },
+      { verb: "Wrote", desc: "2 inline review comments" },
+    ],
+    script: () => ({ durationMs: 13000, outcome: "done" }),
+    toolCalls: () => 41,
+  },
+  {
+    id: "moss",
+    name: "Moss",
+    photo: `${P}/agent-5.png`,
+    hue: "#a2ac52", // that green
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Opening the RFC", ms: 2000 },
+      { text: "Reading 34 comments", ms: 3000 },
+      { text: "Grouping objections by theme", ms: 3000 },
+      { text: "Checking which threads resolved", ms: 2800 },
+      { text: "Pulling decision owners", ms: 2600 },
+      { text: "Writing the digest", ms: 2600 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "RFC digest: 34 comments, 3 threads still open. Consensus on collapse-by-default; naming is split into two camps; the perf question closed after Sara's benchmark. Full digest is in the doc.",
+    ],
+    traceSteps: [
+      { verb: "Read", desc: "the RFC comment thread" },
+      { verb: "Wrote", desc: "theme clusters with owners" },
+      { verb: "Searched", desc: "linked benchmarks" },
+      { verb: "Ran", desc: "a stale-thread check" },
+    ],
+    script: () => ({ durationMs: 11000, outcome: "done" }),
+    toolCalls: () => 27,
+  },
+  {
+    id: "kelvin",
+    name: "Kelvin",
+    photo: `${P}/agent-6.png`,
+    hue: "#1c6d7d", // deep teal
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Booting the preview build", ms: 2600 },
+      { text: "Running visual diff on 24 screens", ms: 3400 },
+      { text: "Checking the corner-stack overlap", ms: 2800 },
+      { text: "Re-running the flaky spec", ms: 3000 },
+      { text: "Filing the diff report", ms: 2600 },
+    ],
+    loopFrom: 2,
+    answer: [
+      "Visual sweep done: 24 screens, 1 real diff (corner-stack gap 4 → 2px — expected from the padding change), 1 flake that re-ran clean. Report linked.",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "visual regression on 24 screens" },
+      { verb: "Read", desc: "the corner-stack diff" },
+      { verb: "Ran", desc: "the flaky spec a second time" },
+      { verb: "Wrote", desc: "the sweep report" },
+    ],
+    script: () => ({ durationMs: 14000, outcome: "done" }),
+    toolCalls: () => 56,
+  },
 ];
 
 /* --------------------------------- engine --------------------------------- */

@@ -18,6 +18,13 @@ const ENTRIES: Entry[] = [
       "Drag across messages to block-select them, Notion-style — corner checkmarks, shift-click ranges, edge auto-scroll, and an A/B toggle for the action bar.",
   },
   {
+    href: "/agent-working",
+    title: "Agent working",
+    tag: "(Prototype)",
+    brief:
+      "@mention an agent to spawn a run — inline session chips, ringed corner presence, an Active/Complete flyout with stop and rerun, and a tool-call trace modal.",
+  },
+  {
     href: "/automation-test",
     title: "Create automation",
     brief:

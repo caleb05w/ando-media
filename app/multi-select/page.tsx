@@ -586,17 +586,6 @@ export default function MultiSelectPage() {
             />
           ) : null}
         </main>
-
-        {/* Floating "Remove member" popover, per the mock. */}
-        <div className="absolute right-[128px] top-[340px] flex flex-col items-start overflow-hidden rounded-[10px] bg-white shadow-[0px_2px_12px_0px_rgba(16,16,16,0.04),0px_16px_24px_-12px_rgba(16,16,16,0.04),0px_0px_0.5px_0.75px_rgba(16,16,16,0.06)]">
-          <div className="flex flex-col items-start p-1">
-            <span className="flex items-center gap-2.5 rounded-[6px] px-2 py-1.5">
-              <span className="whitespace-nowrap text-[14px] leading-5 text-red-600">
-                Remove member
-              </span>
-            </span>
-          </div>
-        </div>
       </div>
 
       {stubAction != null ? (

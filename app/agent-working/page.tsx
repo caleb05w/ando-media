@@ -9,7 +9,7 @@
 //   bottom-right corner, dark "Active agents" flyout, and an Agent trace
 //   modal. The page loads mid-simulation: three seeded runs are already
 //   underway (backdated, so their timers are accurate), one of which fails
-//   live. Caleb test fails his first run so rerun stays demoable.
+//   live. Yumi fails her first run so rerun stays demoable.
 //
 // Shell chrome (rail, sidebar, header, transcript) is unchanged from the
 // baseplate; transcript/sidebar data and assets are shared with
@@ -63,13 +63,15 @@ type AwMessage = {
 };
 
 const TADAO = AGENTS[0];
-const JUNO = AGENTS.find((agent) => agent.id === "juno")!;
-const MISO = AGENTS.find((agent) => agent.id === "miso")!;
-const OLI_PHOTO = `${A}/avatar-oliver.png`;
+const ANDO = AGENTS.find((agent) => agent.id === "ando")!;
+const YUMI = AGENTS.find((agent) => agent.id === "yumi")!;
+// avatar-oliver.png exported blank from Figma (the mock rows used
+// silhouettes) — sb-photo-4 is the real face that matches the spec's Oli.
+const OLI_PHOTO = `${A}/sb-photo-4.png`;
 
 // Load-time simulation: three runs already underway when the page opens.
 // startedAgoMs backdates each timer so elapsed reads true working time;
-// durations are absolute, so Miso fails ~7s after load and the others
+// durations are absolute, so Yumi fails ~7s after load and the others
 // complete while you watch (or get stopped first).
 const SEED_RUNS: {
   messageId: string;
@@ -78,14 +80,14 @@ const SEED_RUNS: {
   override: { durationMs: number; outcome: "done" | "failed"; startedAgoMs: number };
 }[] = [
   {
-    messageId: "aw-live-juno",
-    agent: JUNO,
+    messageId: "aw-live-ando",
+    agent: ANDO,
     prompt: "can you summarize this thread for standup?",
     override: { durationMs: 75000, outcome: "done", startedAgoMs: 42000 },
   },
   {
-    messageId: "aw-live-miso",
-    agent: MISO,
+    messageId: "aw-live-yumi",
+    agent: YUMI,
     prompt: "pull the current token values from the design file",
     override: { durationMs: 28000, outcome: "failed", startedAgoMs: 21000 },
   },
@@ -131,25 +133,25 @@ const SEED_MESSAGES: AwMessage[] = [
   },
   // Invoking messages for the load-time simulation runs.
   {
-    id: "aw-live-juno",
+    id: "aw-live-ando",
     authorName: "Oli",
     avatar: { photo: OLI_PHOTO },
     time: "5:37 pm",
     paragraphs: [
       [
-        { text: "@Juno", mention: true },
+        { text: "@Ando", mention: true },
         { text: " can you summarize this thread for standup?" },
       ],
     ],
   },
   {
-    id: "aw-live-miso",
+    id: "aw-live-yumi",
     authorName: "Oli",
     avatar: { photo: OLI_PHOTO },
     time: "5:38 pm",
     paragraphs: [
       [
-        { text: "@Miso", mention: true },
+        { text: "@Yumi", mention: true },
         { text: " pull the current token values from the design file" },
       ],
     ],
@@ -197,7 +199,7 @@ function parseMentions(text: string): AwSegment[] {
 }
 
 // The flyout sub-line shows the ask, not the address — strip leading
-// mention tokens ("@Tadao @Caleb test Tell me a joke" → "Tell me a joke").
+// mention tokens ("@Tadao @Yumi Tell me a joke" → "Tell me a joke").
 function promptOf(text: string): string {
   const stripped = text.replace(
     new RegExp(`^(\\s*@(${AGENTS.map((a) => a.name).join("|")})\\s*)+`, "i"),

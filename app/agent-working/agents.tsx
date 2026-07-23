@@ -45,15 +45,19 @@ export type AgentDef = {
   answer: string[];
   traceSteps: TraceStep[];
   // Outcome script per attempt — lets the demo show the failure branch
-  // deterministically (Caleb fails his first run, succeeds on rerun).
+  // deterministically (Yumi fails her first run, succeeds on rerun).
   script: (attempt: number) => { durationMs: number; outcome: "done" | "failed" };
   toolCalls: (attempt: number) => number;
 };
+
+// Avatar assets live in /public/agent-working.
+const P = "/agent-working";
 
 export const AGENTS: AgentDef[] = [
   {
     id: "tadao",
     name: "Tadao",
+    photo: `${P}/agent-2.png`,
     thoughts: [
       { text: "Starting agent session", ms: 1500 },
       { text: "Reading the ask", ms: 1800 },
@@ -79,40 +83,9 @@ export const AGENTS: AgentDef[] = [
     toolCalls: () => 49,
   },
   {
-    id: "caleb",
-    name: "Caleb test",
-    photo: `${A}/sb-photo-2.png`,
-    thoughts: [
-      { text: "Starting agent session", ms: 1500 },
-      { text: "Reading the room", ms: 1600 },
-      { text: "Searching the knock-knock archive", ms: 3000 },
-      { text: "Read 44 candidate setups", ms: 2400 },
-      { text: "Scoring punchlines for timing", ms: 2800 },
-      { text: "Calibrating enthusiasm to channel norms", ms: 3000 },
-      { text: "Rehearsing the delivery", ms: 2600 },
-      { text: "Tightening the punchline", ms: 2800 },
-    ],
-    loopFrom: 3,
-    answer: [
-      "Knock knock. Who's there? Interrupting agent. Interrupting agent wh— sorry, couldn't wait. I'm told timing is everything.",
-    ],
-    traceSteps: [
-      { verb: "Ran", desc: "joke retrieval over the archive" },
-      { verb: "Wrote", desc: "three candidate punchlines" },
-      { verb: "Searched", desc: "delivery notes for knock knock format" },
-      { verb: "Read", desc: "enthusiasm calibration results" },
-    ],
-    // First attempt dies mid-run; rerun succeeds.
-    script: (attempt) =>
-      attempt <= 1
-        ? { durationMs: 6000, outcome: "failed" }
-        : { durationMs: 7000, outcome: "done" },
-    toolCalls: (attempt) => (attempt <= 1 ? 23 : 31),
-  },
-  {
-    id: "juno",
-    name: "Juno",
-    tint: "#4F46E5",
+    id: "ando",
+    name: "Ando",
+    photo: `${P}/agent-1.png`,
     thoughts: [
       { text: "Starting agent session", ms: 1500 },
       { text: "Skimming the last 200 messages", ms: 2600 },
@@ -138,9 +111,9 @@ export const AGENTS: AgentDef[] = [
     toolCalls: () => 34,
   },
   {
-    id: "miso",
-    name: "Miso",
-    tint: "#0D9488",
+    id: "yumi",
+    name: "Yumi",
+    photo: `${P}/yumi.png`,
     thoughts: [
       { text: "Starting agent session", ms: 1500 },
       { text: "Opening the design file", ms: 2000 },
@@ -161,6 +134,7 @@ export const AGENTS: AgentDef[] = [
       { verb: "Read", desc: "component-level overrides" },
       { verb: "Wrote", desc: "token diff summary" },
     ],
+    // First attempt dies mid-run; rerun succeeds.
     script: (attempt) =>
       attempt <= 1
         ? { durationMs: 8000, outcome: "failed" }

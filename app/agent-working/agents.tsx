@@ -604,7 +604,12 @@ export function RingedFace({
 
   return (
     <span
-      className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
+      // aw-breathe: the working bubble inhales/exhales. Transition
+      // classes (pop, shake) are defined later in the CSS, so they take
+      // the animation shorthand for their moment and hand it back.
+      className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${
+        working ? "aw-breathe" : ""
+      } ${wrapperFx}`}
       style={{ width: size, height: size }}
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-seal-draw") setSeal(null);
@@ -654,7 +659,11 @@ export function RingedFace({
       <span className="absolute inset-0 flex items-center justify-center">
         {/* Tight geometry: the ring hugs the portrait — ~1px of air
             between face edge and stroke, not a moat. */}
-        <AgentFace agent={agent} size={size - 6} />
+        <span className="relative inline-flex overflow-hidden rounded-full">
+          <AgentFace agent={agent} size={size - 6} />
+          {/* A very slight glint crosses the portrait while working. */}
+          {working ? <span className="aw-faceshine" aria-hidden /> : null}
+        </span>
       </span>
     </span>
   );

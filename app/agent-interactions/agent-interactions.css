@@ -2053,7 +2053,7 @@
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   filter: blur(0.5px);
-  /* Matches the shipped easing: momentum through the lap, soft landing. */
-  animation: cc-comet 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  /* Matches shipped: a steady linear orbit. */
+  animation: cc-comet 1.6s linear infinite;
 }
 

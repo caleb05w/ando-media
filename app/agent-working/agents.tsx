@@ -497,26 +497,11 @@ export function RingedFace({
         }
       }}
     >
-      {/* Working dashes — kept mounted while sealing so they fade under
-          the outcome ring instead of vanishing. */}
+      {/* Working comet — the Kinetic set's W2: one bright head, fading
+          tail, on a 1.6s orbit. Kept mounted while sealing so it fades
+          under the outcome ring instead of vanishing. */}
       {working || seal != null ? (
-        <svg
-          width={size}
-          height={size}
-          className={`aw-ring-spin absolute inset-0 ${seal != null ? "aw-ring-fade" : ""}`}
-          aria-hidden
-        >
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            strokeWidth={strokeWidth}
-            stroke={RING_COLOR.working}
-            strokeDasharray="3 3.6"
-            strokeLinecap="round"
-          />
-        </svg>
+        <span className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`} aria-hidden />
       ) : null}
       {/* Outcome ring: draws itself closed during the seal, solid after. */}
       {!working ? (
@@ -537,12 +522,7 @@ export function RingedFace({
         </svg>
       ) : null}
       <span className="absolute inset-0 flex items-center justify-center">
-        <span className="relative inline-flex rounded-full">
-          <AgentFace agent={agent} size={size - 10} />
-          {/* Working light crosses the portrait itself — clipped to the
-              face circle, so it sits on the agent surface, not the frame. */}
-          {working ? <span className="aw-faceshine" aria-hidden /> : null}
-        </span>
+        <AgentFace agent={agent} size={size - 10} />
       </span>
     </span>
   );

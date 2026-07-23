@@ -7,54 +7,31 @@
   background: rgba(37, 99, 235, 0.16);
 }
 
-/* Working ring: slow clockwise crawl of the dashed sage ring — Garden
-   palette; slowed so presence sits at the threshold of noticing. */
-@keyframes aw-ring-spin {
+/* Working comet — the Kinetic set's W2, promoted to be the working state
+   itself (it replaced the dashed ring): one bright head with a fading
+   tail on a 1.6s orbit. Board tempo and geometry kept exactly; only the
+   hue moved, amber → sage, with the Garden palette. Placed before
+   aw-ring-fade so the fade's shorthand wins during the seal. */
+@keyframes aw-comet {
   to {
     transform: rotate(360deg);
   }
 }
-.aw-ring-spin {
-  animation: aw-ring-spin 8s linear infinite;
-  transform-origin: 50% 50%;
-}
-
-/* Working light on the portrait itself — promoted from the corner-cut
-   board (Mist set, "Face shimmer"). Clipped to the face circle so the
-   light sits on the agent surface, not its frame. Pale sage: lifts a
-   dark mark, tints a light one. Crosses, then rests — a glint at a
-   breath's cadence, not a scanner. */
-.aw-faceshine {
+.aw-comet {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  overflow: hidden;
   border-radius: 9999px;
   pointer-events: none;
-}
-.aw-faceshine::before {
-  content: "";
-  position: absolute;
-  top: -25%;
-  bottom: -25%;
-  left: 0;
-  width: 58%;
-  background: linear-gradient(
-    90deg,
-    rgba(214, 231, 216, 0) 0%,
-    rgba(214, 231, 216, 0.6) 50%,
-    rgba(214, 231, 216, 0) 100%
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 55%,
+    rgba(138, 164, 141, 0.15) 65%,
+    #8aa48d 92%,
+    transparent 100%
   );
-  animation: aw-faceshine 3.8s cubic-bezier(0.45, 0, 0.3, 1) infinite;
-}
-@keyframes aw-faceshine {
-  0% {
-    transform: translateX(-120%) skewX(-14deg);
-  }
-  70%,
-  100% {
-    transform: translateX(230%) skewX(-14deg);
-  }
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: aw-comet 1.6s linear infinite;
 }
 
 /* Flyout / mention menu enter, anchored to the corner (bottom right). */

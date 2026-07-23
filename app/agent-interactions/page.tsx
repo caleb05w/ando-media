@@ -557,27 +557,14 @@ function CCStillRing() {
   return <MiniCorner workingRing={<span className="cc-ring" />} />;
 }
 
-// Mist — presence carried by atmosphere instead of geometry. Split into
-// its two halves so each can be judged for what it contributes.
+// Mist — presence carried by atmosphere instead of geometry.
 function CCMist() {
   return <MiniCorner workingRing={<span className="cc-mist" />} />;
 }
 
-function CCFaceShimmer() {
-  return <MiniCorner workingRing={<span className="cc-faceshine" />} />;
-}
-
-function CCMistShimmer() {
-  return (
-    <MiniCorner
-      workingRing={
-        <>
-          <span className="cc-mist" />
-          <span className="cc-faceshine" />
-        </>
-      }
-    />
-  );
+// Comet — the Kinetic set's W2 in sage. Shipped as the working state.
+function CCComet() {
+  return <MiniCorner workingRing={<span className="cc-comet" />} />;
 }
 
 /* ------------------------------ gesture demos ------------------------------- */
@@ -1197,7 +1184,7 @@ const CORNER_SECTIONS: Section[] = [
   },
   {
     heading: "Mist",
-    blurb: "Drop the ring entirely: weather around the agent, light across its face.",
+    blurb: "Drop the ring entirely: weather around the agent.",
     studies: [
       {
         title: "Mist",
@@ -1205,17 +1192,17 @@ const CORNER_SECTIONS: Section[] = [
         note: "No ring — the veil from the Ma set circles the rim on the same nine-second walk, lifted to the working hue with a touch more body for the white card. Frees the ring to mean only one thing: a verdict.",
         demo: <CCMist />,
       },
+    ],
+  },
+  {
+    heading: "Comet",
+    blurb: "The Kinetic set's directed-effort orbit, in the working hue.",
+    studies: [
       {
-        title: "Face shimmer",
-        source: "light on the agent itself",
-        note: "The working light crosses the portrait rather than its frame — the status-line shimmer moved onto the agent. Pale sage, so it lifts a dark mark and tints a light one. Crosses, then rests.",
-        demo: <CCFaceShimmer />,
-      },
-      {
-        title: "Mist + shimmer",
-        source: "the pair",
-        note: "Atmosphere for the glance, shimmer for the look. The mist is what you catch in a second; the face light is what confirms the agent itself is the thing at work, once you've turned to it.",
-        demo: <CCMistShimmer />,
+        title: "Comet",
+        source: "the Kinetic set's W2, in sage — shipped",
+        note: "One bright head, fading tail, on the same 1.6s orbit as the board original — directed effort, not idle spin. Now the working state on /agent-working, where it replaced the dashed ring.",
+        demo: <CCComet />,
       },
     ],
   },

@@ -649,8 +649,10 @@ export function CornerStack({
           onAnimationEnd={(event) => {
             if (event.animationName === "aw-chip-out") onConceal(run.id);
           }}
+          // Overlap lives on each bubble's own left margin so appending a
+          // newcomer never touches an existing bubble's styles (no snap).
           style={{
-            marginRight: index < visible.length - 1 || overflowing ? -8 : 0,
+            marginLeft: index > 0 ? -8 : 0,
             boxShadow: "0 0 0 4px white",
           }}
         >
@@ -669,7 +671,7 @@ export function CornerStack({
           // (and gives touch a path to it).
           onClick={() => onHoverChange(true)}
           className="aw-chip-in flex rounded-full"
-          style={{ boxShadow: "0 0 0 4px white" }}
+          style={{ marginLeft: -8, boxShadow: "0 0 0 4px white" }}
         >
           <OverflowDisc count={hidden.length} />
         </button>

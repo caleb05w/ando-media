@@ -81,20 +81,21 @@
 /* Corner bubbles condense into presence and dissolve out of it — promoted
    from the Gestures board (Arrive/Depart, sans droplets). Arrival: blur
    and scale resolve into focus with a whisper of settle, no bounce. */
+/* Arrival at the Gestures-board tempo: one continuous 880ms bloom
+   (opacity, blur, and scale resolve monotonically — no plateau, no
+   late blink) while the slot opens underneath, finishing early. The
+   margin is only pinned at 0% — it eases to each bubble's own inline
+   overlap value, so neighbors never snap when a newcomer mounts. */
 @keyframes aw-chip-in {
   0% {
     width: 0px;
+    margin-left: 0px;
     opacity: 0;
-    transform: translateY(1px) scale(0.4);
-    filter: blur(2px);
+    transform: translateY(1px) scale(0.45);
+    filter: blur(2.5px);
   }
-  30% {
-    opacity: 0.9;
-  }
-  60% {
+  55% {
     width: 34px;
-    transform: translateY(0) scale(1.01);
-    filter: blur(0.3px);
   }
   100% {
     width: 34px;
@@ -104,7 +105,7 @@
   }
 }
 .aw-chip-in {
-  animation: aw-chip-in 720ms cubic-bezier(0.2, 0, 0.2, 1) both;
+  animation: aw-chip-in 880ms cubic-bezier(0.2, 0, 0.2, 1) both;
   /* Anchored left so mid-flight face overflow spills into the empty
      margin on the right, never over the neighbor. */
   transform-origin: left center;
@@ -130,7 +131,8 @@
     transform: translateY(-3px) scale(0.96);
     filter: blur(2px);
     width: 0;
-    margin-right: 0;
+    /* Eases from each bubble's own inline overlap value. */
+    margin-left: 0;
   }
 }
 .aw-chip-out {

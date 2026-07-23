@@ -648,6 +648,12 @@ export function CornerStack({
           {run.status === "done" ? (
             <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
           ) : null}
+          {/* Failure pulses for attention (Discord call grammar) — a red
+              ring rolls off the bubble on a steady beat until addressed.
+              Failed only: a stop was the user's own act, so it rests. */}
+          {run.status === "failed" ? (
+            <span aria-hidden className="aw-fail-pulse absolute inset-0 rounded-full" />
+          ) : null}
         </button>
       ))}
       {overflowing ? (

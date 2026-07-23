@@ -110,9 +110,10 @@
      margin on the right, never over the neighbor. */
   transform-origin: left center;
 }
-/* Two-phase exit: dissolve to mist (fade + blur + slight rise), then
-   collapse the slot (width and overlap margin) so neighbors slide
-   together instead of snapping. */
+/* Two-phase exit at the Gestures-board tempo and geometry: the bubble
+   rises and expands as it dissolves — mist released, not matter sucked
+   away — then the slot folds (width and overlap margin) so neighbors
+   slide together instead of snapping. */
 @keyframes aw-chip-out {
   0% {
     opacity: 1;
@@ -120,23 +121,23 @@
     filter: blur(0px);
     width: 34px;
   }
-  48% {
+  72% {
     opacity: 0;
-    transform: translateY(-3px) scale(0.96);
-    filter: blur(2px);
+    transform: translateY(-6px) scale(1.05);
+    filter: blur(2.5px);
     width: 34px;
   }
   100% {
     opacity: 0;
-    transform: translateY(-3px) scale(0.96);
-    filter: blur(2px);
+    transform: translateY(-6px) scale(1.05);
+    filter: blur(2.5px);
     width: 0;
     /* Eases from each bubble's own inline overlap value. */
     margin-left: 0;
   }
 }
 .aw-chip-out {
-  animation: aw-chip-out 560ms cubic-bezier(0.3, 0, 0.3, 1) forwards;
+  animation: aw-chip-out 1800ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
   pointer-events: none;
 }
 

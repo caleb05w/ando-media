@@ -1,42 +1,531 @@
-/* /agent-interactions — small ambient motions for the idea cards. */
+/* /agent-interactions — motion studies for the three agent run states.
+   Every demo is a pure-CSS loop: working treatments run continuously;
+   completion/failure treatments replay their transition on a 4s cycle
+   (working → moment → hold → reset). Ring circumference is 117 (r=18.5). */
 
-/* Working ring crawl (borrowed grammar from /agent-working). */
-@keyframes ai-spin {
+/* ---------- shared ---------- */
+
+@keyframes mi-spin {
   to {
     transform: rotate(360deg);
   }
 }
-.ai-spin {
-  animation: ai-spin 5.5s linear infinite;
+.mi-spin {
+  animation: mi-spin 5.5s linear infinite;
   transform-origin: 50% 50%;
 }
 
-/* awaitingInput: slow breathe — attention without alarm. */
-@keyframes ai-breathe {
-  50% {
-    opacity: 0.35;
-  }
-}
-.ai-breathe {
-  animation: ai-breathe 1.6s ease-in-out infinite;
+/* ---------- working ---------- */
+
+/* W2 Comet: a bright head with a fading tail orbits the face. */
+.mi-comet {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 55%,
+    rgba(245, 158, 11, 0.15) 65%,
+    #f59e0b 92%,
+    transparent 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: mi-spin 1.6s linear infinite;
 }
 
-/* Thinking shimmer for working text. */
-@keyframes ai-shimmer {
-  to {
-    background-position: -200% 0;
+/* W3 Halo: watchOS-breathe glow radiating off the bubble. */
+@keyframes mi-halo {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 11px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }
-.ai-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    rgba(88, 82, 78, 0.45) 35%,
-    #58524e 50%,
-    rgba(88, 82, 78, 0.45) 65%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: ai-shimmer 2.2s linear infinite;
+.mi-halo {
+  animation: mi-halo 1.9s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+
+/* W4 Metronome dots: staggered bounce under the bubble. */
+@keyframes mi-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.mi-dot {
+  animation: mi-dot 1.2s cubic-bezier(0.34, 0, 0.3, 1) infinite;
+}
+
+/* W5 Idle squish: the bubble itself breathes, Dynamic-Island style. */
+@keyframes mi-squish {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  30% {
+    transform: scale(1.06, 0.94);
+  }
+  65% {
+    transform: scale(0.96, 1.05);
+  }
+}
+.mi-squish {
+  animation: mi-squish 2.6s ease-in-out infinite;
+}
+
+/* W6 Indeterminate crescent: an arc grows, travels, and collapses. */
+@keyframes mi-crescent {
+  0% {
+    stroke-dashoffset: 117;
+  }
+  100% {
+    stroke-dashoffset: -117;
+  }
+}
+.mi-crescent {
+  animation: mi-crescent 2.1s linear infinite;
+}
+
+/* ---------- completion (4s replay loops) ---------- */
+
+/* Shared: amber dashes fade out at the transition moment, return on reset. */
+@keyframes mi-dash-out {
+  0%,
+  32% {
+    opacity: 1;
+  }
+  45%,
+  88% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
+  }
+}
+.mi-dash-out {
+  animation:
+    mi-spin 5.5s linear infinite,
+    mi-dash-out 4s linear infinite;
+}
+
+/* C1 Seal + ping (shipping baseline): ring draws shut, ping rolls off. */
+@keyframes mi-seal {
+  0%,
+  35% {
+    stroke-dashoffset: 117;
+    opacity: 1;
+  }
+  55% {
+    stroke-dashoffset: 0;
+  }
+  88% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  94%,
+  100% {
+    stroke-dashoffset: 117;
+    opacity: 0;
+  }
+}
+.mi-seal {
+  animation: mi-seal 4s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+@keyframes mi-ping {
+  0%,
+  56% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  62% {
+    opacity: 0.9;
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.65);
+  }
+}
+.mi-ping {
+  border: 2px solid #16a34a;
+  animation: mi-ping 4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+
+/* C2 Island expand: the bubble widens into a pill that shows the receipt,
+   then swallows it back. */
+@keyframes mi-island {
+  0%,
+  32% {
+    width: 40px;
+  }
+  44% {
+    width: 122px;
+  }
+  48% {
+    width: 118px;
+  }
+  82% {
+    width: 118px;
+  }
+  94%,
+  100% {
+    width: 40px;
+  }
+}
+.mi-island {
+  animation: mi-island 4s cubic-bezier(0.34, 1.2, 0.64, 1) infinite;
+}
+@keyframes mi-island-label {
+  0%,
+  44% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  56%,
+  78% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  86%,
+  100% {
+    opacity: 0;
+  }
+}
+.mi-island-label {
+  animation: mi-island-label 4s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+@keyframes mi-ring-in {
+  0%,
+  38% {
+    opacity: 0;
+  }
+  46%,
+  84% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    opacity: 0;
+  }
+}
+.mi-ring-in {
+  animation: mi-ring-in 4s linear infinite;
+}
+
+/* C3 Check draw: a green check strokes itself over the dimmed face. */
+@keyframes mi-check {
+  0%,
+  40% {
+    stroke-dashoffset: 22;
+    opacity: 1;
+  }
+  58% {
+    stroke-dashoffset: 0;
+  }
+  85% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  93%,
+  100% {
+    stroke-dashoffset: 22;
+    opacity: 0;
+  }
+}
+.mi-check {
+  animation: mi-check 4s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+@keyframes mi-face-dim {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  50%,
+  85% {
+    opacity: 0.25;
+  }
+  95%,
+  100% {
+    opacity: 1;
+  }
+}
+.mi-face-dim {
+  animation: mi-face-dim 4s linear infinite;
+}
+
+/* C4 Sparkle burst: four particles fling off as the ring pops. */
+@keyframes mi-pop {
+  0%,
+  38% {
+    transform: scale(1);
+  }
+  46% {
+    transform: scale(1.12);
+  }
+  54%,
+  100% {
+    transform: scale(1);
+  }
+}
+.mi-pop {
+  animation: mi-pop 4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+@keyframes mi-burst-a {
+  0%,
+  40% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  68%,
+  100% {
+    transform: translate(14px, -15px);
+    opacity: 0;
+  }
+}
+@keyframes mi-burst-b {
+  0%,
+  40% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  68%,
+  100% {
+    transform: translate(-13px, -12px);
+    opacity: 0;
+  }
+}
+@keyframes mi-burst-c {
+  0%,
+  40% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  68%,
+  100% {
+    transform: translate(12px, 13px);
+    opacity: 0;
+  }
+}
+@keyframes mi-burst-d {
+  0%,
+  40% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  68%,
+  100% {
+    transform: translate(-14px, 11px);
+    opacity: 0;
+  }
+}
+.mi-burst-a {
+  animation: mi-burst-a 4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+.mi-burst-b {
+  animation: mi-burst-b 4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+.mi-burst-c {
+  animation: mi-burst-c 4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+.mi-burst-d {
+  animation: mi-burst-d 4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+
+/* C5 Flood: green washes the face from the center, then recedes into the
+   sealed ring. */
+@keyframes mi-flood {
+  0%,
+  38% {
+    transform: scale(0);
+    opacity: 0.4;
+  }
+  52% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  74%,
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.mi-flood {
+  animation: mi-flood 4s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
+/* ---------- failure (4s replay loops) ---------- */
+
+/* F1 Shake + seal (shipping baseline). */
+@keyframes mi-shake {
+  0%,
+  36% {
+    transform: translateX(0);
+  }
+  38% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  42% {
+    transform: translateX(-1.5px);
+  }
+  44% {
+    transform: translateX(1.5px);
+  }
+  46%,
+  100% {
+    transform: translateX(0);
+  }
+}
+.mi-shake {
+  animation: mi-shake 4s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+}
+@keyframes mi-seal-red {
+  0%,
+  35% {
+    stroke-dashoffset: 117;
+    opacity: 1;
+  }
+  52% {
+    stroke-dashoffset: 0;
+  }
+  88% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  94%,
+  100% {
+    stroke-dashoffset: 117;
+    opacity: 0;
+  }
+}
+.mi-seal-red {
+  animation: mi-seal-red 4s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
+/* F2 Double-flash: the red ring lands with two hard blinks, then holds. */
+@keyframes mi-flash {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  33% {
+    opacity: 1;
+  }
+  36% {
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 1;
+  }
+  43%,
+  86% {
+    opacity: 1;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+.mi-flash {
+  animation: mi-flash 4s linear infinite;
+}
+
+/* F3 Gravity drop: the bubble lands heavy and sits low while failed. */
+@keyframes mi-drop {
+  0%,
+  34% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(6px);
+  }
+  45% {
+    transform: translateY(3px);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+  84% {
+    transform: translateY(5px);
+  }
+  94%,
+  100% {
+    transform: translateY(0);
+  }
+}
+.mi-drop {
+  animation: mi-drop 4s cubic-bezier(0.34, 1.2, 0.64, 1) infinite;
+}
+
+/* F4 Scatter: the working dashes blow apart; solid red takes their place. */
+@keyframes mi-scatter {
+  0%,
+  34% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  46%,
+  90% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  97%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.mi-scatter {
+  animation: mi-scatter 4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+}
+
+/* F5 Heartbeat: lub-dub-pause — readable from the periphery. */
+@keyframes mi-heartbeat {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  8% {
+    transform: scale(1.09);
+    opacity: 1;
+  }
+  16% {
+    transform: scale(1);
+  }
+  24% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  34%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+}
+.mi-heartbeat {
+  animation: mi-heartbeat 1.8s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+  transform-origin: 50% 50%;
 }

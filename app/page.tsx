@@ -26,10 +26,10 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/agent-interactions",
-    title: "Agent interactions",
-    tag: "(Ideas)",
+    title: "Agent motion studies",
+    tag: "(Motion)",
     brief:
-      "Idea board: sixteen sketches for agent interactions across the lifecycle — invoking, steering, resolving, governing — with mini mocks and sources.",
+      "Sixteen looping motion studies for the agent working, completion, and failure states — Dynamic Island, watchOS-breathe, and Chrome-downloads inspired.",
   },
   {
     href: "/automation-test",

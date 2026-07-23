@@ -430,6 +430,87 @@ function SystemCard({ system }: { system: ColorSystem }) {
   );
 }
 
+/* ----------------------------- still set demos ------------------------------ */
+// Calmer working states: no rotation, no dashes. How little motion can
+// "thinking" survive on?
+
+function SPulseDot() {
+  return (
+    <span className="relative inline-flex">
+      <Bubble face={TADAO} />
+      <span className="stl-pulse" />
+    </span>
+  );
+}
+
+function SUnderglow() {
+  return (
+    <span className="relative inline-flex">
+      <Bubble face={TADAO} />
+      <span className="stl-underglow" />
+    </span>
+  );
+}
+
+function STide() {
+  return (
+    <span className="relative inline-flex">
+      <Bubble face={TADAO} />
+      <span className="stl-tide" />
+    </span>
+  );
+}
+
+function SAura() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="stl-aura absolute inset-0">
+        <RingSvg color={SAGE} />
+      </span>
+    </Bubble>
+  );
+}
+
+function SGapBreath() {
+  return (
+    <span className="stl-gap inline-flex">
+      <Bubble face={TADAO}>
+        <RingSvg color={SAGE} className="stl-aura" />
+      </Bubble>
+    </span>
+  );
+}
+
+function SStatic() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="absolute inset-0" style={{ opacity: 0.45 }}>
+        <RingSvg color={SAGE} />
+      </span>
+    </Bubble>
+  );
+}
+
+function SSundial() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="stl-sundial">
+        <span className="stl-sundial-dot" />
+      </span>
+    </Bubble>
+  );
+}
+
+function SInk() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="stl-ink" style={{ left: "50%" }} />
+      </span>
+    </Bubble>
+  );
+}
+
 /* ------------------------------ gesture demos ------------------------------- */
 // The moments between states — companionship as motion.
 
@@ -965,6 +1046,65 @@ type Study = {
 
 type Section = { heading: string; blurb: string; studies: Study[] };
 
+// Still — calmer working states. No rotation, no dashes; the question
+// each study asks is how little motion "thinking" can survive on.
+const STILL_SECTIONS: Section[] = [
+  {
+    heading: "Studies",
+    blurb: "Every one is ring-free or motion-free — often both.",
+    studies: [
+      {
+        title: "Pulse dot",
+        source: "presence-dot grammar · at the base",
+        note: "A single dot slowly waking and resting. Borrowed from the sidebar's own presence language — zero new vocabulary.",
+        demo: <SPulseDot />,
+      },
+      {
+        title: "Underglow",
+        source: "warm ground · beneath",
+        note: "A soft glow under the bubble, breathing. The agent hovers over its work; nothing on the avatar moves.",
+        demo: <SUnderglow />,
+      },
+      {
+        title: "Tide line",
+        source: "breath meter · beneath",
+        note: "A 2px line ebbing and flowing. Progress-shaped without promising progress.",
+        demo: <STide />,
+      },
+      {
+        title: "Aura",
+        source: "the ring, un-dashed",
+        note: "A full solid ring that only breathes in opacity — no rotation to track, nothing to count.",
+        demo: <SAura />,
+      },
+      {
+        title: "Breathing gap",
+        source: "Ma, literally · the negative space",
+        note: "The white gap-ring itself inhales and exhales. The emptiness around the agent is what's alive.",
+        demo: <SGapBreath />,
+      },
+      {
+        title: "Still ring",
+        source: "zero continuous motion",
+        note: "Working is wearing a faint sage ring at all — nothing moves except at transitions. The most radical stance.",
+        demo: <SStatic />,
+      },
+      {
+        title: "Sundial",
+        source: "a revolution per minute · on the rim",
+        note: "One mote drifting so slowly you only notice its position changed on the next glance. Motion you can never catch.",
+        demo: <SSundial />,
+      },
+      {
+        title: "Ink gather",
+        source: "a thought condensing · within",
+        note: "A soft smudge gathering and dispersing low in the bubble — the interior weather of thinking.",
+        demo: <SInk />,
+      },
+    ],
+  },
+];
+
 // Gestures — the companion lifecycle. Interaction moments rather than
 // states: a coworker arrives, acknowledges, listens, delivers, rests,
 // departs.
@@ -1477,6 +1617,19 @@ export default function AgentInteractionsPage() {
             <SystemCard key={system.name} system={system} />
           ))}
         </div>
+
+        <SetHeader
+          title="Still — calmer working states"
+          blurb={
+            <>
+              The spinning dashed ring — even sage, even slow — is still machinery. Eight
+              studies with no rotation and no dashes, asking how little motion
+              &ldquo;thinking&rdquo; can survive on. The bar each must clear: legible at
+              34px, distinguishable from idle and done, ignorable on purpose.
+            </>
+          }
+        />
+        <StudySections sections={STILL_SECTIONS} />
 
         <SetHeader
           title="Gestures — the companion lifecycle"

@@ -1801,3 +1801,154 @@
 .mg-depart {
   animation: mg-depart 6.5s cubic-bezier(0.2, 0, 0.2, 1) infinite;
 }
+
+/* ==================== Still set — calmer working states ==================
+   No rotation, no dashes. How little motion can "thinking" survive on?
+   All sage, all slow (4.5–8s), most of it at the edge of perception. */
+
+/* S1 Pulse dot: a presence dot at the base, slowly waking and resting. */
+@keyframes stl-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+.stl-pulse {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 9999px;
+  background: #8aa48d;
+  animation: stl-pulse 4.5s ease-in-out infinite;
+}
+
+/* S2 Underglow: warm ground beneath the bubble, breathing. */
+@keyframes stl-underglow {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.stl-underglow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 26px;
+  height: 7px;
+  margin-left: -13px;
+  border-radius: 9999px;
+  background: #8aa48d;
+  filter: blur(4px);
+  animation: stl-underglow 5.5s ease-in-out infinite;
+}
+
+/* S3 Tide line: a breath meter under the bubble, ebbing and flowing. */
+@keyframes stl-tide {
+  0%,
+  100% {
+    width: 10px;
+    opacity: 0.4;
+  }
+  50% {
+    width: 22px;
+    opacity: 0.75;
+  }
+}
+.stl-tide {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  height: 2px;
+  border-radius: 9999px;
+  background: #8aa48d;
+  transform: translateX(-50%);
+  animation: stl-tide 5.5s ease-in-out infinite;
+}
+
+/* S4 Aura: a full, un-dashed ring that only breathes in opacity. */
+@keyframes stl-aura {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.stl-aura {
+  animation: stl-aura 6s ease-in-out infinite;
+}
+
+/* S5 Breathing gap: the white negative-space ring itself inhales and
+   exhales — Ma, literally. */
+@keyframes stl-gap {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px #ffffff;
+  }
+  50% {
+    box-shadow: 0 0 0 5.5px #ffffff;
+  }
+}
+.stl-gap {
+  border-radius: 9999px;
+  animation: stl-gap 6s ease-in-out infinite;
+}
+
+/* S6 Sundial: one mote on the rim at a revolution per minute — position
+   you notice on the next glance, motion you can never catch. */
+@keyframes stl-sundial {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.stl-sundial {
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  animation: stl-sundial 60s linear infinite;
+}
+.stl-sundial-dot {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 9999px;
+  background: #8aa48d;
+}
+
+/* S7 Ink gather: a soft thought condensing low in the bubble. */
+@keyframes stl-ink {
+  0%,
+  100% {
+    transform: translate(-2px, 1px) scale(0.9);
+    opacity: 0.16;
+  }
+  50% {
+    transform: translate(2px, -1px) scale(1.1);
+    opacity: 0.3;
+  }
+}
+.stl-ink {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 18px;
+  height: 10px;
+  margin-left: -9px;
+  border-radius: 60% 40% 55% 45%;
+  background: #8aa48d;
+  filter: blur(3px);
+  animation: stl-ink 7s ease-in-out infinite;
+}

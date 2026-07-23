@@ -643,7 +643,7 @@ export function CornerStack({
           type="button"
           aria-label={`Jump to ${run.agent.name}'s invoking message`}
           onClick={() => onJumpRun(run)}
-          // Overshoot in when a run spawns; shrink out after removal, then
+          // Condense in when a run spawns; dissolve out after removal, then
           // conceal on animationend so the stack closes the gap.
           className={`relative flex rounded-full ${run.removed ? "aw-chip-out" : "aw-chip-in"}`}
           onAnimationEnd={(event) => {

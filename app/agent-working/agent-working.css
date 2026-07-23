@@ -78,41 +78,55 @@
   overflow: hidden;
 }
 
-/* Corner bubbles arriving / leaving the stack (overshoot in, shrink out). */
+/* Corner bubbles condense into presence and dissolve out of it — promoted
+   from the Gestures board (Arrive/Depart, sans droplets). Arrival: blur
+   and scale resolve into focus with a whisper of settle, no bounce. */
 @keyframes aw-chip-in {
   from {
     opacity: 0;
-    transform: translateY(6px) scale(0.6);
+    transform: translateY(2px) scale(0.55);
+    filter: blur(2px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1.015);
+    filter: blur(0px);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+    filter: blur(0px);
   }
 }
 .aw-chip-in {
-  animation: aw-chip-in 240ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation: aw-chip-in 420ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }
-/* Two-phase exit: shrink the bubble, then collapse its slot (width and
-   overlap margin) so neighbors slide together instead of snapping. */
+/* Two-phase exit: dissolve to mist (fade + blur + slight rise), then
+   collapse the slot (width and overlap margin) so neighbors slide
+   together instead of snapping. */
 @keyframes aw-chip-out {
   0% {
     opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
     width: 34px;
   }
-  45% {
+  48% {
     opacity: 0;
-    transform: scale(0.5);
+    transform: translateY(-3px) scale(0.96);
+    filter: blur(2px);
     width: 34px;
   }
   100% {
     opacity: 0;
-    transform: scale(0.5);
+    transform: translateY(-3px) scale(0.96);
+    filter: blur(2px);
     width: 0;
     margin-right: 0;
   }
 }
 .aw-chip-out {
-  animation: aw-chip-out 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: aw-chip-out 380ms cubic-bezier(0.3, 0, 0.3, 1) forwards;
   pointer-events: none;
 }
 

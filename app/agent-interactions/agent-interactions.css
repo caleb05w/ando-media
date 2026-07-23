@@ -1,0 +1,42 @@
+/* /agent-interactions — small ambient motions for the idea cards. */
+
+/* Working ring crawl (borrowed grammar from /agent-working). */
+@keyframes ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ai-spin {
+  animation: ai-spin 5.5s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* awaitingInput: slow breathe — attention without alarm. */
+@keyframes ai-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+.ai-breathe {
+  animation: ai-breathe 1.6s ease-in-out infinite;
+}
+
+/* Thinking shimmer for working text. */
+@keyframes ai-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.ai-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(88, 82, 78, 0.45) 35%,
+    #58524e 50%,
+    rgba(88, 82, 78, 0.45) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ai-shimmer 2.2s linear infinite;
+}

@@ -25,6 +25,13 @@ const ENTRIES: Entry[] = [
       "@mention an agent to spawn a run — inline session chips, ringed corner presence, an Active/Complete flyout with stop and rerun, and a tool-call trace modal.",
   },
   {
+    href: "/agent-interactions",
+    title: "Agent interactions",
+    tag: "(Ideas)",
+    brief:
+      "Idea board: sixteen sketches for agent interactions across the lifecycle — invoking, steering, resolving, governing — with mini mocks and sources.",
+  },
+  {
     href: "/automation-test",
     title: "Create automation",
     brief:

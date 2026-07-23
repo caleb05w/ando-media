@@ -599,31 +599,13 @@ export function SessionChips({
 /* ------------------------------ corner stack ------------------------------- */
 
 // "+N" disc occupying the fourth slot when the stack overflows — Vercel
-// Toolbar's collapsed-count pattern in the bubble grammar. The ring stays
-// neutral: a count is not an alarm, and status belongs to the agents
-// themselves (failures persist in the flyout until addressed).
+// Toolbar's collapsed-count pattern. A full solid circle, no status ring:
+// a count is not an alarm, and status belongs to the agents themselves
+// (failures persist in the flyout until addressed).
 function OverflowDisc({ count }: { count: number }) {
-  const size = 34;
-  const strokeWidth = 2;
-  const center = size / 2;
-  const radius = center - strokeWidth / 2;
   return (
-    <span className="relative shrink-0 rounded-full bg-white" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="absolute inset-0" aria-hidden>
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          strokeWidth={strokeWidth}
-          stroke="#d6d3d1"
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center">
-        <span className="flex size-6 items-center justify-center rounded-full bg-[#1c1917] text-[10px] font-medium leading-none text-white">
-          {`+${count}`}
-        </span>
-      </span>
+    <span className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-[#1c1917] text-[11px] font-medium leading-none text-white">
+      {`+${count}`}
     </span>
   );
 }

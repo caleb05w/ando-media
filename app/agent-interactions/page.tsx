@@ -1200,8 +1200,8 @@ const CORNER_SECTIONS: Section[] = [
     studies: [
       {
         title: "Comet",
-        source: "the Kinetic set's W2, softened, in the working amber — shipped",
-        note: "One head, fading tail, on the same 1.6s orbit as the board original — softened to a 0.6 peak that decays on both sides, back in the spec's working amber. Now the working state on /agent-working.",
+        source: "the Kinetic set's W2, softened, in the agent's own color — shipped",
+        note: "One head, fading tail, on the same 1.6s orbit as the board original — softened to a 0.6 peak that decays on both sides. The hue is extracted from each agent's portrait (Tadao's charcoal here), so every companion works in its own color. Now the working state on /agent-working.",
         demo: <CCComet />,
       },
     ],

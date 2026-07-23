@@ -37,6 +37,9 @@ export type AgentDef = {
   name: string;
   photo?: string; // photo avatar; omitted = sparkle mark
   tint?: string; // sparkle disc color (default near-black)
+  // Working-comet color, extracted from the portrait (dominant tone,
+  // lightness clamped so it survives the white card). Missing = amber.
+  hue?: string;
   // Scripted working narration; index 0 is the spawn state. Long runs cycle
   // the beats from `loopFrom` onward once the script is exhausted.
   thoughts: Thought[];
@@ -58,6 +61,7 @@ export const AGENTS: AgentDef[] = [
     id: "tadao",
     name: "Tadao",
     photo: `${P}/agent-2.png`,
+    hue: "#3b3b3b", // the mark's charcoal
     thoughts: [
       { text: "Starting agent session", ms: 1500 },
       { text: "Reading the ask", ms: 1800 },
@@ -86,6 +90,7 @@ export const AGENTS: AgentDef[] = [
     id: "ando",
     name: "Ando",
     photo: `${P}/agent-1.png`,
+    hue: "#8d9188", // the disc's warm silver, deepened for the white card
     thoughts: [
       { text: "Starting agent session", ms: 1500 },
       { text: "Skimming the last 200 messages", ms: 2600 },
@@ -114,6 +119,7 @@ export const AGENTS: AgentDef[] = [
     id: "yumi",
     name: "Yumi",
     photo: `${P}/yumi.png`,
+    hue: "#72716d", // cat-and-blanket taupe
     thoughts: [
       { text: "Starting agent session", ms: 1500 },
       { text: "Opening the design file", ms: 2000 },
@@ -501,10 +507,15 @@ export function RingedFace({
       }}
     >
       {/* Working comet — the Kinetic set's W2: one bright head, fading
-          tail, on a 1.6s orbit. Kept mounted while sealing so it fades
-          under the outcome ring instead of vanishing. */}
+          tail, on a 1.6s orbit, colored from the agent's own portrait.
+          Kept mounted while sealing so it fades under the outcome ring
+          instead of vanishing. */}
       {working || seal != null ? (
-        <span className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`} aria-hidden />
+        <span
+          className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`}
+          style={{ "--aw-tint": agent.hue ?? "#f59e0b" } as React.CSSProperties}
+          aria-hidden
+        />
       ) : null}
       {/* Outcome ring: draws itself closed during the seal, solid after.
           On a corner failure it throbs in place (class on the svg, so it

@@ -2053,7 +2053,8 @@
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   filter: blur(0.5px);
-  /* Matches the shipped easing: momentum through the lap, soft landing. */
-  animation: cc-comet 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  /* Matches the shipped easing (--aw-ease-fast): quick launch, coasting
+     settle. */
+  animation: cc-comet 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
 }
 

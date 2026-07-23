@@ -589,9 +589,12 @@ export function RingedFace({
   }
 
   const center = size / 2;
-  const radius = center - strokeWidth / 2;
-  const circumference = 2 * Math.PI * radius;
   const working = status === "working";
+  // Failure carries extra weight — the not-completed verdict draws
+  // noticeably heavier than done/stopped.
+  const verdictStroke = status === "failed" ? strokeWidth + 0.75 : strokeWidth;
+  const radius = center - verdictStroke / 2;
+  const circumference = 2 * Math.PI * radius;
   // Failure jolts immediately; success celebrates after the seal closes.
   const wrapperFx =
     seal != null && seal !== "done"
@@ -646,7 +649,7 @@ export function RingedFace({
             cy={center}
             r={radius}
             fill="none"
-            strokeWidth={strokeWidth}
+            strokeWidth={verdictStroke}
             stroke={RING_COLOR[seal ?? status]}
             strokeLinecap="round"
             className={seal != null ? "aw-seal-draw" : ""}

@@ -1722,7 +1722,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Not completed — failed",
         source: "seal → shake → throb",
-        note: "Red draws closed with a jolt, then the verdict ring breathes in place — solid to 0.35 and back on a 1.8s ease — until addressed.",
+        note: "Red draws closed with a jolt, then the verdict ring beats in place — solid to 0.18 and back on a 1.1s cycle, the one state allowed to insist — until addressed.",
         demo: <ShippedFailed />,
       },
       {

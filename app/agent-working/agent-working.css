@@ -7,6 +7,13 @@
   background: rgba(37, 99, 235, 0.16);
 }
 
+/* Easing tokens. ease-fast: quick launch, coasting settle (easeOutQuad —
+   the same curve globals.css uses for card-pulse). On :root so the
+   board's shipped-state harness resolves it too. */
+:root {
+  --aw-ease-fast: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
 /* Working comet — the Kinetic set's W2, promoted to be the working state
    itself (it replaced the dashed ring): one bright head with a fading
    tail on a 1.6s orbit, head softened (0.6 peak, decay on both sides,
@@ -36,9 +43,9 @@
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   filter: blur(0.5px);
-  /* Eased, not linear: the head gathers speed through the lap and lands
-     softly back at twelve — orbit with momentum, not a turntable. */
-  animation: aw-comet 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  /* ease-fast, not linear: each lap launches quick off twelve and
+     coasts back in — orbit with momentum, not a turntable. */
+  animation: aw-comet 1.6s var(--aw-ease-fast) infinite;
 }
 .aw-hue-portrait .aw-comet {
   background: conic-gradient(
@@ -327,8 +334,9 @@
 }
 
 /* Failure throb: the call-pulse grammar without the growth — the red
-   verdict ring stays where it sealed and its opacity breathes, solid →
-   faint → solid, looping until the failure is addressed. The 450ms
+   verdict ring stays where it sealed and its opacity beats, solid →
+   near-out → solid, looping until the failure is addressed. Fast beat,
+   deep trough: this is the one state allowed to insist. The 450ms
    delay lets the seal draw at full strength first. */
 @keyframes aw-fail-throb {
   0%,
@@ -336,11 +344,11 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.35;
+    opacity: 0.18;
   }
 }
 .aw-fail-throb {
-  animation: aw-fail-throb 1.8s ease-in-out 450ms infinite;
+  animation: aw-fail-throb 1.1s cubic-bezier(0.45, 0, 0.55, 1) 450ms infinite;
 }
 
 /* Completion ping: a green ring rolls off a bubble after the seal closes

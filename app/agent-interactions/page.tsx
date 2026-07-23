@@ -519,11 +519,9 @@ function SInk() {
 function MiniCorner({
   workingClass,
   workingRing,
-  badge = false,
 }: {
   workingClass?: string;
   workingRing?: React.ReactNode;
-  badge?: boolean;
 }) {
   return (
     <div
@@ -550,44 +548,14 @@ function MiniCorner({
           style={{ marginLeft: -8, boxShadow: "0 0 0 3px white" }}
         >
           <Bubble face={TADAO}>{workingRing}</Bubble>
-          {badge ? <span className="cc-badge" /> : null}
         </span>
       </div>
     </div>
   );
 }
 
-function CCAura() {
-  return (
-    <MiniCorner
-      workingRing={
-        <span className="cc-aura absolute inset-0">
-          <RingSvg color={SAGE} />
-        </span>
-      }
-    />
-  );
-}
-
-function CCBadge() {
-  return <MiniCorner badge />;
-}
-
-function CCBreath() {
-  return (
-    <MiniCorner
-      workingClass="cc-breath"
-      workingRing={
-        <span className="absolute inset-0" style={{ opacity: 0.5 }}>
-          <RingSvg color={SAGE} />
-        </span>
-      }
-    />
-  );
-}
-
-function CCHalo() {
-  return <MiniCorner workingClass="cc-halo" />;
+function CCHaloPulse() {
+  return <MiniCorner workingClass="cc-halopulse" />;
 }
 
 /* ------------------------------ gesture demos ------------------------------- */
@@ -1188,32 +1156,14 @@ const STILL_SECTIONS: Section[] = [
 // (one-second scannability, bottom-right medium), auditioned in situ.
 const CORNER_SECTIONS: Section[] = [
   {
-    heading: "Finalists",
-    blurb: "Working bubble on the right of each stack; judge at a glance.",
+    heading: "Finalist",
+    blurb: "Working bubble on the right of the stack; judge at a glance.",
     studies: [
       {
-        title: "Aura, deepened",
-        source: "solid ring, breathing 0.3 → 0.8",
-        note: "The un-dashed ring with amplitude turned up. Reads in a glance; nothing rotates, nothing counts.",
-        demo: <CCAura />,
-      },
-      {
-        title: "Badge dot",
-        source: "sidebar presence grammar, on-bubble",
-        note: "The presence dot promoted to the bubble's own edge — overlap-safe, seam-safe, already a language users know.",
-        demo: <CCBadge />,
-      },
-      {
-        title: "Breath",
-        source: "the bubble itself",
-        note: "The whole bubble breathes ~4%. Geometric, so it survives any palette and any color vision — and neighbors sit still.",
-        demo: <CCBreath />,
-      },
-      {
-        title: "Halo",
-        source: "a swell off the rim",
-        note: "Soft sage glow rising and falling. The loudest of the four — the ceiling, not the floor.",
-        demo: <CCHalo />,
+        title: "Halo pulse",
+        source: "a breath emitted off the rim",
+        note: "A soft sage ring radiates outward, dissolves, and rests — pulse cadence, breath geometry. Scannable in a second; silent between breaths.",
+        demo: <CCHaloPulse />,
       },
     ],
   },
@@ -1750,11 +1700,9 @@ export default function AgentInteractionsPage() {
           blurb={
             <>
               Two constraints applied to the Still set: clearly scannable in a second, and
-              at home in the bottom-right. That disqualifies the below-bubble treatments
-              (they collide with the composer seam), the breathing gap (a white ring
-              vanishes on the white card), and the sundial (invisible by design). Four
-              survivors, each auditioned in a miniature of the real corner — white card,
-              seam, an overlapping done neighbor.
+              at home in the bottom-right. One finalist — halo pulse — auditioned in a
+              miniature of the real corner: white card, composer seam, an overlapping done
+              neighbor.
             </>
           }
         />

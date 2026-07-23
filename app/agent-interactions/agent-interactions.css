@@ -1955,73 +1955,22 @@
 
 /* ================= Corner cut — auditioned in the medium =================
    The two constraints: scannable in a second, and at home in the bottom-
-   right (white card, composer seam, overlapping neighbors). Cycles sit
-   near 3.5–4s so a one-second glance still catches real change. */
+   right (white card, composer seam, overlapping neighbors). One finalist. */
 
-/* CC1 Aura, deepened: solid sage ring breathing with enough amplitude
-   to read on a glance. */
-@keyframes cc-aura {
-  0%,
-  100% {
-    opacity: 0.3;
+/* Halo pulse: a soft sage ring emits off the rim, dissolves, and rests —
+   a radiating pulse at a breath's cadence rather than a stationary glow. */
+@keyframes cc-halopulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(138, 164, 141, 0.45);
   }
-  50% {
-    opacity: 0.8;
+  60% {
+    box-shadow: 0 0 0 9px rgba(138, 164, 141, 0);
   }
-}
-.cc-aura {
-  animation: cc-aura 3.5s ease-in-out infinite;
-}
-
-/* CC2 Badge dot: the sidebar's presence dot, promoted to the bubble's
-   own edge — overlap-safe, familiar grammar. */
-@keyframes cc-badge {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-.cc-badge {
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  width: 5px;
-  height: 5px;
-  border-radius: 9999px;
-  background: #8aa48d;
-  box-shadow: 0 0 0 1.5px #ffffff;
-  animation: cc-badge 3s ease-in-out infinite;
-}
-
-/* CC3 Breath: the whole bubble breathes — geometric, so it reads
-   regardless of hue perception, and neighbors are untouched. */
-@keyframes cc-breath {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.04);
-  }
-}
-.cc-breath {
-  animation: cc-breath 3.8s ease-in-out infinite;
-}
-
-/* CC4 Halo: a soft sage glow swelling off the rim. */
-@keyframes cc-halo {
-  0%,
   100% {
     box-shadow: 0 0 0 0 rgba(138, 164, 141, 0);
   }
-  50% {
-    box-shadow: 0 0 6px 3px rgba(138, 164, 141, 0.45);
-  }
 }
-.cc-halo {
+.cc-halopulse {
   border-radius: 9999px;
-  animation: cc-halo 3.5s ease-in-out infinite;
+  animation: cc-halopulse 3.6s cubic-bezier(0.2, 0, 0.4, 1) infinite;
 }

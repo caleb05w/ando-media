@@ -296,6 +296,261 @@ function FHeartbeat() {
   );
 }
 
+/* ------------------------------ hue study row ------------------------------ */
+// The working hue, questioned: amber borrows caution semantics from a
+// decade of dashboards. Same orbit, five temperaments — dash + motion
+// already say "working"; the hue only sets the mood.
+
+const SAGE = "#8aa48d";
+
+const HUES: { name: string; hex: string; note: string }[] = [
+  { name: "Amber", hex: "#f59e0b", note: "the inherited tell — reads caution, urgency" },
+  { name: "Sage", hex: SAGE, note: "growth at work — kin to the green verdict" },
+  { name: "Stone", hex: "#a8a29e", note: "ink & paper — motion alone carries the state" },
+  { name: "River", hex: "#8fb0c4", note: "the water language, made literal" },
+  { name: "Sand", hex: "#c9b18c", note: "warmth without the alarm" },
+];
+
+function HueRow() {
+  return (
+    <div
+      className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5"
+      style={{ color: FG_SECONDARY }}
+    >
+      {HUES.map((hue) => (
+        <div
+          key={hue.name}
+          className="flex flex-col items-center gap-2.5 rounded-[10px] border-[0.5px] px-3 pb-3 pt-6 text-center"
+          style={{ borderColor: STROKE_WEAK }}
+        >
+          <Bubble face={TADAO}>
+            <RingSvg color={hue.hex} dashed className="mi-spin" />
+          </Bubble>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[12px] font-medium leading-4" style={{ color: FG_PRIMARY }}>
+              {hue.name}
+            </span>
+            <span className="text-[11px] leading-[15px]" style={{ color: "#a8a29e" }}>
+              {hue.note}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ----------------------------- Outside set demos ---------------------------- */
+// Companions in a landscape. Working states wear sage (or no hue);
+// failure explores red-free weather.
+
+function OWGrass() {
+  return (
+    <span className="relative inline-flex">
+      <Bubble face={TADAO} />
+      {[
+        [4, 0],
+        [12, 0.6],
+        [26, 1.1],
+        [33, 0.3],
+      ].map(([left, delay]) => (
+        <span
+          key={left}
+          className="mo-blade"
+          style={{ left, animationDelay: `${delay}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function OWKoi() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="mo-koi">
+        <span className="mo-koi-body" />
+        <span className="mo-koi-tail" />
+      </span>
+    </Bubble>
+  );
+}
+
+function OWFireflies() {
+  return (
+    <span className="relative inline-flex">
+      <Bubble face={TADAO} />
+      <span className="mo-fly mo-fly-a" style={{ top: -4, right: -6 }} />
+      <span className="mo-fly mo-fly-b" style={{ bottom: -2, left: -7 }} />
+      <span className="mo-fly mo-fly-c" style={{ top: 10, right: -10 }} />
+    </span>
+  );
+}
+
+function OWCloud() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="mo-cloud" style={{ top: 6 }} />
+        <span
+          className="mo-cloud"
+          style={{ top: 20, animationDuration: "12s", animationDelay: "-5s" }}
+        />
+      </span>
+    </Bubble>
+  );
+}
+
+function OWDapple() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="absolute inset-[2px] overflow-hidden rounded-full">
+        <span className="mo-dapple-a" />
+        <span className="mo-dapple-b" />
+      </span>
+    </Bubble>
+  );
+}
+
+function OWSprout() {
+  return (
+    <Bubble face={TADAO}>
+      <svg width={SIZE} height={SIZE} className="absolute inset-0" aria-hidden>
+        <circle
+          cx={C}
+          cy={C}
+          r={R}
+          fill="none"
+          strokeWidth={2}
+          stroke={SAGE}
+          strokeLinecap="round"
+          strokeDasharray={117}
+          className="mo-sprout"
+          transform={`rotate(90 ${C} ${C})`}
+        />
+      </svg>
+    </Bubble>
+  );
+}
+
+function OCRipen() {
+  return (
+    <Bubble face={ANDO}>
+      <svg width={SIZE} height={SIZE} className="absolute inset-0" aria-hidden>
+        <circle
+          cx={C}
+          cy={C}
+          r={R}
+          fill="none"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeDasharray={117}
+          className="mo-ripen"
+          transform={`rotate(90 ${C} ${C})`}
+        />
+      </svg>
+    </Bubble>
+  );
+}
+
+function OCPetals() {
+  return (
+    <span className="relative inline-flex">
+      <Bubble face={ANDO}>
+        <span className="ma-settle absolute inset-0">
+          <RingSvg color={GREEN} />
+        </span>
+      </Bubble>
+      <span className="mo-petal mo-petal-a" style={{ top: 2, left: 10 }} />
+      <span className="mo-petal mo-petal-b" style={{ top: 0, left: 24 }} />
+      <span
+        className="mo-petal mo-petal-a"
+        style={{ top: 4, left: 30, animationDelay: "0.5s" }}
+      />
+    </span>
+  );
+}
+
+function OCGolden() {
+  return (
+    <Bubble face={ANDO} faceClassName="mo-golden">
+      <span className="ma-settle absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function OCClearing() {
+  return (
+    <Bubble face={ANDO} faceClassName="mo-unblur">
+      <span className="mo-fog" />
+      <span className="ma-settle absolute inset-0">
+        <RingSvg color={GREEN} />
+      </span>
+    </Bubble>
+  );
+}
+
+function OFWilt() {
+  return (
+    <Bubble face={YUMI}>
+      <svg width={SIZE} height={SIZE} className="absolute inset-0" aria-hidden>
+        <circle
+          cx={C}
+          cy={C}
+          r={R}
+          fill="none"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeDasharray="40 77"
+          className="mo-wilt"
+        />
+      </svg>
+    </Bubble>
+  );
+}
+
+function OFOvercast() {
+  return (
+    <Bubble face={YUMI} faceClassName="mo-graydim">
+      <span className="mo-overcast" />
+    </Bubble>
+  );
+}
+
+function OFFrost() {
+  return (
+    <Bubble face={YUMI} faceClassName="mo-frost-face">
+      <span className="mo-frost-ring absolute inset-0">
+        <svg width={SIZE} height={SIZE} className="absolute inset-0" aria-hidden>
+          <circle
+            cx={C}
+            cy={C}
+            r={R}
+            fill="none"
+            strokeWidth={2}
+            stroke="#9db4c0"
+            strokeLinecap="round"
+            strokeDasharray="1.6 4.6"
+          />
+        </svg>
+      </span>
+    </Bubble>
+  );
+}
+
+function OFLeaf() {
+  return (
+    <span className="mo-leaf inline-flex">
+      <Bubble face={YUMI}>
+        <span className="mo-leaf-ring absolute inset-0">
+          <RingSvg color="#a8a29e" />
+        </span>
+      </Bubble>
+    </span>
+  );
+}
+
 /* ------------------------------- Ma set demos ------------------------------- */
 /* Water & silence: mediums that wrap around or move within the avatar —
    ripples outside, a pool inside, light over the face, mist at the rim. */
@@ -525,9 +780,116 @@ type Study = {
 
 type Section = { heading: string; blurb: string; studies: Study[] };
 
-// Set 1 · Ma — water & silence. Homage to Tadao Ando: negative space,
-// silence as a design value. The movement lives at the threshold of
-// noticing; completion is stillness, failure is a disturbance.
+// Outside — companions in a landscape. Working wears sage or no hue at
+// all; completion is a change in the light; failure is weather.
+const OUTSIDE_SECTIONS: Section[] = [
+  {
+    heading: "1 · Working",
+    blurb: "A companion at work nearby — nature carries the signal.",
+    studies: [
+      {
+        title: "Grass",
+        source: "wind through a field · at the base",
+        note: "Blades sway out of phase at the bubble's feet. Work as a light breeze, never a gale.",
+        demo: <OWGrass />,
+      },
+      {
+        title: "Koi",
+        source: "a pond circuit · around",
+        note: "One glide around the rim, speed pulsing like a fish — unhurried, but unmistakably alive.",
+        demo: <OWKoi />,
+      },
+      {
+        title: "Fireflies",
+        source: "dusk companions · around",
+        note: "Three lights wander and blink on their own clocks. Organic where the metronome was mechanical.",
+        demo: <OWFireflies />,
+      },
+      {
+        title: "Cloud shadow",
+        source: "weather overhead · over",
+        note: "Bright bands cross the face like clouds over ground. The day is passing; someone is working through it.",
+        demo: <OWCloud />,
+      },
+      {
+        title: "Dappled shade",
+        source: "under a tree · over",
+        note: "Leaf shadows shift on the face. The stillest working state on the board — light doing the moving.",
+        demo: <OWDapple />,
+      },
+      {
+        title: "Sprout",
+        source: "growth · the ring itself",
+        note: "A sage arc grows from the base and eases back, never closing the circle on its own — that's completion's job.",
+        demo: <OWSprout />,
+      },
+    ],
+  },
+  {
+    heading: "2 · Completion",
+    blurb: "The work bears out — a change in the light, not a chime.",
+    studies: [
+      {
+        title: "Ripen",
+        source: "sprout, concluded",
+        note: "The growing arc closes the circle and deepens sage → green. Work and verdict are one gesture.",
+        demo: <OCRipen />,
+      },
+      {
+        title: "Petal fall",
+        source: "a blossom lets go",
+        note: "Petals drift down past the bubble as the ring settles. The tree doesn't announce the fruit.",
+        demo: <OCPetals />,
+      },
+      {
+        title: "Golden hour",
+        source: "the light warms",
+        note: "The face goes warm for a moment, then true. Done as late-afternoon light.",
+        demo: <OCGolden />,
+      },
+      {
+        title: "Clearing",
+        source: "fog lifts",
+        note: "The veil dissolves and the face comes crisp — the answer is the visibility itself.",
+        demo: <OCClearing />,
+      },
+    ],
+  },
+  {
+    heading: "3 · Failure",
+    blurb: "Red-free experiments — failure as weather, not verdict.",
+    studies: [
+      {
+        title: "Wilt",
+        source: "growth interrupted",
+        note: "The sage arc slumps and dries to clay. You know before you read a word.",
+        demo: <OFWilt />,
+      },
+      {
+        title: "Overcast",
+        source: "the weather closes in",
+        note: "Gray settles over the face and stays. The roster text says failed; the face just says later.",
+        demo: <OFOvercast />,
+      },
+      {
+        title: "First frost",
+        source: "cold snap",
+        note: "The face pales and a fine crystalline ring forms — stopped mid-motion, preserved, waiting for a thaw.",
+        demo: <OFFrost />,
+      },
+      {
+        title: "Fallen leaf",
+        source: "quiet weight",
+        note: "The bubble detaches and sways down to rest low. Gravity-drop from the kinetic set, translated into nature.",
+        demo: <OFLeaf />,
+      },
+    ],
+  },
+];
+
+// Ma — water & silence. Homage to Tadao Ando: negative space, silence as
+// a design value. The movement lives at the threshold of noticing;
+// completion is stillness, failure is a disturbance.
 const MA_SECTIONS: Section[] = [
   {
     heading: "1 · Working",
@@ -862,7 +1224,33 @@ export default function AgentInteractionsPage() {
         </p>
 
         <SetHeader
-          title="Set 1 · Ma — water & silence"
+          title="The working hue"
+          blurb={
+            <>
+              Amber is inherited from a decade of dashboards, where yellow means caution —
+              urgency is exactly the wrong thing to invoke for a companion quietly at work.
+              Same orbit, five temperaments; the dash and the motion already say
+              &ldquo;working,&rdquo; so the hue only has to set a mood.
+            </>
+          }
+        />
+        <HueRow />
+
+        <SetHeader
+          title="Outside — a landscape of companions"
+          blurb={
+            <>
+              From the brief: you&apos;re outside, revelling in nature — agents as working
+              companions, intentional tools. Working states wear sage (growth) or no hue at
+              all; completion is a change in the light; failure is weather, explored
+              red-free.
+            </>
+          }
+        />
+        <StudySections sections={OUTSIDE_SECTIONS} />
+
+        <SetHeader
+          title="Ma — water & silence"
           blurb={
             <>
               Homage to Tadao Ando: negative space, silence as a design value. Flowing water,
@@ -875,8 +1263,8 @@ export default function AgentInteractionsPage() {
         <StudySections sections={MA_SECTIONS} />
 
         <SetHeader
-          title="Set 2 · Kinetic references"
-          blurb="The earlier exploration — Dynamic Island, watchOS breathe, Chrome downloads. Louder language, kept for contrast."
+          title="Kinetic references"
+          blurb="The earliest exploration — Dynamic Island, watchOS breathe, Chrome downloads. Louder language, kept for contrast."
         />
         <StudySections sections={SECTIONS} />
       </main>

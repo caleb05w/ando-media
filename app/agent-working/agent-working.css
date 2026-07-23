@@ -115,10 +115,10 @@
     filter: blur(2.5px);
   }
   55% {
-    width: 34px;
+    width: 30px;
   }
   100% {
-    width: 34px;
+    width: 30px;
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: blur(0px);
@@ -135,13 +135,13 @@
    gesture in, one out. */
 @keyframes aw-chip-out {
   0% {
-    width: 34px;
+    width: 30px;
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: blur(0px);
   }
   45% {
-    width: 34px;
+    width: 30px;
   }
   100% {
     width: 0px;

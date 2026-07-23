@@ -522,7 +522,9 @@ export function RingedFace({
         </svg>
       ) : null}
       <span className="absolute inset-0 flex items-center justify-center">
-        <AgentFace agent={agent} size={size - 10} />
+        {/* Tight geometry: the ring hugs the portrait — ~1px of air
+            between face edge and stroke, not a moat. */}
+        <AgentFace agent={agent} size={size - 6} />
       </span>
     </span>
   );
@@ -589,7 +591,7 @@ export function SessionChips({
 // (failures persist in the flyout until addressed).
 function OverflowDisc({ count }: { count: number }) {
   return (
-    <span className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-[#1c1917] text-[11px] font-medium leading-none text-white">
+    <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-[#1c1917] text-[11px] font-medium leading-none text-white">
       {`+${count}`}
     </span>
   );
@@ -641,7 +643,7 @@ export function CornerStack({
             boxShadow: "0 0 0 4px white",
           }}
         >
-          <RingedFace agent={run.agent} status={run.status} size={34} strokeWidth={2} disc />
+          <RingedFace agent={run.agent} status={run.status} size={30} strokeWidth={2} disc />
           {/* Completion ping — mounts exactly when the run turns green. */}
           {run.status === "done" ? (
             <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />

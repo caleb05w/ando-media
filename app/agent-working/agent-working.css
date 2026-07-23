@@ -19,6 +19,44 @@
   transform-origin: 50% 50%;
 }
 
+/* Working light on the portrait itself — promoted from the corner-cut
+   board (Mist set, "Face shimmer"). Clipped to the face circle so the
+   light sits on the agent surface, not its frame. Pale sage: lifts a
+   dark mark, tints a light one. Crosses, then rests — a glint at a
+   breath's cadence, not a scanner. */
+.aw-faceshine {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.aw-faceshine::before {
+  content: "";
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: 0;
+  width: 58%;
+  background: linear-gradient(
+    90deg,
+    rgba(214, 231, 216, 0) 0%,
+    rgba(214, 231, 216, 0.6) 50%,
+    rgba(214, 231, 216, 0) 100%
+  );
+  animation: aw-faceshine 3.8s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+@keyframes aw-faceshine {
+  0% {
+    transform: translateX(-120%) skewX(-14deg);
+  }
+  70%,
+  100% {
+    transform: translateX(230%) skewX(-14deg);
+  }
+}
+
 /* Flyout / mention menu enter, anchored to the corner (bottom right). */
 @keyframes aw-pop-in {
   from {

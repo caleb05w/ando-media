@@ -537,7 +537,12 @@ export function RingedFace({
         </svg>
       ) : null}
       <span className="absolute inset-0 flex items-center justify-center">
-        <AgentFace agent={agent} size={size - 10} />
+        <span className="relative inline-flex rounded-full">
+          <AgentFace agent={agent} size={size - 10} />
+          {/* Working light crosses the portrait itself — clipped to the
+              face circle, so it sits on the agent surface, not the frame. */}
+          {working ? <span className="aw-faceshine" aria-hidden /> : null}
+        </span>
       </span>
     </span>
   );

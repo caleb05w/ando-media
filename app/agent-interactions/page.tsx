@@ -557,6 +557,29 @@ function CCStillRing() {
   return <MiniCorner workingRing={<span className="cc-ring" />} />;
 }
 
+// Mist — presence carried by atmosphere instead of geometry. Split into
+// its two halves so each can be judged for what it contributes.
+function CCMist() {
+  return <MiniCorner workingRing={<span className="cc-mist" />} />;
+}
+
+function CCFaceShimmer() {
+  return <MiniCorner workingRing={<span className="cc-faceshine" />} />;
+}
+
+function CCMistShimmer() {
+  return (
+    <MiniCorner
+      workingRing={
+        <>
+          <span className="cc-mist" />
+          <span className="cc-faceshine" />
+        </>
+      }
+    />
+  );
+}
+
 /* ------------------------------ gesture demos ------------------------------- */
 // The moments between states — companionship as motion.
 
@@ -1172,6 +1195,30 @@ const CORNER_SECTIONS: Section[] = [
       },
     ],
   },
+  {
+    heading: "Mist",
+    blurb: "Drop the ring entirely: weather around the agent, light across its face.",
+    studies: [
+      {
+        title: "Mist",
+        source: "the Ma set's morning fog, in sage",
+        note: "No ring — the veil from the Ma set circles the rim on the same nine-second walk, lifted to the working hue with a touch more body for the white card. Frees the ring to mean only one thing: a verdict.",
+        demo: <CCMist />,
+      },
+      {
+        title: "Face shimmer",
+        source: "light on the agent itself",
+        note: "The working light crosses the portrait rather than its frame — the status-line shimmer moved onto the agent. Pale sage, so it lifts a dark mark and tints a light one. Crosses, then rests.",
+        demo: <CCFaceShimmer />,
+      },
+      {
+        title: "Mist + shimmer",
+        source: "the pair",
+        note: "Atmosphere for the glance, shimmer for the look. The mist is what you catch in a second; the face light is what confirms the agent itself is the thing at work, once you've turned to it.",
+        demo: <CCMistShimmer />,
+      },
+    ],
+  },
 ];
 
 // Gestures — the companion lifecycle. Interaction moments rather than
@@ -1705,9 +1752,9 @@ export default function AgentInteractionsPage() {
           blurb={
             <>
               Two constraints applied to the Still set: clearly scannable in a second, and
-              at home in the bottom-right. The finalist is a ring that never leaves —
-              shown with its drift and without it — auditioned in a miniature of the real
-              corner: white card, composer seam, an overlapping done neighbor.
+              at home in the bottom-right. Two answers auditioned in a miniature of the
+              real corner — white card, composer seam, an overlapping done neighbor: a
+              ring that never leaves, and no ring at all, only weather.
             </>
           }
         />

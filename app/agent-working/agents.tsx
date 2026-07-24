@@ -792,13 +792,13 @@ export function CornerStack({
   onConceal: (runId: string) => void;
 }) {
   // Window by urgency (failures always make the cut), then display with
-  // the most urgent at the RIGHT — top of the overlap z-order, nearest
-  // the corner anchor. Sorts are keyed to status, so bubbles only move
-  // on a state change, never mid-orbit; stable within a class.
+  // the most urgent at the LEFT — first thing the eye meets reading the
+  // stack. Sorts are keyed to status, so bubbles only move on a state
+  // change, never mid-orbit; stable within a class.
   const overflowing = runs.length > 4;
   const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
   const windowSet = ranked.slice(0, overflowing ? 3 : 4);
-  const visible = [...windowSet].sort((a, b) => urgency(a) - urgency(b));
+  const visible = windowSet;
   const hidden = ranked.slice(overflowing ? 3 : 4);
   return (
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —

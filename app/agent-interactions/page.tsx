@@ -1967,7 +1967,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Not completed — failed",
         source: "seal → shake → throb",
-        note: "Red draws closed with a jolt, then the ring knocks twice and rests — a compound rhythm nothing else in the corner has. Working flows; failure raps on the door. Loops until addressed.",
+        note: "Red draws closed with a jolt, then the ring breathes — slow, shallow, serene (2.4s, to 0.45). Position at the front of the stack carries the urgency; the pulse just says still here. Loops until addressed.",
         demo: <ShippedFailed />,
       },
       {

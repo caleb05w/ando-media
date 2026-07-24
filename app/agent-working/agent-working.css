@@ -414,31 +414,21 @@
   animation: aw-shake 320ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-/* Failure knock: the ring stays where it sealed and knocks twice —
-   two quick dips, then a long rest. A compound rhythm nothing else in
-   the corner has: working flows continuously, failure raps on the
-   door. Human alarm grammar, legible peripherally, silent most of the
-   cycle. The 450ms delay lets the seal draw at full strength first. */
+/* Failure pulse: the ring stays where it sealed and breathes — a slow,
+   shallow, serene pulse. Position (front of the stack) carries the
+   urgency now; the pulse only has to say "still here", peacefully.
+   The 450ms delay lets the seal draw at full strength first. */
 @keyframes aw-fail-throb {
-  0% {
-    opacity: 1;
-  }
-  8% {
-    opacity: 0.25;
-  }
-  16% {
-    opacity: 1;
-  }
-  24% {
-    opacity: 0.25;
-  }
-  32%,
+  0%,
   100% {
     opacity: 1;
   }
+  50% {
+    opacity: 0.45;
+  }
 }
 .aw-fail-throb {
-  animation: aw-fail-throb 2.5s cubic-bezier(0.45, 0, 0.55, 1) 450ms infinite;
+  animation: aw-fail-throb 2.4s ease-in-out 450ms infinite;
 }
 
 /* Completion ping: a green ring rolls off a bubble after the seal closes

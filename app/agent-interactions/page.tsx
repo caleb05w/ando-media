@@ -723,6 +723,119 @@ function RVPressure() {
   );
 }
 
+/* --------------------------- thinking-state demos --------------------------- */
+// Field notes: the six ways the industry shows "thinking", rebuilt
+// small so Ando's answers are chosen against the field.
+
+function TSVerb() {
+  return (
+    <div className="flex items-center gap-2">
+      <Face src={TADAO} size={22} />
+      <span className="ts-shimmer text-[12px] leading-4">Reading the thread…</span>
+    </div>
+  );
+}
+
+function TSBeats() {
+  const beats = ["Skimming 200 messages", "Clustering by owner", "Drafting the summary"];
+  return (
+    <div className="flex items-center gap-2">
+      <Face src={TADAO} size={22} />
+      <span className="relative block h-4 w-40">
+        {beats.map((beat, index) => (
+          <span
+            key={beat}
+            className="ts-beat absolute inset-0 text-[12px] leading-4"
+            style={{ color: FG_SECONDARY, animationDelay: `${index * 2}s` }}
+          >
+            {beat}
+          </span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function TSStream() {
+  const lines = [
+    "wait — the user said Thursday, so",
+    "checking if 10:30 collides with…",
+    "no, Jordan's hold is soft. then",
+    "rooms: Koto seats 6, free at 10,",
+    "hmm, timezone for Sara is UTC-8,",
+    "so the invite should read 10:30…",
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      <Face src={TADAO} size={22} />
+      <div className="h-12 w-44 overflow-hidden rounded-[6px] border-[0.5px] bg-white px-2 py-1" style={{ borderColor: "#ebe9e8" }}>
+        <div className="ts-stream flex flex-col gap-0.5">
+          {[...lines, ...lines].map((line, index) => (
+            <span key={index} className="whitespace-nowrap text-[9px] leading-3" style={{ color: "#a8a29e" }}>
+              {line}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TSPlan() {
+  const steps: Array<[string, string]> = [
+    ["ts-step-1", "Pull five calendars"],
+    ["ts-step-2", "Check Thursday's conflicts"],
+    ["ts-step-3", "Draft the invite"],
+  ];
+  return (
+    <div className="flex flex-col gap-1.5">
+      {steps.map(([cls, label]) => (
+        <span key={cls} className="flex items-center gap-2">
+          <span className={`ts-step ${cls}`} />
+          <span className="text-[11px] leading-4" style={{ color: FG_SECONDARY }}>
+            {label}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TSReceipt() {
+  return (
+    <div className="relative flex h-6 w-40 items-center">
+      <span className="ts-live absolute inset-y-0 left-0 flex items-center">
+        <span className="ts-shimmer text-[12px] leading-4">Thinking…</span>
+      </span>
+      <span
+        className="ts-receipt absolute inset-y-0 left-0 flex items-center gap-1 rounded-[5px] border-[0.5px] px-1.5 text-[11px] leading-4"
+        style={{ borderColor: "#e7e5e4", color: FG_SECONDARY }}
+      >
+        Thought for 12s ›
+      </span>
+    </div>
+  );
+}
+
+function TSDots() {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {[
+        ["#16a34a", "", "deploy-fix · done"],
+        ["#f59e0b", "ts-dot-running", "test-sweep · running"],
+        ["#d6d3d1", "", "docs-pass · queued"],
+      ].map(([color, cls, label]) => (
+        <span key={label} className="flex items-center gap-2">
+          <span className={`size-1.5 rounded-full ${cls}`} style={{ background: color }} />
+          <span className="text-[11px] leading-4" style={{ color: FG_SECONDARY }}>
+            {label}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------ gesture demos ------------------------------- */
 // The moments between states — companionship as motion.
 
@@ -1455,6 +1568,53 @@ const RING_SECTIONS: Section[] = [
   },
 ];
 
+// Thinking states — field notes. The six industry patterns, rebuilt
+// small; what Ando adopts, and what it deliberately refuses.
+const THINKING_SECTIONS: Section[] = [
+  {
+    heading: "The field",
+    blurb: "Six patterns, one per incumbent — thinking as text artifact vs. presence.",
+    studies: [
+      {
+        title: "Status verb",
+        source: "Cursor · Claude Code",
+        note: "One shimmering line naming the current action. Cheap, honest, legible — Ando's session chips already speak this (with scripted beats on top).",
+        demo: <TSVerb />,
+      },
+      {
+        title: "Thought headlines",
+        source: "ChatGPT o-series",
+        note: "Summarized beats crossfading one at a time — curated, never raw. The industry's landing spot after the raw-stream retreat. Ando's thought scripts are this pattern.",
+        demo: <TSBeats />,
+      },
+      {
+        title: "Raw stream",
+        source: "Grok Think · R1 — the anti-pattern",
+        note: "The live chain-of-thought ticker: maximal transparency, maximal noise. Kept here for contrast — this is exactly the flood Ando's thesis stands against.",
+        demo: <TSStream />,
+      },
+      {
+        title: "The plan executes",
+        source: "Perplexity Pro Search · Devin — the stealable gap",
+        note: "A checklist filling in live: pending → active → done. The field's strongest waiting-tolerance device, and it maps 1:1 onto Ando's trace steps — the one pattern worth promoting.",
+        demo: <TSPlan />,
+      },
+      {
+        title: "Receipt",
+        source: "ChatGPT · Claude · Grok",
+        note: "Thinking is transient; what persists is a receipt — \"Thought for 12s\" behind a disclosure. Ando's \"Worked for 10m 24s ›\" is this, with the trace modal as the expansion.",
+        demo: <TSReceipt />,
+      },
+      {
+        title: "Status dots",
+        source: "Cursor background agents",
+        note: "Presence as a list: one dot per agent, running pulses. The nearest thing in the field to Ando's corner — and still a row in a panel, not a companion in the room.",
+        demo: <TSDots />,
+      },
+    ],
+  },
+];
+
 // Gestures — the companion lifecycle. Interaction moments rather than
 // states: a coworker arrives, acknowledges, listens, delivers, rests,
 // departs.
@@ -2018,6 +2178,19 @@ export default function AgentInteractionsPage() {
           }
         />
         <StudySections sections={RING_SECTIONS} />
+
+        <SetHeader
+          title="Thinking states — field notes"
+          blurb={
+            <>
+              How the incumbents show a model at work — status verbs, thought headlines,
+              raw streams, executing plans, receipts, status dots — rebuilt small so
+              Ando&apos;s answers are chosen against the field, not in a vacuum. Ando&apos;s
+              own position: thinking is presence in the room, not a text artifact.
+            </>
+          }
+        />
+        <StudySections sections={THINKING_SECTIONS} />
 
         <SetHeader
           title="Color intent"

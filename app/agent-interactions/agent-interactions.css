@@ -2564,3 +2564,186 @@
   filter: blur(1px);
   animation: rfu-pressure 2.5s linear infinite;
 }
+
+/* ============== Thinking states — field notes (ts-) ==============
+   The six ways the industry shows "thinking", rebuilt small. Reference
+   set: what the incumbents do while a model works, so Ando's answers
+   are chosen against the field rather than in a vacuum. */
+
+/* TS1 Status verb: one shimmering line (Cursor, Claude Code). */
+@keyframes ts-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.ts-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(88, 82, 78, 0.45) 35%,
+    #58524e 50%,
+    rgba(88, 82, 78, 0.45) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ts-shimmer 2.2s linear infinite;
+}
+
+/* TS2 Thought headlines: summarized beats crossfade one at a time
+   (ChatGPT o-series). Three lines, staggered thirds of a 6s cycle. */
+@keyframes ts-beat {
+  0%,
+  4% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  8%,
+  29% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  33%,
+  100% {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+.ts-beat {
+  opacity: 0;
+  animation: ts-beat 6s ease-in-out infinite;
+}
+
+/* TS3 Raw stream: the auto-scrolling chain-of-thought ticker (Grok,
+   R1). Kept as the anti-pattern — the noise the others walked back. */
+@keyframes ts-stream {
+  to {
+    transform: translateY(-50%);
+  }
+}
+.ts-stream {
+  animation: ts-stream 3.2s linear infinite;
+}
+
+/* TS4 Plan executes: a checklist filling in live (Perplexity Pro
+   Search, Devin). Dots walk pending → active → done; the field's
+   strongest waiting-tolerance device. */
+@keyframes ts-step-1 {
+  0% {
+    background: #f59e0b;
+  }
+  20%,
+  90% {
+    background: #16a34a;
+  }
+  96%,
+  100% {
+    background: #d6d3d1;
+  }
+}
+@keyframes ts-step-2 {
+  0%,
+  18% {
+    background: #d6d3d1;
+  }
+  22%,
+  52% {
+    background: #f59e0b;
+  }
+  56%,
+  90% {
+    background: #16a34a;
+  }
+  96%,
+  100% {
+    background: #d6d3d1;
+  }
+}
+@keyframes ts-step-3 {
+  0%,
+  52% {
+    background: #d6d3d1;
+  }
+  56%,
+  84% {
+    background: #f59e0b;
+  }
+  88%,
+  90% {
+    background: #16a34a;
+  }
+  96%,
+  100% {
+    background: #d6d3d1;
+  }
+}
+.ts-step {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.ts-step-1 {
+  animation: ts-step-1 6s linear infinite;
+}
+.ts-step-2 {
+  animation: ts-step-2 6s linear infinite;
+}
+.ts-step-3 {
+  animation: ts-step-3 6s linear infinite;
+}
+
+/* TS5 Receipt: live shimmer collapses into "Thought for Ns ›" (ChatGPT,
+   Claude, Grok). The thinking is transient; the receipt is durable. */
+@keyframes ts-live {
+  0%,
+  4% {
+    opacity: 0;
+  }
+  8%,
+  52% {
+    opacity: 1;
+  }
+  58%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ts-receipt {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  64%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+.ts-live {
+  animation: ts-live 5s ease-in-out infinite;
+}
+.ts-receipt {
+  opacity: 0;
+  animation: ts-receipt 5s ease-in-out infinite;
+}
+
+/* TS6 Status dots: ambient presence as a list (Cursor background
+   agents) — running pulses, done and idle sit still. */
+@keyframes ts-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.ts-dot-running {
+  animation: ts-dot 1.2s ease-in-out infinite;
+}

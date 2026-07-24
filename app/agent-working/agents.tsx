@@ -370,12 +370,14 @@ export function useAgentEngine(
             // Conceal backstop: a run with no corner bubble (folded into
             // the +N disc) has no exit animation to fire animationend —
             // without this it would haunt the flyout as a zero-height
-            // ghost row forever. The threshold must OUTLAST the longest
-            // natural exit or it amputates visible departures mid-flight
-            // (at 1.5s it once cut the mist before its close finished —
+            // ghost row forever. The threshold must OUTLAST the exit it
+            // covers or it amputates visible departures mid-flight (at
+            // 1.5s it once cut the mist before its close finished —
             // survivors snapped instead of gliding down the track).
-            // 2.2s = the mist (1600ms) + heartbeat quantization slack.
-            now - run.removedAt >= 2200
+            // Natural exits: the mist (1600ms) + heartbeat slack.
+            // Dismissals: the 150ms cut + slack — swept fast so a
+            // disc-hidden × never haunts the pagination.
+            now - run.removedAt >= (run.dismissed ? 400 : 2200)
           ) {
             changed = true;
             return { ...run, concealed: true };
@@ -493,14 +495,16 @@ export function useAgentEngine(
   }, []);
 
   const remove = useCallback((runId: string) => {
-    // User delete is INSTANT: concealed in the same state update, no
-    // exit animation on either surface. Bulk-clearing agents means the
-    // next row's × occupies the cursor position on the very next frame
-    // — any exit choreography here, however short, reads as lag.
+    // User delete gets one quick breath — 150ms, fade and slot in
+    // parallel — instead of the old same-frame vanish (too sudden) or
+    // the older staggered choreography (read as lag when bulk-clearing).
+    // Non-blocking: each dismissal runs independently, and conceal fires
+    // from the chip's animationend (400ms backstop for disc-hidden
+    // runs), so rapid ×-clicks never queue behind each other.
     setRuns((prev) =>
       prev.map((r) =>
         r.id === runId
-          ? { ...r, removed: true, dismissed: true, concealed: true, removedAt: Date.now() }
+          ? { ...r, removed: true, dismissed: true, removedAt: Date.now() }
           : r,
       ),
     );

@@ -60,6 +60,9 @@ type AwMessage = {
   // Agent answers carry the "Worked for Xm Ys ›" footer → trace modal.
   workedForMs?: number;
   runId?: string;
+  // System notices ("Tadao changed proactivity") — a quiet gray line in
+  // the text column, no avatar, no author header.
+  system?: boolean;
 };
 
 const TADAO = AGENTS[0];
@@ -598,6 +601,17 @@ function MessageRow({
   onOpenTrace: (message: AwMessage) => void;
   onOpenRunTrace: (runId: string) => void;
 }) {
+  // System notices: one quiet line aligned with the text column —
+  // functions like chrome, not conversation.
+  if (message.system) {
+    return (
+      <div data-aw-msg-id={message.id} className="flex w-full px-4 py-1 pl-[50px]">
+        <span className="text-[12px] leading-4" style={{ color: "#a8a29e" }}>
+          {message.paragraphs[0]?.map((segment) => segment.text).join("")}
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       data-aw-msg-id={message.id}
@@ -1000,7 +1014,8 @@ export default function AgentWorkingPage() {
               authorName: agent.name,
               avatar: { agent },
               time: nowLabel(),
-              paragraphs: [[{ text: "changed proactivity" }]],
+              paragraphs: [[{ text: `${agent.name} changed proactivity` }]],
+              system: true,
             },
           ]);
         }

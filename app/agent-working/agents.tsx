@@ -20,7 +20,7 @@
 // The trace modal ("Agent trace") shows a summary line and a step timeline:
 // Task started → tool calls → Thinking → Task complete/failed/stopped.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const A = "/multi-select";
 
@@ -721,23 +721,21 @@ export function SessionChips({
               </button>
             </>
           ) : (
-            <>
-              {/* Resolved chips share one quiet grammar: the red label
-                  with the flyout's chevron beside it, into the trace. */}
-              <button
-                type="button"
-                onClick={() => onOpenTrace(run.id)}
-                className="group/chip flex items-center gap-0.5 text-[13px] leading-4 text-[#dc2626]"
-              >
-                {run.status === "stopped" ? `Stopped by ${run.stoppedBy ?? "you"}` : "Failed"}
-                <span className="text-[#a8a29e] transition-colors group-hover/chip:text-[#58524e]">
-                  <ChevronGlyph />
-                </span>
-              </button>
-              <span className="text-[12px] leading-4 tabular-nums text-[#a8a29e]">
-                {formatDuration(elapsedMs(run))}
+            /* Resolved chips read as one sentence — "Failed after 29s" /
+               "Stopped by you after 1m 5s" — with the flyout's chevron
+               beside it, into the trace. */
+            <button
+              type="button"
+              onClick={() => onOpenTrace(run.id)}
+              className="group/chip flex items-center gap-0.5 text-[13px] leading-4 text-[#dc2626]"
+            >
+              {run.status === "stopped"
+                ? `Stopped by ${run.stoppedBy ?? "you"} after ${formatDuration(elapsedMs(run))}`
+                : `Failed after ${formatDuration(elapsedMs(run))}`}
+              <span className="text-[#a8a29e] transition-colors group-hover/chip:text-[#58524e]">
+                <ChevronGlyph />
               </span>
-            </>
+            </button>
           )}
         </div>
       ))}
@@ -782,11 +780,15 @@ function urgency(run: AgentRun): number {
 
 export function CornerStack({
   runs,
+  resting = false,
   onHoverChange,
   onJumpRun,
   onConceal,
 }: {
   runs: AgentRun[];
+  /** Spotlight discipline: true while the flyout is open — loops pause
+      and comets dim so the panel is the only live surface. */
+  resting?: boolean;
   onHoverChange: (hovering: boolean) => void;
   onJumpRun: (run: AgentRun) => void;
   onConceal: (runId: string) => void;
@@ -804,7 +806,9 @@ export function CornerStack({
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
     // offsets compensate so the rings still sit at right-16 / bottom-132.
     <div
-      className="absolute bottom-[124px] right-2 z-40 flex items-center p-2"
+      className={`absolute bottom-[124px] right-2 z-40 flex items-center p-2 ${
+        resting ? "aw-stack-rest" : ""
+      }`}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
     >
@@ -1019,16 +1023,43 @@ export function AgentFlyout({
   const [page, setPage] = useState(0);
   // Rows present when the panel opened render settled (the panel pop is
   // their entrance); only runs that spawn while the panel is up play the
-  // short row-in. Snapshot the opening roster once, on first render.
-  const openingIdsRef = useRef<Set<string> | null>(null);
-  if (openingIdsRef.current === null) {
-    openingIdsRef.current = new Set(runs.map((run) => run.id));
-  }
-  const openingIds = openingIdsRef.current;
+  // short row-in. Lazy state snapshots the opening roster exactly once.
+  const [openingIds] = useState(() => new Set(runs.map((run) => run.id)));
 
   // Same urgency order as the corner: failures first, then working —
   // the top of the list is the anchor the panel opens toward.
   const rows = [...runs].sort((a, b) => urgency(b) - urgency(a));
+
+  // FLIP on reorder: when the urgency sort moves a row (a status just
+  // changed), ease it from its old slot instead of teleporting. Rows
+  // are found by data-run-id at commit time; baselines live in a ref.
+  // Skipped while any row is playing its in/out — those choreograph
+  // their own space.
+  const listRef = useRef<HTMLDivElement>(null);
+  const rowTops = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const busy = list.querySelector(".aw-row-in, .aw-row-out") != null;
+    const seen = new Set<string>();
+    for (const el of list.querySelectorAll<HTMLElement>("[data-run-id]")) {
+      const id = el.dataset.runId;
+      if (!id) continue;
+      seen.add(id);
+      const top = el.offsetTop;
+      const prev = rowTops.current.get(id);
+      if (!busy && prev != null && prev !== top) {
+        el.animate(
+          [{ transform: `translateY(${prev - top}px)` }, { transform: "translateY(0)" }],
+          { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+        );
+      }
+      rowTops.current.set(id, top);
+    }
+    for (const id of [...rowTops.current.keys()]) {
+      if (!seen.has(id)) rowTops.current.delete(id);
+    }
+  });
   // Clamp the window when rows shrink under the current page.
   const pageCount = Math.max(1, Math.ceil(rows.length / WINDOW));
   const safePage = Math.min(page, pageCount - 1);
@@ -1066,18 +1097,21 @@ export function AgentFlyout({
           No active agents
         </div>
       ) : (
-        <div className="flex flex-col p-1">
+        // Keyed by page: a pager flip remounts the list through a brief
+        // settle (aw-list-swap) — a turn, not a teleport.
+        <div key={safePage} ref={listRef} className="aw-list-swap flex flex-col p-1">
           {windowRows.map((run) => (
-            <FlyoutRow
-              key={run.id}
-              run={run}
-              entering={!openingIds.has(run.id)}
-              onStop={onStop}
-              onRerun={onRerun}
-              onRemove={onRemove}
-              onJump={onJump}
-              onTrace={onTrace}
-            />
+            <div key={run.id} data-run-id={run.id}>
+              <FlyoutRow
+                run={run}
+                entering={!openingIds.has(run.id)}
+                onStop={onStop}
+                onRerun={onRerun}
+                onRemove={onRemove}
+                onJump={onJump}
+                onTrace={onTrace}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -1185,11 +1219,14 @@ function FlyoutRow({
         </span>
       </span>
 
-      {/* Elapsed swaps to controls on hover, per the spec annotation. */}
-      <span className="shrink-0 text-[12px] leading-4 tabular-nums text-[#8a8a8a] group-hover:hidden">
-        {formatDuration(elapsedMs(run))}
-      </span>
-      <span className="hidden shrink-0 items-center gap-1 group-hover:flex">
+      {/* Elapsed crossfades to controls on hover — a fixed-width right
+          slot (sized for the widest control pair) so the swap never
+          reflows the row; the two layers trade opacity in 150ms. */}
+      <span className="relative flex w-[52px] shrink-0 items-center justify-end">
+        <span className="pointer-events-none text-[12px] leading-4 tabular-nums text-[#8a8a8a] transition-opacity duration-150 group-hover:opacity-0">
+          {formatDuration(elapsedMs(run))}
+        </span>
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
         {working ? (
           <button
             type="button"
@@ -1230,6 +1267,7 @@ function FlyoutRow({
             </button>
           </>
         )}
+        </span>
       </span>
     </div>
   );

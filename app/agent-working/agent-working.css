@@ -73,11 +73,28 @@
   }
 }
 .aw-pop-exit {
-  /* Panel close is chrome, not presence — no condensation language.
-     Plain ease-in-out, quick and snappy. */
-  animation: aw-pop-out 300ms ease-in-out forwards;
+  /* Panel close is chrome, not presence — plain ease-in-out, and never
+     slower than the 160ms entrance: chrome leaves at least as fast as
+     it arrives. */
+  animation: aw-pop-out 180ms ease-in-out forwards;
   transform-origin: bottom right;
   pointer-events: none;
+}
+
+/* Pager flips remount the row list (keyed by page) — one brief settle
+   so the swap reads as a turn, not a teleport. */
+@keyframes aw-list-swap {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.aw-list-swap {
+  animation: aw-list-swap 140ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
 /* Trace modal enter — same curve, grows from center. */
@@ -505,11 +522,41 @@
   animation: aw-pill-bump 200ms cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
+/* Spotlight discipline: while the flyout is open it is the one stage —
+   the corner stack rests. Loops pause mid-frame and the working comets
+   dim; the panel's rows carry the live signal alone. Eases back in
+   when the panel leaves. */
+.aw-stack-rest .aw-comet,
+.aw-stack-rest .aw-breathe,
+.aw-stack-rest .aw-fail-throb {
+  animation-play-state: paused;
+}
+.aw-comet {
+  transition: opacity 240ms ease;
+}
+.aw-stack-rest .aw-comet {
+  opacity: 0.35;
+}
+
 /* Tailwind v4 preflight leaves buttons cursor:default — everything
    clickable on this page invokes something. */
 .aw-page button:not(:disabled),
 .aw-page [role="button"] {
   cursor: pointer;
+}
+
+/* Loops still on request: the continuous motion (orbit, breathe,
+   shimmer, pulse) goes still; one-shot transitions stay, so state
+   changes remain legible without any perpetual movement. */
+@media (prefers-reduced-motion: reduce) {
+  .aw-comet,
+  .aw-breathe,
+  .aw-fail-throb,
+  .aw-pulse,
+  .aw-shimmer-dark,
+  .aw-shimmer-light {
+    animation: none;
+  }
 }
 
 /* Cream wash flash on the message a flyout row jumps back to. */

@@ -654,13 +654,18 @@ function MessageRow({
           <button
             type="button"
             onClick={() => onOpenTrace(message)}
-            className="group flex w-fit items-center gap-1 text-[12px] leading-4 transition-colors"
-            style={{ color: FG_TERTIARY }}
+            // Quiet at rest; hover darkens the label and reveals the
+            // chevron — no underline.
+            className="group flex w-fit items-center gap-1 rounded-[4px] text-[12px] leading-4 text-[#78716c] transition-colors duration-300 ease-in-out hover:text-[#58524e]"
           >
-            <span className="group-hover:underline">
-              {`Worked for ${formatDuration(message.workedForMs)}`}
-            </span>
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+            {`Worked for ${formatDuration(message.workedForMs)}`}
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              aria-hidden
+              className="opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100"
+            >
               <path
                 d="M4.5 2.5L8 6l-3.5 3.5"
                 fill="none"
@@ -1056,6 +1061,7 @@ export default function AgentWorkingPage() {
           {rosterCount > 0 ? (
             <CornerStack
               runs={engine.visibleRuns}
+              resting={flyoutState !== "closed"}
               onHoverChange={handleHoverChange}
               onJumpRun={handleJump}
               onConceal={engine.conceal}

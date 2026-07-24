@@ -307,10 +307,11 @@
 /* Exit is the Gestures board's Depart (G6, "mist rises") promoted onto
    the corner and rotated to the exit's axis: dismissed, the bubble
    becomes weather — fading, blurring 2.5px, swelling 1.05 — and drifts
-   3px RIGHTWARD instead of up, out the row's own door. Tuned from the
-   board's 1625ms segment and 6px drift by half a step each way —
-   Caleb's call: slightly quicker (1600ms exit, vapor done ~1300ms),
-   half the drift. The slot closes
+   1.5px RIGHTWARD instead of up, out the row's own door. Tuned from
+   the board's 1625ms segment and 6px drift — Caleb's calls: slightly
+   quicker (1600ms exit, vapor done ~1300ms), drift quartered (6 → 3 →
+   1.5px): the mist barely reaches, the traveling is left to the slot
+   ride. The slot closes
    across the ENTIRE exit, synchronized with the drift: the departing
    face rides its collapsing slot rightward while it evaporates, and
    the neighbors to its left flow right with it from frame zero — one
@@ -326,14 +327,14 @@
   }
   81% {
     opacity: 0;
-    transform: translateX(3px) scale(1.05);
+    transform: translateX(1.5px) scale(1.05);
     filter: blur(2.5px);
   }
   100% {
     width: 0px;
     margin-left: 0;
     opacity: 0;
-    transform: translateX(3px) scale(1.05);
+    transform: translateX(1.5px) scale(1.05);
     filter: blur(2.5px);
   }
 }
@@ -350,14 +351,14 @@
   }
   81% {
     opacity: 0;
-    transform: translateX(3px) scale(1.05);
+    transform: translateX(1.5px) scale(1.05);
     filter: blur(2.5px);
   }
   100% {
     width: 0px;
     margin-left: 0;
     opacity: 0;
-    transform: translateX(3px) scale(1.05);
+    transform: translateX(1.5px) scale(1.05);
     filter: blur(2.5px);
   }
 }

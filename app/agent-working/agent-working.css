@@ -309,21 +309,19 @@
    becomes weather — fading, blurring 2.5px, swelling 1.05 — and drifts
    6px RIGHTWARD instead of up, out the row's own door. At the board's
    own tempo: the vapor takes 1620ms to rise (G6's 30-55% segment of
-   6.5s, kept 1:1 like the arrival's 880ms bloom). The slot does NOT
-   wait for the vapor's imperceptible tail — the fade is ~93% done by
-   55%, so the close starts there (under a ~7% ghost) and glides
-   through 100%: the eye follows the mist rightward and the track
-   flows right behind it, one continuous current, no dead beat of
-   empty slots hanging open. */
+   6.5s, kept 1:1 like the arrival's 880ms bloom). The slot closes
+   across the ENTIRE exit, synchronized with the drift: the departing
+   face rides its collapsing slot rightward while it evaporates, and
+   the neighbors to its left flow right with it from frame zero — one
+   shared current, no channel waiting on the other. (Transforms don't
+   move layout; only the width does — so the width must move WITH the
+   mist, not after it.) */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
     opacity: 1;
     transform: translateX(0) scale(1);
     filter: blur(0px);
-  }
-  55% {
-    width: 30px;
   }
   81% {
     opacity: 0;
@@ -338,9 +336,9 @@
     filter: blur(2.5px);
   }
 }
-/* Overlapped bubbles (inline margin-left −8) additionally hold their
-   overlap while the mist forms — releasing it earlier would slide a
-   still-solid face instead of vapor. */
+/* Overlapped bubbles (inline margin-left −8) release their overlap
+   across the same full duration — width 30→0 plus margin −8→0 nets a
+   monotonic 22→0, so the slot shrinks smoothly with the mist. */
 @keyframes aw-chip-out-overlap {
   0% {
     width: 30px;
@@ -348,10 +346,6 @@
     opacity: 1;
     transform: translateX(0) scale(1);
     filter: blur(0px);
-  }
-  55% {
-    width: 30px;
-    margin-left: var(--aw-overlap, -8px);
   }
   81% {
     opacity: 0;

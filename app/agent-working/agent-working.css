@@ -307,9 +307,10 @@
 /* Exit is the Gestures board's Depart (G6, "mist rises") promoted onto
    the corner and rotated to the exit's axis: dismissed, the bubble
    becomes weather — fading, blurring 2.5px, swelling 1.05 — and drifts
-   6px RIGHTWARD instead of up, out the row's own door. The vapor
-   completes in the first half; the empty slot closes under it after.
-   Departure is release, not deletion. */
+   6px RIGHTWARD instead of up, out the row's own door. At the board's
+   own tempo: the vapor takes 1620ms to rise (G6's 30-55% segment of
+   6.5s, kept 1:1 like the arrival's 880ms bloom), then the empty slot
+   closes under it. Departure is release, not deletion. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
@@ -317,7 +318,7 @@
     transform: translateX(0) scale(1);
     filter: blur(0px);
   }
-  50% {
+  81% {
     width: 30px;
     opacity: 0;
     transform: translateX(6px) scale(1.05);
@@ -342,7 +343,7 @@
     transform: translateX(0) scale(1);
     filter: blur(0px);
   }
-  50% {
+  81% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
     opacity: 0;
@@ -364,15 +365,17 @@
      at speed), forward curve (half-solid ghost slid), in-place dissolve
      (too still), dissolve with slot-travel (directionless) — kept
      circling one miss: the exit had mechanics but no gesture. Mist
-     rising sideways is a gesture. Still 680ms: weather moves quickly
-     here. */
+     rising sideways is a gesture — and a gesture keeps its tempo: 2s
+     total (1620ms vapor + 380ms unseen close), superseding the 680ms
+     "goodbyes don't linger" clock the same way the catch took the
+     board's 1.2s. Board tempo is spec. */
   pointer-events: none;
 }
 .aw-chip-out {
-  animation: aw-chip-out 680ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+  animation: aw-chip-out 2000ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 .aw-chip-out-overlap {
-  animation: aw-chip-out-overlap 680ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+  animation: aw-chip-out-overlap 2000ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 
 /* User delete: no farewell — an intentional action gets an obedient

@@ -275,19 +275,27 @@
    no phases, no stagger — so the next row's × arrives under the cursor
    at click speed. Serial closing feels like flicking cards off a deck. */
 @keyframes aw-row-cut {
-  from {
+  0% {
     opacity: 1;
+    transform: translateX(0);
     max-height: 52px;
   }
-  to {
+  /* Opacity holds while the row starts moving — the rightward LEAVE
+     must read before the fade lands, or a dismissal is just a
+     disappearance. Same grammar as the corner chip's dismiss. */
+  35% {
+    opacity: 1;
+  }
+  100% {
     opacity: 0;
+    transform: translateX(8px);
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
   }
 }
 .aw-row-cut {
-  animation: aw-row-cut 150ms ease-out forwards;
+  animation: aw-row-cut 200ms ease-out forwards;
   pointer-events: none;
   overflow: hidden;
 }

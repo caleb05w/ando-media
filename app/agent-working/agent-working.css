@@ -280,8 +280,13 @@
     opacity: 1;
     max-height: 52px;
   }
-  /* Same in-place rule as the chip: gone at 60%, THEN the slot shuts. */
-  60% {
+  /* Same phase map as the chip dismiss: bite to a third, dissolve to
+     nothing at full height, and only THEN the slot shuts. */
+  28% {
+    opacity: 0.35;
+    max-height: 52px;
+  }
+  65% {
     opacity: 0;
     max-height: 52px;
   }
@@ -293,7 +298,7 @@
   }
 }
 .aw-row-cut {
-  animation: aw-row-cut 150ms ease-out forwards;
+  animation: aw-row-cut 300ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
   pointer-events: none;
   overflow: hidden;
 }
@@ -420,10 +425,16 @@
     opacity: 1;
     width: 30px;
   }
-  /* Gone by 62% — no scale, no direction, just the fade on the punchy
-     curve. Width holds throughout so the face never rides a closing
-     slot; the gap closes only over the invisible back stretch. */
-  62% {
+  /* The bite: the click drops the bubble to a third of its ink in the
+     first 84ms — obedience you can feel — then the tail dissolves
+     softly to nothing by 65%. No scale, no direction; width holds
+     throughout so the face never rides a closing slot, and the gap
+     closes only over the invisible back stretch. */
+  28% {
+    opacity: 0.35;
+    width: 30px;
+  }
+  65% {
     opacity: 0;
     width: 30px;
   }
@@ -439,7 +450,12 @@
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
   }
-  62% {
+  28% {
+    opacity: 0.35;
+    width: 30px;
+    margin-left: var(--aw-overlap, -8px);
+  }
+  65% {
     opacity: 0;
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
@@ -454,14 +470,14 @@
 .aw-chip-dismiss-overlap {
   pointer-events: none;
 }
-/* 180ms on a punchy curve (the promotion spring's) — fast attack,
-   eased landing. Row cut settles at 150; conceal (fired from here)
-   lands a frame later. */
+/* 300ms on the promotion spring's curve, matching the row cut frame
+   for frame — both surfaces breathe together, and conceal (fired from
+   here) lands as the row's space finishes closing. */
 .aw-chip-dismiss {
-  animation: aw-chip-dismiss 180ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+  animation: aw-chip-dismiss 300ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
 }
 .aw-chip-dismiss-overlap {
-  animation: aw-chip-dismiss-overlap 180ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+  animation: aw-chip-dismiss-overlap 300ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

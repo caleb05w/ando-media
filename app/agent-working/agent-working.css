@@ -237,24 +237,62 @@
 }
 
 /* User delete: no farewell — the bubble fades in the same 200ms the
-   flyout row does, then holds invisible until 340ms so conceal (fired
-   from this animation) lands exactly when the row's slot finishes
-   easing shut. The corner bubble is the single conceal source: it is
-   always mounted, while the flyout may not be. */
+   flyout row does (width and margin held, so nothing slides while
+   visible), then the emptied slot eases shut over the back stretch.
+   By the time conceal unmounts the element it occupies zero width, so
+   the neighbors glide instead of snapping. The corner bubble is the
+   single conceal source: it is always mounted, while the flyout may
+   not be. */
 @keyframes aw-chip-dismiss {
   0% {
     opacity: 1;
     transform: translateY(0);
+    width: 30px;
   }
-  59%,
+  59% {
+    opacity: 0;
+    transform: translateY(1px);
+    width: 30px;
+  }
   100% {
     opacity: 0;
     transform: translateY(1px);
+    width: 0px;
+    margin-left: 0;
   }
+}
+/* Overlapped bubbles pin their −8 margin through the fade and release
+   it with the slot — otherwise it would interpolate from the inline
+   value across the whole exit and slide the still-visible face. */
+@keyframes aw-chip-dismiss-overlap {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+    width: 30px;
+    margin-left: -8px;
+  }
+  59% {
+    opacity: 0;
+    transform: translateY(1px);
+    width: 30px;
+    margin-left: -8px;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(1px);
+    width: 0px;
+    margin-left: 0;
+  }
+}
+.aw-chip-dismiss,
+.aw-chip-dismiss-overlap {
+  pointer-events: none;
 }
 .aw-chip-dismiss {
   animation: aw-chip-dismiss 340ms cubic-bezier(0.4, 0, 1, 1) forwards;
-  pointer-events: none;
+}
+.aw-chip-dismiss-overlap {
+  animation: aw-chip-dismiss-overlap 340ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

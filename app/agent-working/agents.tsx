@@ -798,18 +798,16 @@ export function CornerStack({
           className={`relative flex rounded-full ${
             run.removed
               ? run.dismissed
-                ? "aw-chip-dismiss"
+                ? index > 0
+                  ? "aw-chip-dismiss-overlap"
+                  : "aw-chip-dismiss"
                 : index > 0
                   ? "aw-chip-out-overlap"
                   : "aw-chip-out"
               : "aw-chip-in"
           }`}
           onAnimationEnd={(event) => {
-            if (
-              event.animationName === "aw-chip-out" ||
-              event.animationName === "aw-chip-out-overlap" ||
-              event.animationName === "aw-chip-dismiss"
-            )
+            if (event.animationName.startsWith("aw-chip-out") || event.animationName.startsWith("aw-chip-dismiss"))
               onConceal(run.id);
           }}
           // Overlap lives on each bubble's own left margin so appending a

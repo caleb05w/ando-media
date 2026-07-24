@@ -86,7 +86,7 @@
 
 /* Flyout rows render settled — the panel pop is the only entrance.
    Exit speaks the depart language, unified with the corner bubble's
-   aw-chip-out: the same 880ms, the same reversed-arrival curve, the
+   aw-chip-out: the same tempo, the same reversed-arrival curve, the
    same fade/blur/shrink — anchored at the avatar side — while the
    space the row held closes over the back half. One farewell,
    both surfaces. */
@@ -110,7 +110,7 @@
   }
 }
 .aw-row-out {
-  animation: aw-row-out 880ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
+  animation: aw-row-out 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
   pointer-events: none;
   overflow: hidden;
   transform-origin: left center;
@@ -171,9 +171,9 @@
 }
 .aw-chip-out {
   /* The arrival's curve, time-reversed — (0.2,0,0.2,1) played backward
-     is (0.8,0,0.8,1). Same path, same tempo, opposite momentum: the
-     arrival lands softly, the departure gathers speed as it goes. */
-  animation: aw-chip-out 880ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
+     is (0.8,0,0.8,1). Same path, opposite momentum, run a touch quicker
+     than the arrival: goodbyes don't linger. */
+  animation: aw-chip-out 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
   pointer-events: none;
   transform-origin: left center;
 }

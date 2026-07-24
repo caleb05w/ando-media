@@ -275,11 +275,16 @@
    no phases, no stagger — so the next row's × arrives under the cursor
    at click speed. Serial closing feels like flicking cards off a deck. */
 @keyframes aw-row-cut {
-  from {
+  0% {
     opacity: 1;
     max-height: 52px;
   }
-  to {
+  /* Same in-place rule as the chip: gone at 60%, THEN the slot shuts. */
+  60% {
+    opacity: 0;
+    max-height: 52px;
+  }
+  100% {
     opacity: 0;
     max-height: 0;
     padding-top: 0;
@@ -410,23 +415,35 @@
    corner bubble is the single conceal source: it is always mounted,
    while the flyout may not be. */
 @keyframes aw-chip-dismiss {
-  from {
+  0% {
     opacity: 1;
     width: 30px;
   }
-  to {
+  /* Fully gone at 60% — width holds so the face never rides a closing
+     slot. The gap closes only over the invisible back stretch: on a
+     dismissal, nothing visible moves horizontally. Ever. */
+  60% {
+    opacity: 0;
+    width: 30px;
+  }
+  100% {
     opacity: 0;
     width: 0px;
     margin-left: 0;
   }
 }
 @keyframes aw-chip-dismiss-overlap {
-  from {
+  0% {
     opacity: 1;
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
   }
-  to {
+  60% {
+    opacity: 0;
+    width: 30px;
+    margin-left: var(--aw-overlap, -8px);
+  }
+  100% {
     opacity: 0;
     width: 0px;
     margin-left: 0;

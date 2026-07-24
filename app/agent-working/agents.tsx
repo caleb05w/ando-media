@@ -13,7 +13,7 @@
 //     no Complete tab). Rows: ringed avatar, live status line (chevron →
 //     trace modal), "↳ invoking message" sub-line, elapsed time that swaps
 //     to controls on hover (stop / rerun / remove). Row click jumps to the
-//     source message. Completed rows linger 0.5s, then fade away — the posted
+//     source message. Completed rows linger 1s, then fade away — the posted
 //     answer is the durable record. 4-row window with a "Showing 4 of N
 //     agents" pager that only renders at 5+ rows.
 //
@@ -339,10 +339,9 @@ export function useAgentEngine(
   }, []);
 
   // 500ms heartbeat: advances elapsed displays, resolves finished runs,
-  // and fades done runs out after half a second — the seal/pop/ping
-  // choreography IS the completion moment; the bubble doesn't outstay
-  // it. The posted answer is the durable record. (The half-tick beat
-  // exists so the 0.5s linger can land exactly on a tick.)
+  // and fades done runs out after 1s — just long enough for the full
+  // seal/pop/ping choreography (~1.15s) to essentially land before the
+  // depart begins. The posted answer is the durable record.
   useEffect(() => {
     const timer = setInterval(() => {
       setTick((t) => t + 1);
@@ -370,7 +369,7 @@ export function useAgentEngine(
             // >= : doneAt is set on a heartbeat, so the mark lands
             // exactly on a later tick — strict > would wait a full
             // extra tick.
-            now - run.doneAt >= 500
+            now - run.doneAt >= 1000
           ) {
             changed = true;
             return { ...run, removed: true };

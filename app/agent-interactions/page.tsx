@@ -1961,7 +1961,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Completed",
         source: "seal → pop → ping",
-        note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs half a second later in the product — the choreography is the linger.",
+        note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs 1s later in the product — just enough for the choreography to land.",
         demo: <ShippedCompleted />,
       },
       {

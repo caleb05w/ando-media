@@ -175,6 +175,27 @@
   overflow: hidden;
 }
 
+/* User dismissal cut: fade and collapse run in PARALLEL over 120ms —
+   no phases, no stagger — so the next row's × arrives under the cursor
+   at click speed. Serial closing feels like flicking cards off a deck. */
+@keyframes aw-row-cut {
+  from {
+    opacity: 1;
+    max-height: 52px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+.aw-row-cut {
+  animation: aw-row-cut 120ms ease-out forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
 /* Corner bubbles condense into presence and dissolve out of it — promoted
    from the Gestures board (Arrive/Depart, sans droplets).
    Arrival at the Gestures-board tempo: one continuous 880ms bloom
@@ -273,42 +294,24 @@
    exactly when the row finishes. The corner bubble is the single
    conceal source: it is always mounted, while the flyout may not be. */
 @keyframes aw-chip-dismiss {
-  0% {
+  from {
     opacity: 1;
-    transform: translateY(0);
     width: 30px;
   }
-  60% {
+  to {
     opacity: 0;
-    transform: translateY(1px);
-    width: 30px;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(1px);
     width: 0px;
     margin-left: 0;
   }
 }
-/* Overlapped bubbles pin their −8 margin through the fade and release
-   it with the slot — otherwise it would interpolate from the inline
-   value across the whole exit and slide the still-visible face. */
 @keyframes aw-chip-dismiss-overlap {
-  0% {
+  from {
     opacity: 1;
-    transform: translateY(0);
     width: 30px;
     margin-left: -8px;
   }
-  60% {
+  to {
     opacity: 0;
-    transform: translateY(1px);
-    width: 30px;
-    margin-left: -8px;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(1px);
     width: 0px;
     margin-left: 0;
   }
@@ -317,11 +320,13 @@
 .aw-chip-dismiss-overlap {
   pointer-events: none;
 }
+/* Matches the row cut: fade and slot close in parallel, 120ms, so
+   conceal (fired from here) lands the moment the list has settled. */
 .aw-chip-dismiss {
-  animation: aw-chip-dismiss 200ms ease-out forwards;
+  animation: aw-chip-dismiss 120ms ease-out forwards;
 }
 .aw-chip-dismiss-overlap {
-  animation: aw-chip-dismiss-overlap 200ms ease-out forwards;
+  animation: aw-chip-dismiss-overlap 120ms ease-out forwards;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

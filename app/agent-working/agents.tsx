@@ -731,7 +731,7 @@ function ChipShimmer({ text }: { text: string }) {
   const [delay] = useState(() => syncDelay(2200));
   return (
     <span
-      className="aw-shimmer-light min-w-0 truncate text-[13px] leading-4"
+      className="aw-shimmer-light min-w-0 truncate text-[12px] leading-4"
       style={{ animationDelay: delay }}
     >
       {text}
@@ -783,7 +783,7 @@ export function SessionChips({
             <button
               type="button"
               onClick={() => onOpenTrace(run.id)}
-              className="group/chip flex items-center gap-0.5 text-[13px] leading-4 text-[#dc2626]"
+              className="group/chip flex items-center gap-0.5 text-[12px] leading-4 text-[#dc2626]"
             >
               {run.status === "stopped"
                 ? `Stopped by ${run.stoppedBy ?? "you"} after ${formatDuration(elapsedMs(run))}`
@@ -1140,7 +1140,7 @@ export function AgentFlyout({
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const busy = list.querySelector(".aw-row-in, .aw-row-out") != null;
+    const busy = list.querySelector(".aw-row-in, .aw-row-out, .aw-row-cut") != null;
     const seen = new Set<string>();
     for (const el of list.querySelectorAll<HTMLElement>("[data-run-id]")) {
       const id = el.dataset.runId;
@@ -1285,7 +1285,13 @@ function FlyoutRow({
       // (it is always mounted; this panel may not be). The row just holds
       // its finished exit frame until the run is concealed.
       className={`group flex cursor-pointer items-center gap-2.5 rounded-[8px] p-2 text-left transition-colors hover:bg-white/5 ${
-        run.removed ? "aw-row-out" : entering ? "aw-row-in" : ""
+        run.removed
+          ? run.dismissed
+            ? "aw-row-cut"
+            : "aw-row-out"
+          : entering
+            ? "aw-row-in"
+            : ""
       }`}
     >
       <RingedFace agent={run.agent} status={run.status} />

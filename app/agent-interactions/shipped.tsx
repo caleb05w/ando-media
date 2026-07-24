@@ -169,9 +169,9 @@ export function ShippedStopped() {
   );
 }
 
-// Truncation — elastic density at the cap: eight agents render as six
-// dense bubbles (−12 overlap, the production value past four) plus the
-// +N disc. Production RingedFace, production OverflowDisc.
+// Truncation at the cap: eight agents render as six bubbles at the
+// standard −8 overlap plus the +N disc. Production RingedFace,
+// production OverflowDisc.
 export function ShippedTruncation() {
   return (
     <Frame wide>
@@ -181,10 +181,13 @@ export function ShippedTruncation() {
             key={agent.id}
             agent={agent}
             status="working"
-            overlap={index > 0 ? -12 : 0}
+            overlap={index > 0 ? -8 : 0}
           />
         ))}
-        <span className="inline-flex rounded-full" style={{ marginLeft: -12, boxShadow: "0 0 0 2px white" }}>
+        <span
+          className="relative inline-flex rounded-full"
+          style={{ marginLeft: -8, boxShadow: "0 0 0 2px white", zIndex: 100 }}
+        >
           <OverflowDisc count={2} />
         </span>
       </div>

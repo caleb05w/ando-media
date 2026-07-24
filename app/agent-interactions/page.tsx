@@ -1779,8 +1779,8 @@ const OVERFLOW_SECTIONS: Section[] = [
       },
       {
         title: "Elastic density",
-        source: "delay the problem — shipped",
-        note: "Compress the overlap as the roster grows (−8 → −12) so up to seven fit before truncating at all. Often the indicator never appears; pairs with any of the above. Now live on /agent-working: dense past four, disc at eight.",
+        source: "delay the problem — tried, walked back",
+        note: "Compress the overlap as the roster grows (−8 → −12) so more fit before truncating. Shipped, then reverted: at dense overlap the verdict rings chomp each other and failures stop reading. The capacity half survived — seven now fit at standard density before the disc.",
         demo: <OFDense />,
       },
     ],
@@ -2363,8 +2363,8 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Truncation",
-        source: "elastic density · shipped",
-        note: "Past four agents the overlap tightens −8 → −12, so up to seven fit before any truncation; the +N disc only appears at eight. Shown at the cap: six dense bubbles and the disc.",
+        source: "seven at standard density · shipped",
+        note: "Up to seven bubbles at the standard −8 overlap; the +N disc appears at eight (six visible + disc, stacked above every bubble). Density stays constant — squeezing was tried and walked back.",
         demo: <ShippedTruncation />,
       },
     ],

@@ -864,13 +864,12 @@ export function CornerStack({
   // stack. Sorts are keyed to status, so bubbles only move on a state
   // change, never mid-orbit; stable within a class.
   //
-  // Elastic density (promoted from the overflow board): past four the
-  // overlap tightens −8 → −12 so up to seven bubbles fit before any
-  // truncation; the +N disc only appears at eight. Density shifts land
-  // instantly, like reorders — no motion tax for housekeeping.
+  // Up to seven bubbles at the standard −8 overlap; the +N disc appears
+  // at eight (then six visible + disc). Density stays constant — we
+  // tried tightening to −12 past four and walked it back: squeezed
+  // rings chomp each other and the verdicts stop reading.
   const count = runs.length;
-  const dense = count > 4;
-  const overlap = dense ? -12 : -8;
+  const overlap = -8;
   const overflowing = count > 7;
   const visibleCount = overflowing ? 6 : count;
   const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
@@ -994,15 +993,16 @@ export function CornerStack({
             }}
             // Overlap lives on each bubble's own left margin so appending
             // a newcomer never touches an existing bubble's styles (no
-            // snap). z-order follows urgency so within a shelf the more
-            // urgent bubble overlaps; the shelves are held apart by the
-            // gap. --aw-overlap feeds the exit keyframes so a dense
-            // bubble's dismiss pins the margin it actually has.
+            // snap). z-order: urgency bands (failed above working above
+            // done), and WITHIN a band the leftmost — most senior —
+            // bubble overlays its followers, so a pile of failures reads
+            // left-to-right with whole rings, never chomped from the
+            // right. --aw-overlap feeds the exit keyframes' margin pin.
             style={
               {
                 marginLeft: index === 0 ? 0 : overlapped ? overlap : 6,
                 boxShadow: "0 0 0 2px white",
-                zIndex: urgency(run) + 1,
+                zIndex: (urgency(run) + 1) * 10 - index,
                 "--aw-overlap": `${overlap}px`,
               } as React.CSSProperties
             }
@@ -1031,9 +1031,9 @@ export function CornerStack({
             marginLeft:
               visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : overlap,
             boxShadow: "0 0 0 2px white",
-            // End-cap: above every bubble's urgency z, so the count is
-            // never tucked behind its neighbor.
-            zIndex: 5,
+            // End-cap: above every bubble's urgency band, so the count
+            // is never tucked behind its neighbor.
+            zIndex: 100,
           }}
         >
           <OverflowDisc count={hidden.length} />

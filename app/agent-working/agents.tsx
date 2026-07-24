@@ -287,8 +287,11 @@ export type AgentRun = {
   // (dropped from presence surfaces, kept in `runs` so message footers can
   // still resolve their trace). dismissed marks a user-initiated removal —
   // the corner skips its condensation farewell and leaves with the same
-  // quick fade the flyout row uses.
+  // quick fade the flyout row uses. removedAt powers the conceal backstop:
+  // a run folded into the +N disc has no corner bubble, so no animationend
+  // can conceal it — the heartbeat does instead, after the exit window.
   removed: boolean;
+  removedAt?: number;
   dismissed?: boolean;
   concealed: boolean;
   answerMessageId?: string;
@@ -372,7 +375,20 @@ export function useAgentEngine(
             now - run.doneAt >= 2000
           ) {
             changed = true;
-            return { ...run, removed: true };
+            return { ...run, removed: true, removedAt: now };
+          } else if (
+            run.removed &&
+            !run.concealed &&
+            run.removedAt != null &&
+            // Conceal backstop: a run with no corner bubble (folded into
+            // the +N disc) has no exit animation to fire animationend —
+            // without this it would haunt the flyout as a zero-height
+            // ghost row forever. 1.5s clears every exit tempo (680ms
+            // depart, 200ms dismiss/row fade) with margin.
+            now - run.removedAt >= 1500
+          ) {
+            changed = true;
+            return { ...run, concealed: true };
           }
           return run;
         });
@@ -458,9 +474,12 @@ export function useAgentEngine(
   }, []);
 
   const remove = useCallback((runId: string) => {
-    // User delete: quick dismissal, not the long depart.
+    // User delete: quick dismissal, not the long depart. removedAt arms
+    // the conceal backstop for runs with no corner bubble.
     setRuns((prev) =>
-      prev.map((r) => (r.id === runId ? { ...r, removed: true, dismissed: true } : r)),
+      prev.map((r) =>
+        r.id === runId ? { ...r, removed: true, dismissed: true, removedAt: Date.now() } : r,
+      ),
     );
   }, []);
 

@@ -366,17 +366,6 @@ export function useAgentEngine(
               };
             }
           } else if (
-            run.status === "done" &&
-            !run.removed &&
-            run.doneAt != null &&
-            // >= : doneAt is set on a heartbeat, so the mark lands
-            // exactly on a later tick — strict > would wait a full
-            // extra tick.
-            now - run.doneAt >= 2000
-          ) {
-            changed = true;
-            return { ...run, removed: true, removedAt: now };
-          } else if (
             run.removed &&
             !run.concealed &&
             run.removedAt != null &&
@@ -392,6 +381,25 @@ export function useAgentEngine(
           }
           return run;
         });
+
+        // Done-linger removal, wave-aware. Solo/pair completions leave
+        // individually 2s after their own doneAt (>=: doneAt lands on a
+        // heartbeat tick). A completion WAVE — three or more dones
+        // lingering together — departs as one: when the eldest reaches
+        // its 2s, the whole wave exhales at once instead of dripping
+        // out one goodbye at a time.
+        const lingering = next.filter(
+          (run) => run.status === "done" && !run.removed && run.doneAt != null,
+        );
+        const wave = lingering.length >= 3;
+        const due = lingering.filter((run) => now - (run.doneAt ?? 0) >= 2000);
+        if (due.length > 0) {
+          const leaving = new Set((wave ? lingering : due).map((run) => run.id));
+          changed = true;
+          return next.map((run) =>
+            leaving.has(run.id) ? { ...run, removed: true, removedAt: now } : run,
+          );
+        }
         return changed ? next : prev;
       });
     }, 500);
@@ -686,7 +694,8 @@ export function RingedFace({
       className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
       style={{ width: size, height: size }}
       onAnimationEnd={(event) => {
-        if (event.animationName === "aw-seal-draw") setSeal(null);
+        if (event.animationName === "aw-seal-draw" || event.animationName === "aw-catch-arc")
+          setSeal(null);
         if (event.animationName === "aw-scale-pop") {
           setCelebrate(false);
           setRestarted(false);
@@ -709,7 +718,7 @@ export function RingedFace({
           fades under the outcome ring instead of vanishing; the sync
           delay applies only while working so the seal's aw-ring-fade
           keeps its own clock. */}
-      {working || seal != null ? (
+      {working || (seal != null && seal !== "done") ? (
         <span
           className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`}
           style={{
@@ -719,14 +728,19 @@ export function RingedFace({
           aria-hidden
         />
       ) : null}
-      {/* Outcome ring: draws itself closed during the seal, solid after.
-          On a corner failure it throbs in place (class on the svg, so it
-          never fights the circle's seal-draw animation shorthand). */}
+      {/* Outcome ring. Completion resolves via the catch — the comet
+          hands off to a green head whose tail takes two last laps and
+          closes the circle (the comet becomes the ring). Failure/stop
+          keep the red draw-from-twelve over the fading comet. Solid
+          ring after either. Corner failures throb (class on the svg, so
+          it never fights the circle's animation shorthand). */}
       {!working ? (
         <svg
           width={size}
           height={size}
-          className={`absolute inset-0 ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
+          className={`absolute inset-0 ${
+            seal === "done" ? "aw-catch-spin" : ""
+          } ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
           aria-hidden
         >
           <circle
@@ -737,9 +751,10 @@ export function RingedFace({
             strokeWidth={strokeWidth}
             stroke={RING_COLOR[seal ?? effStatus]}
             strokeLinecap="round"
-            className={seal != null ? "aw-seal-draw" : ""}
-            strokeDasharray={seal != null ? circumference : undefined}
-            strokeDashoffset={seal != null ? circumference : undefined}
+            className={seal === "done" ? "aw-catch-arc" : seal != null ? "aw-seal-draw" : ""}
+            strokeDasharray={seal != null && seal !== "done" ? circumference : undefined}
+            strokeDashoffset={seal != null && seal !== "done" ? circumference : undefined}
+            style={{ "--aw-c": circumference } as React.CSSProperties}
             transform={`rotate(-90 ${center} ${center})`}
           />
         </svg>
@@ -905,10 +920,12 @@ export function CornerStack({
   const overlap = -8;
   const overflowing = count > 4;
   const visibleCount = overflowing ? 3 : count;
-  // Celebration scales down with the crowd: past three agents, a
-  // completion plays the seal alone — no pop, no ping. The posted
-  // answer is already the signal; the corner doesn't applaud N times.
-  const crowded = count > 3;
+  // Completion-wave detection: with three or more done bubbles
+  // lingering together, individual applause stops — each finish seals
+  // quietly, and the engine departs the wave as one. The first couple
+  // of completions still celebrate; the corner never claps N times.
+  const doneCount = runs.filter((run) => run.status === "done" && !run.removed).length;
+  const wave = doneCount >= 3;
   const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
   const visible = ranked.slice(0, visibleCount);
   const hidden = ranked.slice(visibleCount);
@@ -1057,11 +1074,11 @@ export function CornerStack({
               // The verdict waits out the promotion travel and lands at
               // the front — red appears where you're already looking.
               promoteDelayMs={560}
-              quiet={crowded}
+              quiet={wave}
             />
             {/* Completion ping — mounts exactly when the run turns green,
-                and only while the corner is uncrowded. */}
-            {run.status === "done" && !crowded ? (
+                unless a completion wave is in progress. */}
+            {run.status === "done" && !wave ? (
               <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
             ) : null}
           </button>

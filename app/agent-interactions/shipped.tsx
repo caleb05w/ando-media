@@ -187,28 +187,34 @@ export function ShippedStopped() {
   );
 }
 
-// Crowded completion — celebration scales down. Four agents work; one
-// completes with the seal alone (quiet: no pop, no ping), because the
-// fourth finish in a crowd is weather, not a moment. Compare with the
-// solo Completed card above.
-function CrowdCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
-  const [done, setDone] = useState(false);
+// Completion wave — three finishes land in quick succession: each seals
+// quietly (no pop, no ping once the wave forms), the green holds a
+// beat, and the wave departs TOGETHER — one exhale, not a drip of
+// separate goodbyes. Compare with the solo Completed card above.
+function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const flip = setTimeout(() => setDone(true), 1800);
-    const end = setTimeout(onCycleEnd, 1800 + 2600);
+    // Finishes at 1.2/1.6/2.0s; shared depart at 3.6s; remount at 4.9s.
+    const timers = [1200, 1600, 2000, 3600].map((at, index) =>
+      window.setTimeout(() => setTick(index + 1), at),
+    );
+    const end = window.setTimeout(onCycleEnd, 4900);
     return () => {
-      clearTimeout(flip);
-      clearTimeout(end);
+      timers.forEach((id) => window.clearTimeout(id));
+      window.clearTimeout(end);
     };
   }, [onCycleEnd]);
+  const leaving = tick >= 4;
   return (
     <div className="flex items-center">
-      {AGENTS.slice(0, 4).map((agent, index) => (
+      <ShippedBubble agent={TADAO} status="working" quiet />
+      {AGENTS.slice(1, 4).map((agent, index) => (
         <ShippedBubble
           key={agent.id}
           agent={agent}
-          status={index === 3 && done ? "done" : "working"}
-          overlap={index > 0 ? -8 : 0}
+          status={tick >= index + 1 ? "done" : "working"}
+          overlap={-8}
+          removed={leaving}
           quiet
         />
       ))}
@@ -216,11 +222,11 @@ function CrowdCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
   );
 }
 
-export function ShippedCrowdedCompletion() {
+export function ShippedCompletionWave() {
   const { gen, bump } = useGeneration();
   return (
     <Frame wide>
-      <CrowdCycle key={gen} onCycleEnd={bump} />
+      <WaveCycle key={gen} onCycleEnd={bump} />
     </Frame>
   );
 }

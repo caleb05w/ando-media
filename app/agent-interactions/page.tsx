@@ -15,7 +15,7 @@ import {
   ShippedDepart,
   ShippedTruncation,
   ShippedPromotion,
-  ShippedCrowdedCompletion,
+  ShippedCompletionWave,
 } from "./shipped";
 
 const P = "/agent-working";
@@ -1632,8 +1632,8 @@ const RING_SECTIONS: Section[] = [
       },
       {
         title: "The tail catches up",
-        source: "comet resolves · continuity",
-        note: "A green comet takes two last laps and its tail closes the circle — the working motion itself resolving into stillness.",
+        source: "comet resolves · continuity — shipped",
+        note: "A green comet takes two last laps and its tail closes the circle — the working motion itself resolving into stillness. Now the completion on /agent-working, with the pop and ping kept as the affordance.",
         demo: <RVCatch />,
       },
       {
@@ -2341,15 +2341,15 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Completed",
-        source: "seal → pop → ping · three agents or fewer",
-        note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs 2s later in the product — the choreography lands, then the green holds a beat.",
+        source: "catch → pop → ping · the solo finish",
+        note: "The comet resolves by closing its own circle — a green head takes two last laps and the tail catches it into the full ring (the board's RC4) — then the pop and the ping roll off as the affordance. The chip departs 2s later.",
         demo: <ShippedCompleted />,
       },
       {
-        title: "Completed — crowded",
-        source: "seal only · four agents or more",
-        note: "Celebration scales down with the crowd: past three agents a completion plays the seal alone — no pop, no ping. One agent finishing is a moment; the fourth of seven is weather, and the posted answer already carries the news.",
-        demo: <ShippedCrowdedCompletion />,
+        title: "Completion wave",
+        source: "three or more finish together · one shared exit",
+        note: "When completions pile up, applause stops: each finish seals quietly (no pop, no ping once three dones linger), and the wave departs TOGETHER when the eldest's linger expires — one exhale, not a drip of separate goodbyes.",
+        demo: <ShippedCompletionWave />,
       },
       {
         title: "Not completed — failed",

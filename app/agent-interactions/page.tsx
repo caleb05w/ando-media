@@ -2359,7 +2359,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Completed",
         source: "catch → pop → ping · the solo finish",
-        note: "The comet resolves by closing its own circle — a green head takes two last laps and the tail catches it into the full ring (the board's RC4) — then the pop and the ping roll off as the affordance. The chip departs 2s later.",
+        note: "The comet resolves by closing its own circle — a green head takes two last laps and the tail catches it into the full ring (the board's RC4) — then the pop and the ping roll off as the affordance. The green holds 5s, then departs.",
         demo: <ShippedCompleted />,
       },
       {

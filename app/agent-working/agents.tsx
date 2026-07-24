@@ -13,7 +13,7 @@
 //     no Complete tab). Rows: ringed avatar, live status line (chevron →
 //     trace modal), "↳ invoking message" sub-line, elapsed time that swaps
 //     to controls on hover (stop / rerun / remove). Row click jumps to the
-//     source message. Completed rows linger 2s, then fade away — the posted
+//     source message. Completed rows linger 5s, then fade away — the posted
 //     answer is the durable record. 4-row window with a "Showing 4 of N
 //     agents" pager that only renders at 5+ rows.
 //
@@ -342,7 +342,7 @@ export function useAgentEngine(
   }, []);
 
   // 500ms heartbeat: advances elapsed displays, resolves finished runs,
-  // and fades done runs out after 2s — the seal/pop/ping choreography
+  // and fades done runs out after 5s — the catch/pop/ping choreography
   // (~1.15s) lands whole, then the green holds a beat before the
   // depart. The posted answer is the durable record.
   useEffect(() => {
@@ -383,16 +383,17 @@ export function useAgentEngine(
         });
 
         // Done-linger removal, wave-aware. Solo/pair completions leave
-        // individually 2s after their own doneAt (>=: doneAt lands on a
-        // heartbeat tick). A completion WAVE — three or more dones
+        // individually 5s after their own doneAt (>=: doneAt lands on a
+        // heartbeat tick) — the green holds long enough to be seen, not
+        // just glimpsed. A completion WAVE — three or more dones
         // lingering together — departs as one: when the eldest reaches
-        // its 2s, the whole wave exhales at once instead of dripping
+        // its 5s, the whole wave exhales at once instead of dripping
         // out one goodbye at a time.
         const lingering = next.filter(
           (run) => run.status === "done" && !run.removed && run.doneAt != null,
         );
         const wave = lingering.length >= 3;
-        const due = lingering.filter((run) => now - (run.doneAt ?? 0) >= 2000);
+        const due = lingering.filter((run) => now - (run.doneAt ?? 0) >= 5000);
         if (due.length > 0) {
           const leaving = new Set((wave ? lingering : due).map((run) => run.id));
           changed = true;

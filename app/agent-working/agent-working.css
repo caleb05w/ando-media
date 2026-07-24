@@ -418,28 +418,18 @@
   0% {
     opacity: 1;
     width: 30px;
-    transform: scale(1);
   }
-  /* The pop: a quick 9% inhale — the bubble announces the delete — */
-  30% {
-    opacity: 1;
-    width: 30px;
-    transform: scale(1.09);
-  }
-  /* — then shrink-fades through itself, centered, gone by 62%. Width
-     holds throughout so the face never rides a closing slot; the gap
-     closes only over the invisible back stretch. In place, no
-     direction: still a disappearance, just one with a wink. */
+  /* Gone by 62% — no scale, no direction, just the fade on the punchy
+     curve. Width holds throughout so the face never rides a closing
+     slot; the gap closes only over the invisible back stretch. */
   62% {
     opacity: 0;
     width: 30px;
-    transform: scale(0.82);
   }
   100% {
     opacity: 0;
     width: 0px;
     margin-left: 0;
-    transform: scale(0.82);
   }
 }
 @keyframes aw-chip-dismiss-overlap {
@@ -447,34 +437,25 @@
     opacity: 1;
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
-    transform: scale(1);
-  }
-  30% {
-    opacity: 1;
-    width: 30px;
-    margin-left: var(--aw-overlap, -8px);
-    transform: scale(1.09);
   }
   62% {
     opacity: 0;
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
-    transform: scale(0.82);
   }
   100% {
     opacity: 0;
     width: 0px;
     margin-left: 0;
-    transform: scale(0.82);
   }
 }
 .aw-chip-dismiss,
 .aw-chip-dismiss-overlap {
   pointer-events: none;
 }
-/* 180ms on a punchy curve — the inhale snaps, the shrink-fade eases.
-   Row cut settles at 150; conceal (fired from here) lands a frame
-   later. */
+/* 180ms on a punchy curve (the promotion spring's) — fast attack,
+   eased landing. Row cut settles at 150; conceal (fired from here)
+   lands a frame later. */
 .aw-chip-dismiss {
   animation: aw-chip-dismiss 180ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
 }

@@ -949,6 +949,149 @@ export function OverflowDisc({ count }: { count: number }) {
   );
 }
 
+// The +N end-cap with its corner chrome — extracted like CornerBubble so
+// the board renders the production disc, not a lookalike wrapper. Blooms
+// on mount: the disc only ever mounts when overflow begins, which IS its
+// arrival.
+export function CornerOverflow({
+  count,
+  marginLeft,
+  ariaLabel,
+  onClick,
+}: {
+  count: number;
+  marginLeft: number;
+  ariaLabel?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      tabIndex={onClick ? undefined : -1}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className="aw-chip-in relative flex rounded-full"
+      style={{
+        marginLeft,
+        boxShadow: "0 0 0 2px white",
+        // End-cap: above every bubble's urgency band, so the count is
+        // never tucked behind its neighbor.
+        zIndex: 100,
+      }}
+    >
+      <OverflowDisc count={count} />
+    </button>
+  );
+}
+
+// The corner's per-bubble markup, extracted whole so the board's shipped
+// harness renders THIS component — not a hand-kept mirror. CornerStack
+// owns policy (windowing, entering, urgency z, conceal bookkeeping);
+// CornerBubble owns every pixel of one bubble. There is no second copy
+// to fall behind: if a state drifts on the board, it drifted here.
+export function CornerBubble({
+  agent,
+  status,
+  entering = false,
+  removed = false,
+  dismissed = false,
+  overlapped = false,
+  marginLeft = 0,
+  z,
+  quiet = false,
+  ping = false,
+  promoteDelayMs,
+  runId,
+  ariaLabel,
+  onClick,
+  onBloomEnd,
+  onExitEnd,
+}: {
+  agent: AgentDef;
+  status: RunStatus;
+  entering?: boolean;
+  removed?: boolean;
+  dismissed?: boolean;
+  /** Shares a shelf with its left neighbor — the exit must pin the margin. */
+  overlapped?: boolean;
+  /** The stack's density decision: −8 within a shelf, 6 across the gap, 0 leader. */
+  marginLeft?: number;
+  z?: number;
+  quiet?: boolean;
+  ping?: boolean;
+  promoteDelayMs?: number;
+  runId?: string;
+  ariaLabel?: string;
+  onClick?: () => void;
+  onBloomEnd?: () => void;
+  onExitEnd?: () => void;
+}) {
+  return (
+    <button
+      data-run-id={runId}
+      type="button"
+      tabIndex={onClick ? undefined : -1}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      // Condense in when a run spawns (once — the class drops after
+      // the bloom so reorders can't replay it). Natural departures
+      // dissolve out with the condensation farewell; a user delete
+      // leaves with the flyout row's quick fade. The exit variant must
+      // match the actual margin: overlap keyframes pin −8 mid-flight,
+      // so gap-leaders take the base.
+      className={`relative flex rounded-full ${
+        removed
+          ? dismissed
+            ? overlapped
+              ? "aw-chip-dismiss-overlap"
+              : "aw-chip-dismiss"
+            : overlapped
+              ? "aw-chip-out-overlap"
+              : "aw-chip-out"
+          : entering
+            ? "aw-chip-in"
+            : ""
+      }`}
+      onAnimationEnd={(event) => {
+        if (event.animationName === "aw-chip-in") onBloomEnd?.();
+        if (
+          event.animationName.startsWith("aw-chip-out") ||
+          event.animationName.startsWith("aw-chip-dismiss")
+        )
+          onExitEnd?.();
+      }}
+      // Overlap lives on each bubble's own left margin so appending a
+      // newcomer never touches an existing bubble's styles (no snap).
+      // --aw-overlap feeds the exit keyframes' margin pin.
+      style={
+        {
+          marginLeft,
+          boxShadow: "0 0 0 2px white",
+          zIndex: z,
+          ...(overlapped ? { "--aw-overlap": `${marginLeft}px` } : null),
+        } as React.CSSProperties
+      }
+    >
+      {/* failPulse: the red verdict ring breathes in place until the
+          failure is addressed. Failed only — a stop was the user's
+          own act, so it rests. */}
+      <RingedFace
+        agent={agent}
+        status={status}
+        size={30}
+        strokeWidth={2}
+        disc
+        failPulse
+        promoteDelayMs={promoteDelayMs}
+        quiet={quiet}
+      />
+      {/* Completion ping — the stack mounts it exactly when the run
+          turns green, unless a completion wave is in progress. */}
+      {ping ? <span aria-hidden className="aw-ping absolute inset-0 rounded-full" /> : null}
+    </button>
+  );
+}
+
 // Bottom-right presence, per Figma 17690-16754: 34px ringed bubbles on a
 // white disc, 4px white gap-ring, stacked with an 8px overlap (later bubble
 // on top). At 5+ agents the fourth slot becomes a "+N" disc. Hovering the
@@ -1115,100 +1258,51 @@ export function CornerStack({
           !run.removed &&
           (isFreshSpawn(run) || pageIsYoung());
         return (
-          <button
+          // z-order: urgency bands (failed above working above done),
+          // and WITHIN a band the leftmost — newest — bubble overlays
+          // its followers, so a pile of failures reads left-to-right
+          // with whole rings, never chomped from the right. The verdict
+          // (promoteDelayMs) waits out the promotion travel and lands
+          // at the front — red appears where you're already looking.
+          <CornerBubble
             key={run.id}
-            data-run-id={run.id}
-            type="button"
-            aria-label={`Jump to ${run.agent.name}'s invoking message`}
+            runId={run.id}
+            agent={run.agent}
+            status={run.status}
+            entering={entering}
+            removed={run.removed}
+            dismissed={run.dismissed}
+            overlapped={overlapped}
+            marginLeft={index === 0 ? 0 : overlapped ? overlap : 6}
+            z={(urgency(run) + 1) * 10 - index}
+            quiet={wave}
+            ping={run.status === "done" && !wave}
+            promoteDelayMs={560}
+            ariaLabel={`Jump to ${run.agent.name}'s invoking message`}
             onClick={() => onJumpRun(run)}
-            // Condense in when a run spawns (once — the class drops after
-            // the bloom so reorders can't replay it). Natural departures
-            // dissolve out with the condensation farewell; a user delete
-            // leaves with the flyout row's quick fade. Conceal on
-            // animationend closes the gap either way.
-            className={`relative flex rounded-full ${
-              run.removed
-                ? run.dismissed
-                  ? overlapped
-                    ? "aw-chip-dismiss-overlap"
-                    : "aw-chip-dismiss"
-                  : overlapped
-                    ? "aw-chip-out-overlap"
-                    : "aw-chip-out"
-                : entering
-                  ? "aw-chip-in"
-                  : ""
-            }`}
-            onAnimationEnd={(event) => {
-              if (event.animationName === "aw-chip-in") {
-                setEnteredIds((prev) => {
-                  const next = new Set(prev);
-                  next.add(run.id);
-                  return next;
-                });
-              }
-              if (event.animationName.startsWith("aw-chip-out") || event.animationName.startsWith("aw-chip-dismiss"))
-                onConceal(run.id);
-            }}
-            // Overlap lives on each bubble's own left margin so appending
-            // a newcomer never touches an existing bubble's styles (no
-            // snap). z-order: urgency bands (failed above working above
-            // done), and WITHIN a band the leftmost — newest —
-            // bubble overlays its followers, so a pile of failures reads
-            // left-to-right with whole rings, never chomped from the
-            // right. --aw-overlap feeds the exit keyframes' margin pin.
-            style={
-              {
-                marginLeft: index === 0 ? 0 : overlapped ? overlap : 6,
-                boxShadow: "0 0 0 2px white",
-                zIndex: (urgency(run) + 1) * 10 - index,
-                "--aw-overlap": `${overlap}px`,
-              } as React.CSSProperties
+            onBloomEnd={() =>
+              setEnteredIds((prev) => {
+                const next = new Set(prev);
+                next.add(run.id);
+                return next;
+              })
             }
-          >
-            {/* failPulse: the red verdict ring breathes in place until the
-                failure is addressed. Failed only — a stop was the user's
-                own act, so it rests. */}
-            <RingedFace
-              agent={run.agent}
-              status={run.status}
-              size={30}
-              strokeWidth={2}
-              disc
-              failPulse
-              // The verdict waits out the promotion travel and lands at
-              // the front — red appears where you're already looking.
-              promoteDelayMs={560}
-              quiet={wave}
-            />
-            {/* Completion ping — mounts exactly when the run turns green,
-                unless a completion wave is in progress. */}
-            {run.status === "done" && !wave ? (
-              <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
-            ) : null}
-          </button>
+            onExitEnd={() => onConceal(run.id)}
+          />
         );
       })}
       {overflowing ? (
-        <button
-          type="button"
-          aria-label={`${hidden.length} more agents`}
-          // No single message to jump to — opening the roster is the answer
-          // (and gives touch a path to it). Sits on the staging shelf: a
-          // gap if the last visible bubble is requires-action.
+        // No single message to jump to — opening the roster is the answer
+        // (and gives touch a path to it). Sits on the staging shelf: a
+        // gap if the last visible bubble is requires-action.
+        <CornerOverflow
+          count={hidden.length}
+          marginLeft={
+            visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : overlap
+          }
+          ariaLabel={`${hidden.length} more agents`}
           onClick={() => onHoverChange(true)}
-          className="aw-chip-in relative flex rounded-full"
-          style={{
-            marginLeft:
-              visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : overlap,
-            boxShadow: "0 0 0 2px white",
-            // End-cap: above every bubble's urgency band, so the count
-            // is never tucked behind its neighbor.
-            zIndex: 100,
-          }}
-        >
-          <OverflowDisc count={hidden.length} />
-        </button>
+        />
       ) : null}
     </div>
   );

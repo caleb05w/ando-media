@@ -2,13 +2,13 @@
 
 // Shipped-state harness: the states exactly as /agent-working runs them
 // today. Nothing here is a re-creation — every demo renders the
-// production RingedFace with the production CSS (agent-working.css) and
-// mirrors CornerStack's per-bubble markup (button, 2px white gap, ping,
-// failPulse). If a state drifts on this board, it drifted in the
-// product.
+// production CornerBubble (the corner's own per-bubble component) with
+// the production CSS (agent-working.css). The cards drive states; the
+// pixels are single-sourced. If a state drifts on this board, it
+// drifted in the product.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AGENTS, OverflowDisc, RingedFace, type AgentDef, type RunStatus } from "../agent-working/agents";
+import { AGENTS, CornerBubble, CornerOverflow, type AgentDef, type RunStatus } from "../agent-working/agents";
 import "../agent-working/agent-working.css";
 
 const TADAO = AGENTS[0];
@@ -59,30 +59,22 @@ function ShippedBubble({
   quiet?: boolean;
   onExited?: () => void;
 }) {
+  // Pure prop adapter over the production CornerBubble — zero markup of
+  // its own, so the board cannot drift from the corner by construction.
   return (
-    <button
-      type="button"
-      tabIndex={-1}
-      className={`relative flex rounded-full ${removed ? "aw-chip-out" : entering ? "aw-chip-in" : ""}`}
-      style={{ boxShadow: "0 0 0 2px white", marginLeft: overlap, zIndex: z }}
-      onAnimationEnd={(event) => {
-        if (event.animationName === "aw-chip-out") onExited?.();
-      }}
-    >
-      <RingedFace
-        agent={agent}
-        status={status}
-        size={30}
-        strokeWidth={2}
-        disc
-        failPulse
-        promoteDelayMs={promoteDelayMs}
-        quiet={quiet}
-      />
-      {status === "done" && ping ? (
-        <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
-      ) : null}
-    </button>
+    <CornerBubble
+      agent={agent ?? TADAO}
+      status={status}
+      entering={entering}
+      removed={removed}
+      overlapped={!!overlap}
+      marginLeft={overlap ?? 0}
+      z={z}
+      quiet={quiet}
+      ping={status === "done" && ping}
+      promoteDelayMs={promoteDelayMs}
+      onExitEnd={onExited}
+    />
   );
 }
 
@@ -207,17 +199,24 @@ function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
   const leaving = tick >= 4;
   return (
     <div className="flex items-center">
-      <ShippedBubble agent={TADAO} status="working" quiet />
-      {AGENTS.slice(1, 4).map((agent, index) => (
-        <ShippedBubble
-          key={agent.id}
-          agent={agent}
-          status={tick >= index + 1 ? "done" : "working"}
-          overlap={-8}
-          removed={leaving}
-          quiet
-        />
-      ))}
+      {/* Production z banding: (urgency+1)*10 − index, so the working
+          bubble outranks the done band and each band reads
+          leftmost-on-top — whole rings, never chomped from the right. */}
+      <ShippedBubble agent={TADAO} status="working" quiet z={20} />
+      {AGENTS.slice(1, 4).map((agent, index) => {
+        const done = tick >= index + 1;
+        return (
+          <ShippedBubble
+            key={agent.id}
+            agent={agent}
+            status={done ? "done" : "working"}
+            overlap={-8}
+            removed={leaving}
+            quiet
+            z={(done ? 10 : 20) - (index + 1)}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -335,14 +334,10 @@ export function ShippedTruncation() {
             agent={agent}
             status="working"
             overlap={index > 0 ? -8 : 0}
+            z={20 - index}
           />
         ))}
-        <span
-          className="relative inline-flex rounded-full"
-          style={{ marginLeft: -8, boxShadow: "0 0 0 2px white", zIndex: 100 }}
-        >
-          <OverflowDisc count={TRUNC_COUNTS[step]} />
-        </span>
+        <CornerOverflow count={TRUNC_COUNTS[step]} marginLeft={-8} />
       </div>
     </Frame>
   );

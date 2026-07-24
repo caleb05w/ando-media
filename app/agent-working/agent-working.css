@@ -304,18 +304,19 @@
      margin on the right, never over the neighbor. */
   transform-origin: left center;
 }
-/* Exit is a dissolve, not a journey. The face fades to nothing at full
-   slot width — no scale, no blur, no lateral ride — and only once
-   invisible (70%) does the slot close. Nothing that can be seen ever
-   moves sideways during a departure; the row compacts unseen. */
+/* Exit is a dissolve with a little travel — the same masked-motion deal
+   as the arrival. Arrive opens the slot under a barely-formed face;
+   depart holds the slot through the first half of the fade, then closes
+   it under a mostly-faded ghost (~18% opacity when the slide begins),
+   which drifts right a touch as the space collapses. Pure opacity on
+   the face itself — no scale, no blur. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
     opacity: 1;
   }
-  70% {
+  50% {
     width: 30px;
-    opacity: 0;
   }
   100% {
     width: 0px;
@@ -324,18 +325,17 @@
   }
 }
 /* Overlapped bubbles (inline margin-left −8) additionally hold their
-   overlap until the invisible close — releasing it earlier would slide
-   the still-visible face to the right. */
+   overlap through the same half — releasing it earlier would slide a
+   still-solid face to the right. */
 @keyframes aw-chip-out-overlap {
   0% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
     opacity: 1;
   }
-  70% {
+  50% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
-    opacity: 0;
   }
   100% {
     width: 0px;
@@ -345,12 +345,12 @@
 }
 .aw-chip-out,
 .aw-chip-out-overlap {
-  /* Third cut at depart. The strict time-reverse ended at full speed;
-     the forward curve fixed the ending but the near-invisible ghost
-     still rode rightward with the closing slot. Now the fade completes
-     before any width moves: 476ms dissolve on the arrival's curve, then
-     a 204ms close of an empty slot. Still 680ms total: goodbyes don't
-     linger — they just no longer travel. */
+  /* Fourth cut at depart. Strict time-reverse ended at full speed;
+     forward curve still slid a half-solid ghost; the pure in-place
+     dissolve read as too still — departure lost its direction. Now the
+     fade runs the full 680ms while the slot holds to 50% and closes
+     under the ghost: a little travel returns, masked the way arrive
+     masks its shove. Goodbyes lean out the door, softly. */
   pointer-events: none;
 }
 .aw-chip-out {

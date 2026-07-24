@@ -2388,8 +2388,8 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Depart",
-        source: "aw-chip-out · a dissolve, not a journey",
-        note: "The face fades to nothing at full slot width — pure opacity, no shrink, no blur — and only once invisible does the empty slot close. Third cut: the strict reverse ended at full speed, the forward curve still slid a ghost rightward with the closing slot; now nothing visible ever moves sideways. 476ms fade, 204ms unseen close.",
+        source: "aw-chip-out · a dissolve with a little travel",
+        note: "Pure opacity fade over the full 680ms — no shrink, no blur — with the slot held to 50%, then closed under the mostly-faded ghost (~18% when the slide begins), which drifts right a touch as the space collapses. Fourth cut: strict reverse ended at speed, forward curve slid a half-solid ghost, the in-place dissolve read too still. Masked motion, like arrive's shove.",
         demo: <ShippedDepart />,
       },
       {

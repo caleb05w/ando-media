@@ -22,8 +22,6 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-const A = "/multi-select";
-
 /* ---------------------------------- data ---------------------------------- */
 
 export type TraceStep = { verb: string; desc: string };
@@ -670,7 +668,12 @@ export function RingedFace({
   // and the effect locks every element to the shared epoch.
   const [sync, setSync] = useState<{ breathe: string; comet: string } | null>(null);
   useEffect(() => {
-    setSync({ breathe: syncDelay(4000), comet: syncDelay(1600) });
+    // Deferred a tick (not set synchronously in the effect) so hydration
+    // commits clean before the phase-lock render.
+    const id = window.setTimeout(() => {
+      setSync({ breathe: syncDelay(4000), comet: syncDelay(1600) });
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
   // Success pop is sequenced after the seal (aw-after-seal), so it outlives
   // the seal state and clears on its own animation end.
@@ -724,26 +727,28 @@ export function RingedFace({
         : restarted
           ? "aw-scale-pop"
           : "";
+  // Stopped rest: once the red seal has drawn, the bubble goes even
+  // lighter — portrait to half ink, ring to 0.7 — while the white disc
+  // underneath stays fully opaque (no stack bleed). A stop was your own
+  // act, parked by you: identity recedes hardest, the verdict stays
+  // legible. Recede at the settle's tempo (400ms); waking lifts in
+  // 150ms under the restart pop. Failed dims nothing.
+  const parked = effStatus === "stopped" && seal == null;
+  const parkedFade = (dim: number): React.CSSProperties => ({
+    opacity: parked ? dim : 1,
+    transition: `opacity ${parked ? 400 : 150}ms cubic-bezier(0.2, 0, 0.2, 1)`,
+  });
 
   return (
     <span
       // aw-breathe: the working bubble inhales/exhales. Transition
       // classes (pop, shake) are defined later in the CSS, so they take
       // the animation shorthand for their moment and hand it back.
-      // Stopped rest: once the red seal has drawn (seal cleared), the
-      // whole face recedes to 0.75 — a stop was your own act, parked by
-      // you, so it yields the ink. Failed keeps full presence (and the
-      // throb). The recede takes the settle's tempo (400ms); waking back
-      // to work lifts quickly (150ms) under the restart pop.
+      // Stopped rest lives on the LAYERS, not this root: the root keeps
+      // the white disc fully opaque so stacked neighbors never bleed
+      // through a parked bubble — the portrait and ring dim instead.
       className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
-      style={{
-        width: size,
-        height: size,
-        opacity: effStatus === "stopped" && seal == null ? 0.75 : 1,
-        transition: `opacity ${
-          effStatus === "stopped" && seal == null ? 400 : 150
-        }ms cubic-bezier(0.2, 0, 0.2, 1)`,
-      }}
+      style={{ width: size, height: size }}
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-seal-draw" || event.animationName === "aw-catch-close")
           setSeal(null);
@@ -810,6 +815,7 @@ export function RingedFace({
           width={size}
           height={size}
           className={`absolute inset-0 ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
+          style={parkedFade(0.7)}
           aria-hidden
         >
           <circle
@@ -827,7 +833,10 @@ export function RingedFace({
           />
         </svg>
       ) : null}
-      <span className="absolute inset-0 flex items-center justify-center">
+      <span
+        className="absolute inset-0 flex items-center justify-center"
+        style={parkedFade(0.5)}
+      >
         {/* Tight geometry: the ring hugs the portrait — ~1px of air
             between face edge and stroke, not a moat. No glow: working
             carries only continuous flow (comet + breathe), so failure's

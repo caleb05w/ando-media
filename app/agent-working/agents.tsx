@@ -671,12 +671,10 @@ export function RingedFace({
       ) : null}
       <span className="absolute inset-0 flex items-center justify-center">
         {/* Tight geometry: the ring hugs the portrait — ~1px of air
-            between face edge and stroke, not a moat. */}
-        <span className="relative inline-flex overflow-hidden rounded-full">
-          <AgentFace agent={agent} size={size - 6} />
-          {/* A very slight glint crosses the portrait while working. */}
-          {working ? <span className="aw-faceshine" aria-hidden /> : null}
-        </span>
+            between face edge and stroke, not a moat. No glow: working
+            carries only continuous flow (comet + breathe), so failure's
+            beat is the sole rhythm in the corner. */}
+        <AgentFace agent={agent} size={size - 6} />
       </span>
     </span>
   );
@@ -766,6 +764,22 @@ function OverflowDisc({ count }: { count: number }) {
 // on top). At 5+ agents the fourth slot becomes a "+N" disc. Hovering the
 // stack opens the flyout; clicking an individual bubble jumps to the
 // message that invoked that agent.
+// Urgency rank — orders both presence surfaces. Failures outrank the
+// living so they can never hide in the +N disc; stops (your own act)
+// and dones sit behind the work.
+function urgency(run: AgentRun): number {
+  switch (run.status) {
+    case "failed":
+      return 3;
+    case "working":
+      return 2;
+    case "stopped":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 export function CornerStack({
   runs,
   onHoverChange,
@@ -777,9 +791,15 @@ export function CornerStack({
   onJumpRun: (run: AgentRun) => void;
   onConceal: (runId: string) => void;
 }) {
+  // Window by urgency (failures always make the cut), then display with
+  // the most urgent at the RIGHT — top of the overlap z-order, nearest
+  // the corner anchor. Sorts are keyed to status, so bubbles only move
+  // on a state change, never mid-orbit; stable within a class.
   const overflowing = runs.length > 4;
-  const visible = runs.slice(0, overflowing ? 3 : 4);
-  const hidden = overflowing ? runs.slice(3) : [];
+  const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
+  const windowSet = ranked.slice(0, overflowing ? 3 : 4);
+  const visible = [...windowSet].sort((a, b) => urgency(a) - urgency(b));
+  const hidden = ranked.slice(overflowing ? 3 : 4);
   return (
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
     // offsets compensate so the rings still sit at right-16 / bottom-132.
@@ -1006,7 +1026,9 @@ export function AgentFlyout({
   }
   const openingIds = openingIdsRef.current;
 
-  const rows = runs;
+  // Same urgency order as the corner: failures first, then working —
+  // the top of the list is the anchor the panel opens toward.
+  const rows = [...runs].sort((a, b) => urgency(b) - urgency(a));
   // Clamp the window when rows shrink under the current page.
   const pageCount = Math.max(1, Math.ceil(rows.length / WINDOW));
   const safePage = Math.min(page, pageCount - 1);

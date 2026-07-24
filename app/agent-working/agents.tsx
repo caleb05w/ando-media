@@ -531,6 +531,18 @@ function isFreshSpawn(run: AgentRun): boolean {
   return Date.now() - run.startedAt < 1500;
 }
 
+// Load choreography: for the first moments after the module boots in the
+// browser, every mounting chip is part of the PAGE's entrance — seeded
+// runs are backdated (accurate elapsed readouts), so without this window
+// a reload would drop the corner in cold. Surfacing is still not
+// arriving; but on load, the room itself is arriving.
+const PAGE_EPOCH = Date.now();
+function pageIsYoung(): boolean {
+  // 4s: the demo script staggers its seeds across ~3s of load — the
+  // window must outlast the last seed's first render.
+  return Date.now() - PAGE_EPOCH < 4000;
+}
+
 // The orbit's live angle on the shared phase clock — where the catch's
 // racing laps launch from.
 function catchLaunchAngle(): string {
@@ -889,13 +901,38 @@ export function SessionChips({
 // a count is not an alarm, and status belongs to the agents themselves
 // (failures persist in the flyout until addressed).
 export function OverflowDisc({ count }: { count: number }) {
+  // The dial: a count that changes silently is a rerender; a count that
+  // rolls is an instrument reading the room. Odometer semantics — the
+  // crowd grows, digits climb (old label out the top, new in from the
+  // bottom); the crowd thins, they descend. Mount never rolls: the roll
+  // is for CHANGES witnessed, not for the disc appearing.
+  const [shown, setShown] = useState(count);
+  const [roll, setRoll] = useState<{ from: number; up: boolean } | null>(null);
+  if (count !== shown) {
+    setRoll({ from: shown, up: count > shown });
+    setShown(count);
+  }
   return (
     // Chrome register, not agent register: the count is the least
     // important thing in the corner, so it carries the least ink —
     // the same quiet gray as the header's member-count pill. The old
-    // near-black disc outweighed the verdicts beside it.
-    <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-[#f5f5f4] text-[11px] font-medium leading-none text-[#58524e]">
-      {`+${count}`}
+    // near-black disc outweighed the verdicts beside it. overflow-hidden
+    // is the dial's window: labels travel 9px and the disc clips them.
+    <span className="relative flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#f5f5f4] text-[11px] font-medium leading-none text-[#58524e]">
+      <span
+        key={shown}
+        className={roll ? (roll.up ? "aw-dial-in-up" : "aw-dial-in-down") : ""}
+      >{`+${shown}`}</span>
+      {roll ? (
+        <span
+          key={`out-${roll.from}`}
+          aria-hidden
+          className={`absolute inset-0 flex items-center justify-center ${
+            roll.up ? "aw-dial-out-up" : "aw-dial-out-down"
+          }`}
+          onAnimationEnd={() => setRoll(null)}
+        >{`+${roll.from}`}</span>
+      ) : null}
     </span>
   );
 }
@@ -944,8 +981,13 @@ export function CornerStack({
 }) {
   // Window by urgency (failures always make the cut), then display with
   // the most urgent at the LEFT — first thing the eye meets reading the
-  // stack. Sorts are keyed to status, so bubbles only move on a state
-  // change, never mid-orbit; stable within a class.
+  // stack. Within a band, newest first: an arrival claims a visible
+  // slot and blooms — the eldest worker folds into the +N disc instead
+  // (bookkeeping: instant, like every non-failure reorder). Without the
+  // recency key, a full corner ate arrivals whole: the newcomer ranked
+  // last, bloomed in slot four, and was yanked mid-bloom into the disc
+  // the moment the roster crossed the cap. Sort keys are fixed per run
+  // (status + spawn time), so bubbles never move mid-orbit.
   //
   // Four slots, mirroring the flyout's four-row window — one mental
   // model across both surfaces. At five or more the fourth slot becomes
@@ -959,9 +1001,15 @@ export function CornerStack({
   // lingering together, individual applause stops — each finish seals
   // quietly, and the engine departs the wave as one. The first couple
   // of completions still celebrate; the corner never claps N times.
-  const doneCount = runs.filter((run) => run.status === "done" && !run.removed).length;
+  // Removed dones count too: they render until concealed, and if the
+  // wave un-flagged at the departure update, every leaving chip would
+  // mount the pop and ping it was denied — a group encore of the exact
+  // applause the wave exists to hush. Quiet must hold to the door.
+  const doneCount = runs.filter((run) => run.status === "done").length;
   const wave = doneCount >= 3;
-  const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
+  const ranked = [...runs].sort(
+    (a, b) => urgency(b) - urgency(a) || b.startedAt - a.startedAt,
+  );
   const visible = ranked.slice(0, visibleCount);
   const hidden = ranked.slice(visibleCount);
 
@@ -1047,9 +1095,13 @@ export function CornerStack({
         // The arrival bloom is for agents ENTERING THE ROOM — a run
         // surfacing from the +N disc (or reshuffled from standby) was
         // already here, just uncounted, so it lands instantly like any
-        // reorder. Age is the tell: only genuinely fresh spawns bloom.
+        // reorder. Age is the tell: only genuinely fresh spawns bloom —
+        // except during load choreography, when everyone condenses in
+        // with the page.
         const entering =
-          !enteredIds.has(run.id) && isFreshSpawn(run) && !run.removed;
+          !enteredIds.has(run.id) &&
+          !run.removed &&
+          (isFreshSpawn(run) || pageIsYoung());
         return (
           <button
             key={run.id}
@@ -1089,7 +1141,7 @@ export function CornerStack({
             // Overlap lives on each bubble's own left margin so appending
             // a newcomer never touches an existing bubble's styles (no
             // snap). z-order: urgency bands (failed above working above
-            // done), and WITHIN a band the leftmost — most senior —
+            // done), and WITHIN a band the leftmost — newest —
             // bubble overlays its followers, so a pile of failures reads
             // left-to-right with whole rings, never chomped from the
             // right. --aw-overlap feeds the exit keyframes' margin pin.
@@ -1305,9 +1357,11 @@ export function AgentFlyout({
   const [openingIds] = useState(() => new Set(runs.map((run) => run.id)));
 
   // Same shelf order as the corner: requires-action (failed, stopped)
-  // first, then staging — the top of the list is the anchor the panel
-  // opens toward.
-  const rows = [...runs].sort((a, b) => urgency(b) - urgency(a));
+  // first, then staging, newest first within a band — the panel's first
+  // page mirrors the corner's visible set exactly.
+  const rows = [...runs].sort(
+    (a, b) => urgency(b) - urgency(a) || b.startedAt - a.startedAt,
+  );
 
   // FLIP on reorder: when the urgency sort moves a row (a status just
   // changed), ease it from its old slot instead of teleporting. Rows

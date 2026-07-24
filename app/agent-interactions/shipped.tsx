@@ -314,8 +314,18 @@ export function ShippedPromotion() {
 
 // Truncation at the cap: four slots, mirroring the flyout's four-row
 // window — eight agents render as three bubbles plus the +5 disc.
-// Production RingedFace, production OverflowDisc.
+// Production RingedFace, production OverflowDisc. The demo crowd swells
+// and thins so the +N dial rolls both directions in situ.
+const TRUNC_COUNTS = [5, 6, 7, 4];
 export function ShippedTruncation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(
+      () => setStep((current) => (current + 1) % TRUNC_COUNTS.length),
+      1600,
+    );
+    return () => window.clearInterval(id);
+  }, []);
   return (
     <Frame wide>
       <div className="flex items-center">
@@ -331,7 +341,7 @@ export function ShippedTruncation() {
           className="relative inline-flex rounded-full"
           style={{ marginLeft: -8, boxShadow: "0 0 0 2px white", zIndex: 100 }}
         >
-          <OverflowDisc count={5} />
+          <OverflowDisc count={TRUNC_COUNTS[step]} />
         </span>
       </div>
     </Frame>

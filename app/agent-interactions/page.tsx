@@ -2388,14 +2388,14 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Depart",
-        source: "aw-chip-out · mirrored composition, forward curve",
-        note: "The bloom reverses — fade, blur, shrink, then the slot closes — but on the arrival's own decelerating curve, not its time-reverse. Played strictly backward, the exit ended in its fastest stretch; eased forward, the fade drops early into a faint tail and the neighbors land with a settle. Still 680ms: goodbyes don't linger.",
+        source: "aw-chip-out · a dissolve, not a journey",
+        note: "The face fades to nothing at full slot width — pure opacity, no shrink, no blur — and only once invisible does the empty slot close. Third cut: the strict reverse ended at full speed, the forward curve still slid a ghost rightward with the closing slot; now nothing visible ever moves sideways. 476ms fade, 204ms unseen close.",
         demo: <ShippedDepart />,
       },
       {
         title: "Truncation",
         source: "four slots, like the flyout · shipped",
-        note: "The corner holds four slots, mirroring the flyout's four-row window — one mental model on both surfaces. At five or more, the fourth slot becomes the chrome-gray +N disc; failures still always make the visible cut.",
+        note: "The corner holds four slots, mirroring the flyout's four-row window — one mental model on both surfaces. At five or more, the fourth slot becomes the chrome-gray +N disc; failures still always make the visible cut. Within a band, newest first: an arrival always claims a visible slot and blooms — the eldest worker folds into the count instead, instantly. And the count itself is a dial: changes roll odometer-style, up as the crowd grows, down as it thins — 240ms, chrome register, clipped by the disc.",
         demo: <ShippedTruncation />,
       },
     ],

@@ -304,61 +304,54 @@
      margin on the right, never over the neighbor. */
   transform-origin: left center;
 }
-/* Exit mirrors the arrival's composition in reverse: the bloom undoes
-   itself (fade, blur, shrink) in place, and only then does the slot
-   close — held open until 65%, so the visible bubble doesn't ride
-   rightward while the space collapses under it. */
+/* Exit is a dissolve, not a journey. The face fades to nothing at full
+   slot width — no scale, no blur, no lateral ride — and only once
+   invisible (70%) does the slot close. Nothing that can be seen ever
+   moves sideways during a departure; the row compacts unseen. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
   }
-  65% {
+  70% {
     width: 30px;
+    opacity: 0;
   }
   100% {
     width: 0px;
     margin-left: 0;
     opacity: 0;
-    transform: translateY(1px) scale(0.45);
-    filter: blur(2.5px);
   }
 }
 /* Overlapped bubbles (inline margin-left −8) additionally hold their
-   overlap until the slot closes — otherwise the margin releases over
-   the whole exit and slides the still-visible face to the right. */
+   overlap until the invisible close — releasing it earlier would slide
+   the still-visible face to the right. */
 @keyframes aw-chip-out-overlap {
   0% {
     width: 30px;
+    margin-left: var(--aw-overlap, -8px);
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
   }
-  65% {
+  70% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
+    opacity: 0;
   }
   100% {
     width: 0px;
     margin-left: 0;
     opacity: 0;
-    transform: translateY(1px) scale(0.45);
-    filter: blur(2.5px);
   }
 }
 .aw-chip-out,
 .aw-chip-out-overlap {
-  /* Mirrored composition, forward curve. The strict time-reverse
-     (0.8,0,0.8,1) spent its slowness up front and ended in its fastest
-     stretch — hesitation, then a sprint. Reversal mirrors the values,
-     not the grace: grace lives in deceleration. So the exit keeps the
-     arrival's own curve — the dissolve drops early and dies in a faint
-     tail, the slot close lands with a settle. Still 680ms to the
-     arrival's 880: goodbyes don't linger. */
+  /* Third cut at depart. The strict time-reverse ended at full speed;
+     the forward curve fixed the ending but the near-invisible ghost
+     still rode rightward with the closing slot. Now the fade completes
+     before any width moves: 476ms dissolve on the arrival's curve, then
+     a 204ms close of an empty slot. Still 680ms total: goodbyes don't
+     linger — they just no longer travel. */
   pointer-events: none;
-  transform-origin: left center;
 }
 .aw-chip-out {
   animation: aw-chip-out 680ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
@@ -644,6 +637,63 @@
   cursor: pointer;
 }
 
+/* The +N dial: count changes roll like an instrument, not a rerender.
+   Odometer semantics — the crowd grows, digits climb; it thins, they
+   descend. Chrome register: 240ms, the presence curve, clipped by the
+   disc's own window. */
+@keyframes aw-dial-in-up {
+  from {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes aw-dial-out-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-9px);
+    opacity: 0;
+  }
+}
+@keyframes aw-dial-in-down {
+  from {
+    transform: translateY(-9px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes aw-dial-out-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+}
+.aw-dial-in-up {
+  animation: aw-dial-in-up 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.aw-dial-out-up {
+  animation: aw-dial-out-up 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.aw-dial-in-down {
+  animation: aw-dial-in-down 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.aw-dial-out-down {
+  animation: aw-dial-out-down 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+
 /* Loops still on request: the continuous motion (orbit, breathe,
    shimmer, pulse) goes still; one-shot transitions stay, so state
    changes remain legible without any perpetual movement. The catch
@@ -660,6 +710,18 @@
   }
   .aw-comet-catching {
     animation: aw-catch-close 1ms linear both;
+  }
+  /* The dial goes still: the new count lands in place; the outgoing
+     label hides itself (its animationend never fires, so it would
+     otherwise sit overlapping at full opacity). */
+  .aw-dial-in-up,
+  .aw-dial-in-down {
+    animation: none;
+  }
+  .aw-dial-out-up,
+  .aw-dial-out-down {
+    animation: none;
+    opacity: 0;
   }
 }
 

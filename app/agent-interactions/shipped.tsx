@@ -7,7 +7,7 @@
 // failPulse). If a state drifts on this board, it drifted in the
 // product.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AGENTS, OverflowDisc, RingedFace, type AgentDef, type RunStatus } from "../agent-working/agents";
 import "../agent-working/agent-working.css";
 
@@ -39,6 +39,7 @@ function ShippedBubble({
   removed = false,
   ping = false,
   overlap,
+  z,
   onExited,
 }: {
   status: RunStatus;
@@ -48,6 +49,8 @@ function ShippedBubble({
   ping?: boolean;
   /** Inline overlap margin, matching CornerStack's density values. */
   overlap?: number;
+  /** Explicit stack layer, matching CornerStack's urgency banding. */
+  z?: number;
   onExited?: () => void;
 }) {
   return (
@@ -55,7 +58,7 @@ function ShippedBubble({
       type="button"
       tabIndex={-1}
       className={`relative flex rounded-full ${removed ? "aw-chip-out" : entering ? "aw-chip-in" : ""}`}
-      style={{ boxShadow: "0 0 0 2px white", marginLeft: overlap }}
+      style={{ boxShadow: "0 0 0 2px white", marginLeft: overlap, zIndex: z }}
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-chip-out") onExited?.();
       }}
@@ -165,6 +168,86 @@ export function ShippedStopped() {
   return (
     <Frame>
       <Sequenced key={gen} to="stopped" at={1800} hold={3400} onCycleEnd={bump} />
+    </Frame>
+  );
+}
+
+// Failure promotion — the one reorder that animates. Three agents work;
+// the rightmost fails and travels to the requires-action front in the
+// Dynamic Island grammar (560ms spring, 1.07 lift, carried on its top
+// z) while neighbors slide plainly (300ms). Production spring values.
+function PromotionCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
+  const victim = AGENTS[2]; // Yumi
+  const others = [TADAO, AGENTS[1]];
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const flip = setTimeout(() => setFailed(true), 1700);
+    const end = setTimeout(onCycleEnd, 1700 + 3600);
+    return () => {
+      clearTimeout(flip);
+      clearTimeout(end);
+    };
+  }, [onCycleEnd]);
+
+  const order = failed ? [victim, ...others] : [...others, victim];
+  const rowRef = useRef<HTMLDivElement>(null);
+  const lefts = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for (const el of row.querySelectorAll<HTMLElement>("[data-agent-id]")) {
+      const id = el.dataset.agentId;
+      if (!id) continue;
+      const left = el.offsetLeft;
+      const prev = lefts.current.get(id);
+      if (!reduceMotion && failed && prev != null && prev !== left) {
+        const dx = prev - left;
+        if (id === victim.id) {
+          el.animate(
+            [
+              { transform: `translateX(${dx}px) scale(1)` },
+              { transform: `translateX(${dx * 0.35}px) scale(1.07)`, offset: 0.55 },
+              { transform: "translateX(0) scale(1)" },
+            ],
+            { duration: 560, easing: "cubic-bezier(0.3, 0, 0.2, 1)" },
+          );
+        } else {
+          el.animate(
+            [{ transform: `translateX(${dx}px)` }, { transform: "translateX(0)" }],
+            { duration: 300, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+          );
+        }
+      }
+      lefts.current.set(id, left);
+    }
+  });
+
+  return (
+    <div ref={rowRef} className="flex items-center">
+      {order.map((agent, index) => {
+        const isVictim = agent.id === victim.id;
+        const status: RunStatus = isVictim && failed ? "failed" : "working";
+        return (
+          <div key={agent.id} data-agent-id={agent.id} className="flex">
+            <ShippedBubble
+              agent={agent}
+              status={status}
+              overlap={index > 0 ? -8 : 0}
+              z={(status === "failed" ? 4 : 2) * 10 - index}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ShippedPromotion() {
+  const { gen, bump } = useGeneration();
+  return (
+    <Frame wide>
+      <PromotionCycle key={gen} onCycleEnd={bump} />
     </Frame>
   );
 }

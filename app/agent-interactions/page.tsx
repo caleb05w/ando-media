@@ -14,6 +14,7 @@ import {
   ShippedStopped,
   ShippedDepart,
   ShippedTruncation,
+  ShippedPromotion,
 } from "./shipped";
 
 const P = "/agent-working";
@@ -2354,6 +2355,12 @@ const SHIPPED_SECTIONS: Section[] = [
         source: "seal → shake, then still",
         note: "Same red seal and jolt, but still afterwards: a stop was your own act, so it doesn't call for attention.",
         demo: <ShippedStopped />,
+      },
+      {
+        title: "Failure promotion",
+        source: "Dynamic Island travel · the one reorder that animates",
+        note: "On failure the bubble is picked up (1.07 lift at the apex of a 560ms spring), carried over the stack on its top z, and set down at the requires-action front; neighbors slide plainly. All other reorders still land instantly.",
+        demo: <ShippedPromotion />,
       },
       {
         title: "Depart",

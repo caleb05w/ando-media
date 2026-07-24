@@ -983,6 +983,14 @@ export function AgentFlyout({
   onConceal: (runId: string) => void;
 }) {
   const [page, setPage] = useState(0);
+  // Rows present when the panel opened render settled (the panel pop is
+  // their entrance); only runs that spawn while the panel is up play the
+  // short row-in. Snapshot the opening roster once, on first render.
+  const openingIdsRef = useRef<Set<string> | null>(null);
+  if (openingIdsRef.current === null) {
+    openingIdsRef.current = new Set(runs.map((run) => run.id));
+  }
+  const openingIds = openingIdsRef.current;
 
   const rows = runs;
   // Clamp the window when rows shrink under the current page.
@@ -1027,6 +1035,7 @@ export function AgentFlyout({
             <FlyoutRow
               key={run.id}
               run={run}
+              entering={!openingIds.has(run.id)}
               onStop={onStop}
               onRerun={onRerun}
               onRemove={onRemove}
@@ -1078,6 +1087,7 @@ function FlyoutRow({
   onJump,
   onTrace,
   onConceal,
+  entering = false,
 }: {
   run: AgentRun;
   onStop: (runId: string) => void;
@@ -1086,14 +1096,15 @@ function FlyoutRow({
   onJump: (run: AgentRun) => void;
   onTrace: (run: AgentRun) => void;
   onConceal: (runId: string) => void;
+  entering?: boolean;
 }) {
   const working = run.status === "working";
   const failed = run.status === "failed" || run.status === "stopped";
   return (
     // Row click returns to the invoked message; inner controls stop the
-    // bubble so stop/rerun/remove/trace never double as navigation. Rows
-    // render settled (the panel pop is the only entrance); removal slides
-    // out and collapses, then conceal drops the run for good.
+    // bubble so stop/rerun/remove/trace never double as navigation. In
+    // and out share one short gesture: a quick fade while the row's
+    // space opens or closes; conceal drops the run when the out ends.
     <div
       role="button"
       tabIndex={0}
@@ -1105,7 +1116,7 @@ function FlyoutRow({
         if (event.animationName === "aw-row-out") onConceal(run.id);
       }}
       className={`group flex cursor-pointer items-center gap-2.5 rounded-[8px] p-2 text-left transition-colors hover:bg-white/5 ${
-        run.removed ? "aw-row-out" : ""
+        run.removed ? "aw-row-out" : entering ? "aw-row-in" : ""
       }`}
     >
       <RingedFace agent={run.agent} status={run.status} />

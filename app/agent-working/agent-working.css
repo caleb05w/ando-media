@@ -84,36 +84,42 @@
   transform-origin: center;
 }
 
-/* Flyout rows render settled — the panel pop is the only entrance.
-   Exit speaks the depart language, unified with the corner bubble's
-   aw-chip-out: the same tempo, the same reversed-arrival curve, the
-   same fade/blur/shrink — anchored at the avatar side — while the
-   space the row held closes over the back half. One farewell,
-   both surfaces. */
-@keyframes aw-row-out {
-  0% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
-    max-height: 52px;
-  }
-  45% {
-    max-height: 52px;
-  }
-  100% {
+/* Flyout rows go in and out with one small, short gesture — a quick
+   fade while the row's space opens or closes. Same length both ways,
+   mirrored curves, nothing else. (The 680ms condensation belongs to
+   the corner bubbles; the command bar stays utilitarian.) */
+@keyframes aw-row-in {
+  from {
     opacity: 0;
-    transform: translateY(1px) scale(0.45);
-    filter: blur(2.5px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 52px;
+  }
+}
+.aw-row-in {
+  animation: aw-row-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+  overflow: hidden;
+}
+@keyframes aw-row-out {
+  from {
+    opacity: 1;
+    max-height: 52px;
+  }
+  to {
+    opacity: 0;
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
   }
 }
 .aw-row-out {
-  animation: aw-row-out 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
+  animation: aw-row-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
   overflow: hidden;
-  transform-origin: left center;
 }
 
 /* Corner bubbles condense into presence and dissolve out of it — promoted

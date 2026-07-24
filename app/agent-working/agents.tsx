@@ -1262,10 +1262,15 @@ function FlyoutRow({
         </span>
       </span>
 
-      {/* Elapsed crossfades to controls on hover — a fixed-width right
-          slot (sized for the widest control pair) so the swap never
-          reflows the row; the two layers trade opacity in 150ms. */}
-      <span className="relative flex w-[52px] shrink-0 items-center justify-end">
+      {/* Elapsed crossfades to controls on hover — the right slot
+          reserves exactly its own row's control width (one button for
+          working/stopped, two for failed) so the swap never reflows,
+          while min-width lets a long elapsed widen the slot instead of
+          spilling over the text. */}
+      <span
+        className="relative flex shrink-0 items-center justify-end"
+        style={{ minWidth: run.status === "failed" ? 52 : 28 }}
+      >
         <span className="pointer-events-none text-[12px] leading-4 tabular-nums text-[#8a8a8a] transition-opacity duration-150 group-hover:opacity-0">
           {formatDuration(elapsedMs(run))}
         </span>

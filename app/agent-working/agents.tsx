@@ -694,7 +694,7 @@ export function RingedFace({
       className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
       style={{ width: size, height: size }}
       onAnimationEnd={(event) => {
-        if (event.animationName === "aw-seal-draw" || event.animationName === "aw-catch-arc")
+        if (event.animationName === "aw-seal-draw" || event.animationName === "aw-catch-close")
           setSeal(null);
         if (event.animationName === "aw-scale-pop") {
           setCelebrate(false);
@@ -718,29 +718,45 @@ export function RingedFace({
           fades under the outcome ring instead of vanishing; the sync
           delay applies only while working so the seal's aw-ring-fade
           keeps its own clock. */}
-      {working || (seal != null && seal !== "done") ? (
+      {/* The comet span carries working AND completion — same element,
+          same texture. On done the aw-comet animation entry stays first
+          in the list (phase preserved, no restart) while aw-catch-close
+          animates the registered gradient stops: the tail catches the
+          head and the body sets into the solid green ring, which then
+          holds through the linger. Failed/stopped seals keep the span
+          only for its fade under the red draw. */}
+      {working || effStatus === "done" || seal != null ? (
         <span
-          className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`}
+          className={`aw-comet ${
+            seal === "done"
+              ? "aw-comet-catching"
+              : effStatus === "done"
+                ? "aw-comet-done"
+                : seal != null
+                  ? "aw-ring-fade"
+                  : ""
+          }`}
           style={{
             ...(agent.hue ? { "--aw-tint": agent.hue } : null),
-            ...(working ? { animationDelay: sync.comet } : null),
+            ...(working
+              ? { animationDelay: sync.comet }
+              : seal === "done"
+                ? { animationDelay: `${sync.comet}, 0ms` }
+                : null),
           } as React.CSSProperties}
           aria-hidden
         />
       ) : null}
-      {/* Outcome ring. Completion resolves via the catch — the comet
-          hands off to a green head whose tail takes two last laps and
-          closes the circle (the comet becomes the ring). Failure/stop
-          keep the red draw-from-twelve over the fading comet. Solid
-          ring after either. Corner failures throb (class on the svg, so
-          it never fights the circle's animation shorthand). */}
-      {!working ? (
+      {/* Red verdicts stay imposed: failure/stop draw the ring from
+          twelve over the fading comet — a different arrival from
+          completion's grown ring, on purpose. Corner failures throb
+          (class on the svg, so it never fights the circle's animation
+          shorthand). */}
+      {!working && effStatus !== "done" ? (
         <svg
           width={size}
           height={size}
-          className={`absolute inset-0 ${
-            seal === "done" ? "aw-catch-spin" : ""
-          } ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
+          className={`absolute inset-0 ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
           aria-hidden
         >
           <circle
@@ -751,10 +767,9 @@ export function RingedFace({
             strokeWidth={strokeWidth}
             stroke={RING_COLOR[seal ?? effStatus]}
             strokeLinecap="round"
-            className={seal === "done" ? "aw-catch-arc" : seal != null ? "aw-seal-draw" : ""}
-            strokeDasharray={seal != null && seal !== "done" ? circumference : undefined}
-            strokeDashoffset={seal != null && seal !== "done" ? circumference : undefined}
-            style={{ "--aw-c": circumference } as React.CSSProperties}
+            className={seal != null ? "aw-seal-draw" : ""}
+            strokeDasharray={seal != null ? circumference : undefined}
+            strokeDashoffset={seal != null ? circumference : undefined}
             transform={`rotate(-90 ${center} ${center})`}
           />
         </svg>

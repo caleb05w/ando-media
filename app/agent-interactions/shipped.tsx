@@ -206,9 +206,9 @@ function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
     // worker glides down the track toward the anchor — a left-aligned
     // stage structurally cannot show that travel.
     <div className="flex items-center justify-end" style={{ width: 96 }}>
-      {/* Production z banding: (urgency+1)*10 − index, so the working
-          bubble outranks the done band and each band reads
-          leftmost-on-top — whole rings, never chomped from the right. */}
+      {/* Production display-rank banding: a finish changes ink, never
+          geometry — lingering greens keep the working band's z, so no
+          seal ever pops the stacking. Leftmost-on-top throughout. */}
       <ShippedBubble agent={TADAO} status="working" quiet z={20} />
       {AGENTS.slice(1, 4).map((agent, index) => {
         const done = tick >= index + 1;
@@ -220,7 +220,7 @@ function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
             overlap={-8}
             removed={leaving}
             quiet
-            z={(done ? 10 : 20) - (index + 1)}
+            z={20 - (index + 1)}
           />
         );
       })}

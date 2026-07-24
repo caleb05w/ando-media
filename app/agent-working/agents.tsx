@@ -1156,6 +1156,16 @@ function needsAction(run: AgentRun): boolean {
   return run.status === "failed" || run.status === "stopped";
 }
 
+// Display rank — what the sort and z-banding actually use. A lingering
+// (or departing) green keeps the WORKING band: a finish changes ink,
+// never geometry. Demoting done to its own band made every seal a
+// stacking pop and a possible teleport into the done band — three of
+// them during a wave, right when the corner has promised quiet. The
+// green holds its seat until the one universal shift carries it out.
+function displayRank(run: AgentRun): number {
+  return run.status === "done" ? 1 : urgency(run);
+}
+
 export function CornerStack({
   runs,
   resting = false,
@@ -1200,7 +1210,7 @@ export function CornerStack({
   const doneCount = runs.filter((run) => run.status === "done").length;
   const wave = doneCount >= 3;
   const ranked = [...runs].sort(
-    (a, b) => urgency(b) - urgency(a) || b.startedAt - a.startedAt,
+    (a, b) => displayRank(b) - displayRank(a) || b.startedAt - a.startedAt,
   );
   const visible = ranked.slice(0, visibleCount);
   const hidden = ranked.slice(visibleCount);
@@ -1311,7 +1321,7 @@ export function CornerStack({
             dismissed={run.dismissed}
             overlapped={overlapped}
             marginLeft={index === 0 ? 0 : overlapped ? overlap : 6}
-            z={(urgency(run) + 1) * 10 - index}
+            z={(displayRank(run) + 1) * 10 - index}
             quiet={wave}
             ping={run.status === "done" && !wave}
             promoteDelayMs={560}
@@ -1503,7 +1513,7 @@ export function AgentFlyout({
   // first, then staging, newest first within a band — the panel's first
   // page mirrors the corner's visible set exactly.
   const rows = [...runs].sort(
-    (a, b) => urgency(b) - urgency(a) || b.startedAt - a.startedAt,
+    (a, b) => displayRank(b) - displayRank(a) || b.startedAt - a.startedAt,
   );
 
   // FLIP on reorder: when the urgency sort moves a row (a status just

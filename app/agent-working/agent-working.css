@@ -304,10 +304,10 @@
      margin on the right, never over the neighbor. */
   transform-origin: left center;
 }
-/* Exit is the arrival played backward: the bloom reverses (fade, blur,
-   shrink) in place, and only then does the slot close — held open until
-   65%, so the visible bubble doesn't ride rightward while the space
-   collapses under it. */
+/* Exit mirrors the arrival's composition in reverse: the bloom undoes
+   itself (fade, blur, shrink) in place, and only then does the slot
+   close — held open until 65%, so the visible bubble doesn't ride
+   rightward while the space collapses under it. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
@@ -350,17 +350,21 @@
 }
 .aw-chip-out,
 .aw-chip-out-overlap {
-  /* The arrival's curve, time-reversed — (0.2,0,0.2,1) played backward
-     is (0.8,0,0.8,1). Same path, opposite momentum, run a touch quicker
-     than the arrival: goodbyes don't linger. */
+  /* Mirrored composition, forward curve. The strict time-reverse
+     (0.8,0,0.8,1) spent its slowness up front and ended in its fastest
+     stretch — hesitation, then a sprint. Reversal mirrors the values,
+     not the grace: grace lives in deceleration. So the exit keeps the
+     arrival's own curve — the dissolve drops early and dies in a faint
+     tail, the slot close lands with a settle. Still 680ms to the
+     arrival's 880: goodbyes don't linger. */
   pointer-events: none;
   transform-origin: left center;
 }
 .aw-chip-out {
-  animation: aw-chip-out 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
+  animation: aw-chip-out 680ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 .aw-chip-out-overlap {
-  animation: aw-chip-out-overlap 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
+  animation: aw-chip-out-overlap 680ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 
 /* User delete: no farewell — an intentional action gets an obedient

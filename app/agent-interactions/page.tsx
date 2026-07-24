@@ -2388,8 +2388,8 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Depart",
-        source: "aw-chip-out · the arrival reversed, a touch quicker",
-        note: "The bloom reverses — fade, blur, shrink — while the slot closes, at 680ms to the arrival's 880: goodbyes don't linger. The exact keyframes the corner plays when a chip leaves.",
+        source: "aw-chip-out · mirrored composition, forward curve",
+        note: "The bloom reverses — fade, blur, shrink, then the slot closes — but on the arrival's own decelerating curve, not its time-reverse. Played strictly backward, the exit ended in its fastest stretch; eased forward, the fade drops early into a faint tail and the neighbors land with a settle. Still 680ms: goodbyes don't linger.",
         demo: <ShippedDepart />,
       },
       {

@@ -395,7 +395,16 @@ export function useAgentEngine(
         );
         const wave = lingering.length >= 3;
         const due = lingering.filter((run) => now - (run.doneAt ?? 0) >= 5000);
-        if (due.length > 0) {
+        // Departures never overlap: while any natural exit is mid-mist,
+        // newly due runs hold their green and join the NEXT cohort when
+        // the track has settled. Every leaving event is therefore solo
+        // or lockstep — one shared clock, one universal shift — never
+        // two offset mists compounding the track into wobbles. (User
+        // dismissals are instant and exempt; they never animate.)
+        const exiting = next.some(
+          (run) => run.removed && !run.concealed && !run.dismissed,
+        );
+        if (due.length > 0 && !exiting) {
           const leaving = new Set((wave ? lingering : due).map((run) => run.id));
           changed = true;
           return next.map((run) =>

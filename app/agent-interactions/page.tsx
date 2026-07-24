@@ -2365,7 +2365,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Completion wave",
         source: "three or more finish together · one shared exit",
-        note: "When completions pile up, applause stops — ALL of it: no pop, no ping, and no catch spin either (the spin is applause too). Wave finishes seal to solid green in place, instantly, and the cohort's one motion is the universal shift right when it departs together on the eldest's linger — one exhale, not a drip of staggered ceremonies. The stage hangs from the right edge like the corner, so the survivor glides down the track with the shift.",
+        note: "When completions pile up, applause stops — ALL of it: no pop, no ping, and no catch spin either (the spin is applause too). Wave finishes seal to solid green in place, instantly, and the cohort's one motion is the universal shift right when it departs together on the eldest's linger — one exhale, not a drip of staggered ceremonies. Departures never overlap anywhere: anything coming due while a mist is mid-flight holds its green and joins the next cohort, so leaving is always solo or lockstep. The stage hangs from the right edge like the corner, so the survivor glides down the track with the shift.",
         demo: <ShippedCompletionWave />,
       },
       {

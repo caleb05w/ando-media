@@ -687,6 +687,13 @@ export function RingedFace({
     if (prevStatus === "working") {
       if (status === "failed" && promoteDelayMs != null) {
         setPendingFail(true);
+      } else if (status === "done" && quiet) {
+        // Wave finishes don't perform: no catch spin, no pop, no ping —
+        // the ring seals to solid green in place, instantly. The spin
+        // is applause too, and once three dones share the corner,
+        // applause has stopped. The wave's ONE motion is the universal
+        // shift right when it departs together.
+        setSeal(null);
       } else {
         setSeal(status);
         if (status === "done") {

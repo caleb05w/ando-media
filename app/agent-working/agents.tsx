@@ -712,11 +712,27 @@ export function SessionChips({
                 stop
               </button>
             </>
+          ) : run.status === "stopped" ? (
+            <>
+              {/* A stop was your own act — no CTA, just the label with a
+                  quiet chevron into the trace (flyout grammar). */}
+              <button
+                type="button"
+                onClick={() => onOpenTrace(run.id)}
+                className="group/chip flex items-center gap-0.5 text-[13px] leading-4 text-[#dc2626]"
+              >
+                {`Stopped by ${run.stoppedBy ?? "you"}`}
+                <span className="text-[#a8a29e] transition-colors group-hover/chip:text-[#58524e]">
+                  <ChevronGlyph />
+                </span>
+              </button>
+              <span className="text-[12px] leading-4 tabular-nums text-[#a8a29e]">
+                {formatDuration(elapsedMs(run))}
+              </span>
+            </>
           ) : (
             <>
-              <span className="text-[13px] leading-4 text-[#dc2626]">
-                {run.status === "stopped" ? `Stopped by ${run.stoppedBy ?? "you"}` : "Failed"}
-              </span>
+              <span className="text-[13px] leading-4 text-[#dc2626]">Failed</span>
               <span className="text-[12px] leading-4 tabular-nums text-[#a8a29e]">
                 {formatDuration(elapsedMs(run))}
               </span>

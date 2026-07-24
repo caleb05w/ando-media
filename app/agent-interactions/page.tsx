@@ -519,6 +519,216 @@ function SInk() {
   );
 }
 
+/* ---------------------------- ring verdict demos ---------------------------- */
+// Twenty iterations on the sealed-ring grammar: ten ways the ring can
+// say done, ten ways it can fail to hold. The ring is the only medium.
+
+function RVWeight() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} dashArray={117} dashOffset={0} className="rc-weight" />
+    </Bubble>
+  );
+}
+
+function RVBloom() {
+  return (
+    <Bubble face={TADAO}>
+      <svg width={SIZE} height={SIZE} className="absolute inset-0" aria-hidden>
+        {/* clockwise half from twelve */}
+        <circle
+          cx={C}
+          cy={C}
+          r={R}
+          fill="none"
+          stroke={GREEN}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeDasharray="58.5 58.5"
+          className="rc-bloom-arc"
+          transform={`rotate(-90 ${C} ${C})`}
+        />
+        {/* mirrored twin draws counter-clockwise */}
+        <g transform={`scale(-1 1) translate(${-SIZE} 0)`}>
+          <circle
+            cx={C}
+            cy={C}
+            r={R}
+            fill="none"
+            stroke={GREEN}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeDasharray="58.5 58.5"
+            className="rc-bloom-arc"
+            transform={`rotate(-90 ${C} ${C})`}
+          />
+        </g>
+      </svg>
+    </Bubble>
+  );
+}
+
+function RVSettle() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} className="rc-settle" />
+    </Bubble>
+  );
+}
+
+function RVCatch() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} dashArray={117} dashOffset={0} className="rc-catch" />
+    </Bubble>
+  );
+}
+
+function RVEcho() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} className="rc-echo-base" />
+      <span className="rc-echo-ring" />
+    </Bubble>
+  );
+}
+
+function RVSprint() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} dashArray={117} dashOffset={117} className="rc-sprint" />
+    </Bubble>
+  );
+}
+
+function RVWash() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="rc-wash-fill" />
+      <RingSvg color={GREEN} className="rc-wash-ring" />
+    </Bubble>
+  );
+}
+
+function RVHand() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} dashArray={117} dashOffset={117} className="rc-hand-draw" />
+      <span className="rc-hand-pivot" />
+    </Bubble>
+  );
+}
+
+function RVBeats() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={GREEN} className="rc-beats" />
+    </Bubble>
+  );
+}
+
+function RVLand() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="rc-land" />
+    </Bubble>
+  );
+}
+
+function RVGap() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} dashArray={117} dashOffset={117} className="rf-gap" />
+    </Bubble>
+  );
+}
+
+function RVCrack() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} className="rf-crack" />
+      <span className="rf-crack-tick" />
+    </Bubble>
+  );
+}
+
+function RVRecoil() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} dashArray={117} dashOffset={117} className="rf-recoil" />
+    </Bubble>
+  );
+}
+
+function RVFlicker() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} className="rf-flicker" />
+    </Bubble>
+  );
+}
+
+function RVSlip() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} className="rf-slip" />
+    </Bubble>
+  );
+}
+
+function RVHalf() {
+  return (
+    <Bubble face={TADAO}>
+      {/* no -90 rotate: the arc runs 3 → 9 o'clock through the bottom */}
+      <svg width={SIZE} height={SIZE} className="absolute inset-0 rf-half" aria-hidden>
+        <circle
+          cx={C}
+          cy={C}
+          r={R}
+          fill="none"
+          stroke={RED}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeDasharray="58.5 58.5"
+        />
+      </svg>
+    </Bubble>
+  );
+}
+
+function RVStatic() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} dashed className="rf-static" />
+    </Bubble>
+  );
+}
+
+function RVDeflate() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} className="rf-deflate" />
+    </Bubble>
+  );
+}
+
+function RVStain() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="rf-stain-halo" />
+      <RingSvg color={RED} className="rf-stain-ring" />
+    </Bubble>
+  );
+}
+
+function RVUnravel() {
+  return (
+    <Bubble face={TADAO}>
+      <RingSvg color={RED} dashArray={117} dashOffset={117} className="rf-unravel" />
+    </Bubble>
+  );
+}
+
 /* ------------------------------ gesture demos ------------------------------- */
 // The moments between states — companionship as motion.
 
@@ -1113,6 +1323,144 @@ const STILL_SECTIONS: Section[] = [
   },
 ];
 
+// Ring verdicts — twenty iterations on the sealed-ring grammar, ten
+// per outcome. The ring is the only medium: how it arrives is
+// completion, how it fails to hold is failure.
+const RING_SECTIONS: Section[] = [
+  {
+    heading: "1 · Completion",
+    blurb: "Ten ways the ring can say done.",
+    studies: [
+      {
+        title: "Weight of proof",
+        source: "stroke-width · conviction accrues",
+        note: "The ring arrives hairline and thickens to full weight — the verdict gains substance rather than appearing.",
+        demo: <RVWeight />,
+      },
+      {
+        title: "Bloom from twelve",
+        source: "two arcs · symmetric",
+        note: "Green grows both ways at once from the top and meets at the bottom. No chase, no direction — just closure.",
+        demo: <RVBloom />,
+      },
+      {
+        title: "Settle",
+        source: "scale + fade · arrival",
+        note: "The ring exists already, slightly large and faint, and lands onto the rim. Completion as something that arrives, not something built.",
+        demo: <RVSettle />,
+      },
+      {
+        title: "The tail catches up",
+        source: "comet resolves · continuity",
+        note: "A green comet takes two last laps and its tail closes the circle — the working motion itself resolving into stillness.",
+        demo: <RVCatch />,
+      },
+      {
+        title: "Echo",
+        source: "one soft knock",
+        note: "The ring appears, then a single echo lifts off it by two pixels and dissolves. Quieter than the ping — confirmation, not celebration.",
+        demo: <RVEcho />,
+      },
+      {
+        title: "Sprint, then land",
+        source: "fast draw, gentle finish",
+        note: "The draw covers most of the circle fast and walks the last few degrees. Urgency resolving into care.",
+        demo: <RVSprint />,
+      },
+      {
+        title: "Wash to rim",
+        source: "interior → boundary",
+        note: "A green wash rises inside the bubble and drains outward into the ring — the result condensing onto the boundary.",
+        demo: <RVWash />,
+      },
+      {
+        title: "Clockhand",
+        source: "one sweep · time made visible",
+        note: "A radius hand sweeps once from twelve, painting the ring behind it, then disappears. The elapsed run, replayed in a second.",
+        demo: <RVHand />,
+      },
+      {
+        title: "Two beats, then still",
+        source: "a pulse that ends",
+        note: "The ring beats twice at half voice and locks solid. Working pulses forever; done pulses twice and stops — the stopping is the signal.",
+        demo: <RVBeats />,
+      },
+      {
+        title: "Halo lands",
+        source: "blur → focus",
+        note: "A large soft halo contracts and sharpens into the exact rim — the verdict coming into focus.",
+        demo: <RVLand />,
+      },
+    ],
+  },
+  {
+    heading: "2 · Failure",
+    blurb: "Ten ways the ring can fail to hold — disturbance without alarm.",
+    studies: [
+      {
+        title: "Never closed",
+        source: "the standing gap",
+        note: "The draw stops short and holds, a gap standing at the top. The circuit that didn't complete — legible in a still frame.",
+        demo: <RVGap />,
+      },
+      {
+        title: "Crack",
+        source: "sealed, then flawed",
+        note: "The ring seals, jolts once, and a hairline notch opens at the top-right. Whole, but not sound.",
+        demo: <RVCrack />,
+      },
+      {
+        title: "Recoil",
+        source: "almost · sprang back",
+        note: "The draw nearly makes it, springs back, and hangs at three-quarters. The effort stays visible in the arc it kept.",
+        demo: <RVRecoil />,
+      },
+      {
+        title: "Faulty sign",
+        source: "neon flicker · hard cuts",
+        note: "The sealed ring flickers like failing neon and settles dim. Power without integrity.",
+        demo: <RVFlicker />,
+      },
+      {
+        title: "Slipped halo",
+        source: "posture, not motion",
+        note: "The ring loses its seat, drops a few pixels and rests askew. Failure worn like a crooked halo.",
+        demo: <RVSlip />,
+      },
+      {
+        title: "Half mast",
+        source: "the lowered flag",
+        note: "Only the lower half arrives, and it sags a pixel. The most somber of the ten.",
+        demo: <RVHalf />,
+      },
+      {
+        title: "Static",
+        source: "signal noise",
+        note: "Red dashes shiver in place by a fraction of a degree, then freeze. Where a steady orbit should be, interference.",
+        demo: <RVStatic />,
+      },
+      {
+        title: "Deflate",
+        source: "scale · lost strength",
+        note: "The ring shrinks off the rim and sits small against the face — a verdict without the strength to hold its line.",
+        demo: <RVDeflate />,
+      },
+      {
+        title: "Stain",
+        source: "the bleed that stays",
+        note: "The ring seals and its color bleeds outward — and stays. A ping that dissolves is celebration; a stain that doesn't is a problem.",
+        demo: <RVStain />,
+      },
+      {
+        title: "Unravel",
+        source: "success revoked",
+        note: "It sealed — then came undone, unwinding to a hanging arc. The most narrative failure: done, and then not.",
+        demo: <RVUnravel />,
+      },
+    ],
+  },
+];
+
 // Gestures — the companion lifecycle. Interaction moments rather than
 // states: a coworker arrives, acknowledges, listens, delivers, rests,
 // departs.
@@ -1663,6 +2011,19 @@ export default function AgentInteractionsPage() {
           }
         />
         <StudySections sections={SHIPPED_SECTIONS} />
+
+        <SetHeader
+          title="Ring verdicts — ten ways each"
+          blurb={
+            <>
+              Iterations on the sealed-ring grammar the corner ships. The ring is the only
+              medium: completion is how it arrives, failure is how it fails to hold. Each
+              card replays its verdict on a 4s cycle — no working preamble, so the moment
+              itself can be judged.
+            </>
+          }
+        />
+        <StudySections sections={RING_SECTIONS} />
 
         <SetHeader
           title="Color intent"

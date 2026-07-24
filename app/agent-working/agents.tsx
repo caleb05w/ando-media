@@ -893,14 +893,14 @@ export function CornerStack({
   // stack. Sorts are keyed to status, so bubbles only move on a state
   // change, never mid-orbit; stable within a class.
   //
-  // Up to seven bubbles at the standard −8 overlap; the +N disc appears
-  // at eight (then six visible + disc). Density stays constant — we
-  // tried tightening to −12 past four and walked it back: squeezed
-  // rings chomp each other and the verdicts stop reading.
+  // Four slots, mirroring the flyout's four-row window — one mental
+  // model across both surfaces. At five or more the fourth slot becomes
+  // the +N disc (three bubbles + disc). Overlap stays a constant −8;
+  // both halves of elastic density were tried and walked back.
   const count = runs.length;
   const overlap = -8;
-  const overflowing = count > 7;
-  const visibleCount = overflowing ? 6 : count;
+  const overflowing = count > 4;
+  const visibleCount = overflowing ? 3 : count;
   const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
   const visible = ranked.slice(0, visibleCount);
   const hidden = ranked.slice(visibleCount);

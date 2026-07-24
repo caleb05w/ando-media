@@ -264,14 +264,14 @@ export function ShippedPromotion() {
   );
 }
 
-// Truncation at the cap: eight agents render as six bubbles at the
-// standard −8 overlap plus the +N disc. Production RingedFace,
-// production OverflowDisc.
+// Truncation at the cap: four slots, mirroring the flyout's four-row
+// window — eight agents render as three bubbles plus the +5 disc.
+// Production RingedFace, production OverflowDisc.
 export function ShippedTruncation() {
   return (
     <Frame wide>
       <div className="flex items-center">
-        {AGENTS.slice(0, 6).map((agent, index) => (
+        {AGENTS.slice(0, 3).map((agent, index) => (
           <ShippedBubble
             key={agent.id}
             agent={agent}
@@ -283,7 +283,7 @@ export function ShippedTruncation() {
           className="relative inline-flex rounded-full"
           style={{ marginLeft: -8, boxShadow: "0 0 0 2px white", zIndex: 100 }}
         >
-          <OverflowDisc count={2} />
+          <OverflowDisc count={5} />
         </span>
       </div>
     </Frame>

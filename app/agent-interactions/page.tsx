@@ -1781,7 +1781,7 @@ const OVERFLOW_SECTIONS: Section[] = [
       {
         title: "Elastic density",
         source: "delay the problem — tried, walked back",
-        note: "Compress the overlap as the roster grows (−8 → −12) so more fit before truncating. Shipped, then reverted: at dense overlap the verdict rings chomp each other and failures stop reading. The capacity half survived — seven now fit at standard density before the disc.",
+        note: "Compress the overlap as the roster grows (−8 → −12) so more fit before truncating. Shipped, then fully reverted: dense rings chomp each other, and a seven-wide corner broke the flyout's four-row mental model. The corner settled at four slots.",
         demo: <OFDense />,
       },
     ],
@@ -2370,8 +2370,8 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Truncation",
-        source: "seven at standard density · shipped",
-        note: "Up to seven bubbles at the standard −8 overlap; the +N disc appears at eight (six visible + disc, stacked above every bubble). Density stays constant — squeezing was tried and walked back.",
+        source: "four slots, like the flyout · shipped",
+        note: "The corner holds four slots, mirroring the flyout's four-row window — one mental model on both surfaces. At five or more, the fourth slot becomes the chrome-gray +N disc; failures still always make the visible cut.",
         demo: <ShippedTruncation />,
       },
     ],

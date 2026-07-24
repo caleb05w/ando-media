@@ -982,7 +982,6 @@ export function AgentFlyout({
   onRemove,
   onJump,
   onTrace,
-  onConceal,
 }: {
   runs: AgentRun[];
   closing?: boolean;
@@ -994,7 +993,6 @@ export function AgentFlyout({
   onRemove: (runId: string) => void;
   onJump: (run: AgentRun) => void;
   onTrace: (run: AgentRun) => void;
-  onConceal: (runId: string) => void;
 }) {
   const [page, setPage] = useState(0);
   // Rows present when the panel opened render settled (the panel pop is
@@ -1055,7 +1053,6 @@ export function AgentFlyout({
               onRemove={onRemove}
               onJump={onJump}
               onTrace={onTrace}
-              onConceal={onConceal}
             />
           ))}
         </div>
@@ -1100,7 +1097,6 @@ function FlyoutRow({
   onRemove,
   onJump,
   onTrace,
-  onConceal,
   entering = false,
 }: {
   run: AgentRun;
@@ -1109,7 +1105,6 @@ function FlyoutRow({
   onRemove: (runId: string) => void;
   onJump: (run: AgentRun) => void;
   onTrace: (run: AgentRun) => void;
-  onConceal: (runId: string) => void;
   entering?: boolean;
 }) {
   const working = run.status === "working";
@@ -1126,9 +1121,9 @@ function FlyoutRow({
       onKeyDown={(event) => {
         if (event.key === "Enter") onJump(run);
       }}
-      onAnimationEnd={(event) => {
-        if (event.animationName === "aw-row-out") onConceal(run.id);
-      }}
+      // No conceal here — the corner bubble is the single conceal source
+      // (it is always mounted; this panel may not be). The row just holds
+      // its finished exit frame until the run is concealed.
       className={`group flex cursor-pointer items-center gap-2.5 rounded-[8px] p-2 text-left transition-colors hover:bg-white/5 ${
         run.removed ? "aw-row-out" : entering ? "aw-row-in" : ""
       }`}

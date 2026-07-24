@@ -519,62 +519,6 @@ function SInk() {
   );
 }
 
-/* ---------------------------- corner-cut demos ------------------------------ */
-// Candidates auditioned inside a miniature of the real medium: the white
-// main card's bottom-right, a composer seam, and an overlapping done
-// neighbor. Judge scannability here, not on a gray stage.
-
-function MiniCorner({ workingRing }: { workingRing?: React.ReactNode }) {
-  return (
-    <div
-      className="relative h-24 w-44 overflow-hidden rounded-[10px] border-[0.5px] bg-white"
-      style={{ borderColor: "#ebe9e8" }}
-    >
-      {/* composer seam */}
-      <div
-        className="absolute inset-x-3 bottom-3 h-6 rounded-[6px] border-[0.5px]"
-        style={{ borderColor: STROKE_WEAK }}
-      />
-      <span className="absolute bottom-[18px] left-5 text-[8px]" style={{ color: "#d6d3d1" }}>
-        Send a message…
-      </span>
-      {/* the stack: done neighbor + working candidate */}
-      <div className="absolute bottom-[38px] right-3 flex items-center">
-        <span className="inline-flex rounded-full" style={{ boxShadow: "0 0 0 3px white" }}>
-          <Bubble face={ANDO}>
-            <RingSvg color={GREEN} />
-          </Bubble>
-        </span>
-        <span
-          className="relative inline-flex rounded-full"
-          style={{ marginLeft: -8, boxShadow: "0 0 0 3px white" }}
-        >
-          <Bubble face={TADAO}>{workingRing}</Bubble>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function CCSheenRing() {
-  return <MiniCorner workingRing={<span className="cc-ring cc-sheen" />} />;
-}
-
-// Control: the identical ring, motionless. Does the sheen earn its place?
-function CCStillRing() {
-  return <MiniCorner workingRing={<span className="cc-ring" />} />;
-}
-
-// Mist — presence carried by atmosphere instead of geometry.
-function CCMist() {
-  return <MiniCorner workingRing={<span className="cc-mist" />} />;
-}
-
-// Comet — the Kinetic set's W2 in sage. Shipped as the working state.
-function CCComet() {
-  return <MiniCorner workingRing={<span className="cc-comet" />} />;
-}
-
 /* ------------------------------ gesture demos ------------------------------- */
 // The moments between states — companionship as motion.
 
@@ -1169,53 +1113,6 @@ const STILL_SECTIONS: Section[] = [
   },
 ];
 
-// Corner cut — the Still ideas that survive the two constraints
-// (one-second scannability, bottom-right medium), auditioned in situ.
-const CORNER_SECTIONS: Section[] = [
-  {
-    heading: "Finalist",
-    blurb: "Working bubble on the right of the stack; judge at a glance.",
-    studies: [
-      {
-        title: "Sheen ring",
-        source: "constant presence, drifting light",
-        note: "The ring is always fully drawn — working reads in a still frame, no pulse to catch. A denser stretch of sage drifts around the rim every 6s: no gaps, no hard edge, so it's a sheen and not a spinner.",
-        demo: <CCSheenRing />,
-      },
-      {
-        title: "Sheen ring · still",
-        source: "the control",
-        note: "The same ring with the drift switched off. Read the pair side by side: if this one already says working, the shimmer is decoration; if it goes inert next to the done neighbour, the drift is carrying its weight.",
-        demo: <CCStillRing />,
-      },
-    ],
-  },
-  {
-    heading: "Mist",
-    blurb: "Drop the ring entirely: weather around the agent.",
-    studies: [
-      {
-        title: "Mist",
-        source: "the Ma set's morning fog, in sage",
-        note: "No ring — the veil from the Ma set circles the rim on the same nine-second walk, lifted to the working hue with a touch more body for the white card. Frees the ring to mean only one thing: a verdict.",
-        demo: <CCMist />,
-      },
-    ],
-  },
-  {
-    heading: "Comet",
-    blurb: "The Kinetic set's directed-effort orbit, softened.",
-    studies: [
-      {
-        title: "Comet",
-        source: "the Kinetic set's W2, softened, in the agent's own color — shipped",
-        note: "One head, fading tail, on the same 1.6s orbit as the board original — softened to a 0.6 peak that decays on both sides. The hue is extracted from each agent's portrait (Tadao's charcoal here), so every companion works in its own color. Now the working state on /agent-working.",
-        demo: <CCComet />,
-      },
-    ],
-  },
-];
-
 // Gestures — the companion lifecycle. Interaction moments rather than
 // states: a coworker arrives, acknowledges, listens, delivers, rests,
 // departs.
@@ -1801,19 +1698,6 @@ export default function AgentInteractionsPage() {
           }
         />
         <StudySections sections={STILL_SECTIONS} />
-
-        <SetHeader
-          title="Corner cut — auditioned in the medium"
-          blurb={
-            <>
-              Two constraints applied to the Still set: clearly scannable in a second, and
-              at home in the bottom-right. Two answers auditioned in a miniature of the
-              real corner — white card, composer seam, an overlapping done neighbor: a
-              ring that never leaves, and no ring at all, only weather.
-            </>
-          }
-        />
-        <StudySections sections={CORNER_SECTIONS} />
 
         <SetHeader
           title="Gestures — the companion lifecycle"

@@ -1073,7 +1073,6 @@ export default function AgentWorkingPage() {
               onRemove={engine.remove}
               onJump={handleJump}
               onTrace={(run) => setTraceRunId(run.id)}
-              onConceal={engine.conceal}
             />
           ) : null}
         </main>

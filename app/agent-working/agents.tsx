@@ -812,55 +812,16 @@ export function CornerStack({
   // a reorder (React moving the keyed node) can't replay the bloom.
   const [enteredIds, setEnteredIds] = useState<Set<string>>(() => new Set());
 
-  // FLIP on reorder: when the urgency sort or the shelf boundary moves
-  // bubbles, they glide from their old slots at the presence tempo —
-  // the same family as arrive/depart, so a promotion reads as an agent
-  // walking, not chrome snapping. Slides fire ONLY when the relative
-  // order of surviving bubbles or the shelf signature changes; plain
-  // layout drift (a neighbor's exit collapsing its slot, baseline
-  // refreshes on heartbeat ticks) never animates, which is what keeps
-  // moves from stuttering with catch-up corrections.
-  const stackRef = useRef<HTMLDivElement>(null);
-  const chipLefts = useRef(new Map<string, number>());
-  const prevIdsRef = useRef<string[]>([]);
-  const prevShelfSigRef = useRef<string | null>(null);
-  const shelfSig = visible.map((run) => (needsAction(run) ? "!" : ".")).join("");
-  useLayoutEffect(() => {
-    const stack = stackRef.current;
-    if (!stack) return;
-    const els = [...stack.querySelectorAll<HTMLElement>("[data-run-id]")];
-    const currentIds = els.map((el) => el.dataset.runId ?? "");
-    const survivors = prevIdsRef.current.filter((id) => currentIds.includes(id));
-    const survivorsNow = currentIds.filter((id) => survivors.includes(id));
-    const orderChanged = survivors.join("|") !== survivorsNow.join("|");
-    const shelfChanged =
-      prevShelfSigRef.current != null && prevShelfSigRef.current !== shelfSig;
-    const shouldAnimate = orderChanged || shelfChanged;
-    for (const el of els) {
-      const id = el.dataset.runId;
-      if (!id) continue;
-      const left = el.offsetLeft;
-      const prev = chipLefts.current.get(id);
-      if (shouldAnimate && prev != null && prev !== left) {
-        el.animate(
-          [{ transform: `translateX(${prev - left}px)` }, { transform: "translateX(0)" }],
-          { duration: 520, easing: "cubic-bezier(0.2, 0, 0.2, 1)" },
-        );
-      }
-      chipLefts.current.set(id, left);
-    }
-    for (const id of [...chipLefts.current.keys()]) {
-      if (!currentIds.includes(id)) chipLefts.current.delete(id);
-    }
-    prevIdsRef.current = currentIds;
-    prevShelfSigRef.current = shelfSig;
-  });
-
+  // Reorders are deliberately NOT animated: promotions and step-asides
+  // land instantly, between glances — the shelf gap, z-order, and the
+  // pulse carry the meaning, and the corner pays no motion tax for
+  // other agents' housekeeping. Entries and exits remain the only
+  // choreographed moments. (enteredIds keeps a reorder from replaying
+  // the arrival bloom when React moves a keyed bubble.)
   return (
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
     // offsets compensate so the rings still sit at right-16 / bottom-132.
     <div
-      ref={stackRef}
       className={`absolute bottom-[124px] right-2 z-40 flex items-center p-2 ${
         resting ? "aw-stack-rest" : ""
       }`}
@@ -876,7 +837,6 @@ export function CornerStack({
         return (
           <button
             key={run.id}
-            data-run-id={run.id}
             type="button"
             aria-label={`Jump to ${run.agent.name}'s invoking message`}
             onClick={() => onJumpRun(run)}

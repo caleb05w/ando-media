@@ -2365,7 +2365,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Completion wave",
         source: "three or more finish together · one shared exit",
-        note: "When completions pile up, applause stops: each finish seals quietly (no pop, no ping once three dones linger), and the wave departs TOGETHER when the eldest's linger expires — one exhale, not a drip of separate goodbyes.",
+        note: "When completions pile up, applause stops: each finish seals quietly (no pop, no ping once three dones linger), and the wave departs TOGETHER when the eldest's linger expires — one exhale, not a drip of separate goodbyes. The stage hangs from the right edge like the corner itself, so as the wave's slots close, the survivor glides down the track toward the anchor.",
         demo: <ShippedCompletionWave />,
       },
       {

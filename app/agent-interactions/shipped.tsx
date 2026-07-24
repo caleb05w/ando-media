@@ -186,11 +186,14 @@ export function ShippedStopped() {
 function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    // Finishes at 1.2/1.6/2.0s; shared depart at 3.6s; remount at 4.9s.
+    // Finishes at 1.2/1.6/2.0s; shared depart at 3.6s; remount at 6s —
+    // the 2s mist must fully rise AND close its slots (the old 4.9s
+    // remount cut the exit at 1300ms, before the slot-close phase, so
+    // the survivor never got to glide down the track).
     const timers = [1200, 1600, 2000, 3600].map((at, index) =>
       window.setTimeout(() => setTick(index + 1), at),
     );
-    const end = window.setTimeout(onCycleEnd, 4900);
+    const end = window.setTimeout(onCycleEnd, 6000);
     return () => {
       timers.forEach((id) => window.clearTimeout(id));
       window.clearTimeout(end);
@@ -198,7 +201,11 @@ function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
   }, [onCycleEnd]);
   const leaving = tick >= 4;
   return (
-    <div className="flex items-center">
+    // Right-anchored like the corner itself: the stack hangs from the
+    // row's right edge, so when the wave's slots close, the surviving
+    // worker glides down the track toward the anchor — a left-aligned
+    // stage structurally cannot show that travel.
+    <div className="flex items-center justify-end" style={{ width: 96 }}>
       {/* Production z banding: (urgency+1)*10 − index, so the working
           bubble outranks the done band and each band reads
           leftmost-on-top — whole rings, never chomped from the right. */}

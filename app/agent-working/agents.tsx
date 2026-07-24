@@ -370,9 +370,12 @@ export function useAgentEngine(
             // Conceal backstop: a run with no corner bubble (folded into
             // the +N disc) has no exit animation to fire animationend —
             // without this it would haunt the flyout as a zero-height
-            // ghost row forever. 1.5s clears every exit tempo (680ms
-            // depart, 200ms dismiss/row fade) with margin.
-            now - run.removedAt >= 1500
+            // ghost row forever. The threshold must OUTLAST the longest
+            // natural exit or it amputates visible departures mid-flight
+            // (at 1.5s it cut the 2s mist before the slot-close phase —
+            // survivors snapped over instead of gliding down the track).
+            // 2.6s = the G6 mist (2000ms) + heartbeat quantization slack.
+            now - run.removedAt >= 2600
           ) {
             changed = true;
             return { ...run, concealed: true };

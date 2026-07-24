@@ -712,16 +712,16 @@ export function SessionChips({
                 stop
               </button>
             </>
-          ) : run.status === "stopped" ? (
+          ) : (
             <>
-              {/* A stop was your own act — no CTA, just the label with a
-                  quiet chevron into the trace (flyout grammar). */}
+              {/* Resolved chips share one quiet grammar: the red label
+                  with the flyout's chevron beside it, into the trace. */}
               <button
                 type="button"
                 onClick={() => onOpenTrace(run.id)}
                 className="group/chip flex items-center gap-0.5 text-[13px] leading-4 text-[#dc2626]"
               >
-                {`Stopped by ${run.stoppedBy ?? "you"}`}
+                {run.status === "stopped" ? `Stopped by ${run.stoppedBy ?? "you"}` : "Failed"}
                 <span className="text-[#a8a29e] transition-colors group-hover/chip:text-[#58524e]">
                   <ChevronGlyph />
                 </span>
@@ -729,20 +729,6 @@ export function SessionChips({
               <span className="text-[12px] leading-4 tabular-nums text-[#a8a29e]">
                 {formatDuration(elapsedMs(run))}
               </span>
-            </>
-          ) : (
-            <>
-              <span className="text-[13px] leading-4 text-[#dc2626]">Failed</span>
-              <span className="text-[12px] leading-4 tabular-nums text-[#a8a29e]">
-                {formatDuration(elapsedMs(run))}
-              </span>
-              <button
-                type="button"
-                onClick={() => onOpenTrace(run.id)}
-                className="flex h-5 items-center rounded-[5px] border-[0.5px] border-[#e7e5e4] px-1.5 text-[11px] leading-4 text-[#58524e] transition-colors hover:bg-[#f5f5f4]"
-              >
-                trace
-              </button>
             </>
           )}
         </div>

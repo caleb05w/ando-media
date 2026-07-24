@@ -723,6 +723,176 @@ function RVPressure() {
   );
 }
 
+/* ------------------------------ overflow demos ------------------------------ */
+// Six answers to the +N question, auditioned on a white card with a
+// real bubble row. The inelegance under audit: a dark disc that
+// pretends to be an agent while carrying a numeral.
+
+const OF_FACES = [TADAO, ANDO, YUMI];
+const OF_EXTRA = [`${P}/agent-3.png`, `${P}/agent-4.png`, `${P}/agent-6.png`];
+
+function OfBubble({
+  src,
+  size = 24,
+  dim = false,
+  overlap = true,
+}: {
+  src: string;
+  size?: number;
+  dim?: boolean;
+  overlap?: boolean;
+}) {
+  return (
+    <span
+      className="relative inline-flex rounded-full"
+      style={{
+        boxShadow: "0 0 0 2px white",
+        marginLeft: overlap ? -7 : 0,
+        opacity: dim ? 0.4 : 1,
+        transform: dim ? "scale(0.88)" : undefined,
+      }}
+    >
+      <Face src={src} size={size} />
+    </span>
+  );
+}
+
+function OverflowStage({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="flex h-16 w-44 items-center justify-end rounded-[10px] border-[0.5px] bg-white pr-3"
+      style={{ borderColor: "#ebe9e8" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function OfRow() {
+  return (
+    <>
+      {OF_FACES.map((src, index) => (
+        <OfBubble key={src} src={src} overlap={index > 0} />
+      ))}
+    </>
+  );
+}
+
+function OFCount() {
+  return (
+    <OverflowStage>
+      <OfRow />
+      <span className="ml-1.5 text-[11px] leading-4" style={{ color: "#a8a29e" }}>
+        +6
+      </span>
+    </OverflowStage>
+  );
+}
+
+function OFFaces() {
+  return (
+    <OverflowStage>
+      <OfRow />
+      <span
+        className="relative ml-[-7px] inline-flex size-6 items-center justify-center rounded-full bg-white"
+        style={{ boxShadow: "0 0 0 2px white" }}
+      >
+        {OF_EXTRA.map((src, index) => (
+          <span
+            key={src}
+            className="absolute rounded-full"
+            style={{
+              left: 3 + (index % 2) * 9,
+              top: index < 2 ? 3 : 11,
+              ...(index === 2 ? { left: 7 } : null),
+            }}
+          >
+            <Face src={src} size={10} />
+          </span>
+        ))}
+      </span>
+    </OverflowStage>
+  );
+}
+
+function OFGhost() {
+  return (
+    <OverflowStage>
+      <OfRow />
+      <OfBubble src={OF_EXTRA[0]} dim />
+    </OverflowStage>
+  );
+}
+
+function OFStack() {
+  return (
+    <OverflowStage>
+      <OfRow />
+      {/* two ring slivers peeking from behind the last bubble */}
+      <span className="relative inline-flex">
+        <span
+          className="absolute rounded-full border"
+          style={{
+            width: 24,
+            height: 24,
+            right: -5,
+            top: 0,
+            borderColor: "#d6d3d1",
+            zIndex: -1,
+          }}
+        />
+        <span
+          className="absolute rounded-full border"
+          style={{
+            width: 24,
+            height: 24,
+            right: -9,
+            top: 0,
+            borderColor: "#ebe9e8",
+            zIndex: -2,
+          }}
+        />
+      </span>
+    </OverflowStage>
+  );
+}
+
+function OFGauge() {
+  return (
+    <OverflowStage>
+      <OfRow />
+      <span className="relative ml-1.5 inline-flex w-5 text-[11px] leading-4">
+        <span className="of-gauge-six absolute inset-0" style={{ color: "#a8a29e" }}>
+          +6
+        </span>
+        <span className="of-gauge-five absolute inset-0">+5</span>
+      </span>
+    </OverflowStage>
+  );
+}
+
+function OFDense() {
+  return (
+    <div className="flex flex-col gap-2">
+      <OverflowStage>
+        <OfRow />
+        <span className="ml-1.5 text-[11px] leading-4" style={{ color: "#a8a29e" }}>
+          +3
+        </span>
+      </OverflowStage>
+      <OverflowStage>
+        {[...OF_FACES, ...OF_EXTRA].map((src, index) => (
+          <span key={src} style={{ marginLeft: index > 0 ? -12 : 0 }} className="inline-flex rounded-full" >
+            <span className="inline-flex rounded-full" style={{ boxShadow: "0 0 0 2px white" }}>
+              <Face src={src} size={24} />
+            </span>
+          </span>
+        ))}
+      </OverflowStage>
+    </div>
+  );
+}
+
 /* --------------------------- thinking-state demos --------------------------- */
 // Field notes: the six ways the industry shows "thinking", rebuilt
 // small so Ando's answers are chosen against the field.
@@ -1369,7 +1539,7 @@ type Study = {
   baseline?: boolean;
 };
 
-type Section = { heading: string; blurb: string; studies: Study[] };
+type Section = { heading: string; blurb: string; studies: Study[]; id?: string };
 
 // Still — calmer working states. No rotation, no dashes; the question
 // each study asks is how little motion "thinking" can survive on.
@@ -1435,6 +1605,7 @@ const STILL_SECTIONS: Section[] = [
 // completion, how it fails to hold is failure.
 const RING_SECTIONS: Section[] = [
   {
+    id: "ring-completion",
     heading: "1 · Completion",
     blurb: "Ten ways the ring can say done.",
     studies: [
@@ -1501,6 +1672,7 @@ const RING_SECTIONS: Section[] = [
     ],
   },
   {
+    id: "ring-failure",
     heading: "2 · Failure — urgency",
     blurb: "Ten timing and halo studies for a danger that must be felt. Continuous loops — judge the standing pull.",
     studies: [
@@ -1563,6 +1735,52 @@ const RING_SECTIONS: Section[] = [
         source: "halo · sawtooth build · 2.5s",
         note: "The halo builds slowly brighter and wider, releases, and starts again — tension that never resolves. The most unsettling of the ten at the lowest tempo.",
         demo: <RVPressure />,
+      },
+    ],
+  },
+];
+
+// Overflow — six answers to the +N question.
+const OVERFLOW_SECTIONS: Section[] = [
+  {
+    heading: "Candidates",
+    blurb: "The dark disc pretends to be an agent while carrying a numeral — six ways out.",
+    studies: [
+      {
+        title: "Naked count",
+        source: "no container · lightest ink",
+        note: "A bare gray +6 sitting quietly after the last bubble. The number stops cosplaying as a bubble and becomes what it is: chrome.",
+        demo: <OFCount />,
+      },
+      {
+        title: "Micro-face cluster",
+        source: "identity-forward",
+        note: "The overflow slot glimpses who is folded, not just how many — agents never reduce to a number. The exact count lives in the flyout header, where it always was.",
+        demo: <OFFaces />,
+      },
+      {
+        title: "Ghost continuation",
+        source: "the row continues into fog",
+        note: "The next agent's actual bubble at 40%, slightly small — overflow as atmosphere instead of arithmetic. The only option that keeps the corner entirely made of agents.",
+        demo: <OFGhost />,
+      },
+      {
+        title: "Card-stack depth",
+        source: "the most Ma · least informative",
+        note: "Two ring slivers peeking from behind the last bubble — more behind, said spatially, zero numerals.",
+        demo: <OFStack />,
+      },
+      {
+        title: "Live gauge",
+        source: "the count as instrument",
+        note: "The number tick-downs with a brief green tint when a hidden run completes. Elegance through function — the number draining is the progress readout.",
+        demo: <OFGauge />,
+      },
+      {
+        title: "Elastic density",
+        source: "delay the problem",
+        note: "Compress the overlap as the roster grows (−8 → −12) so six or seven fit before truncating at all. Often the indicator never appears; pairs with any of the above.",
+        demo: <OFDense />,
       },
     ],
   },
@@ -2014,12 +2232,18 @@ const SECTIONS: Section[] = [
 function SetHeader({
   title,
   blurb,
+  id,
 }: {
   title: string;
   blurb: React.ReactNode;
+  id?: string;
 }) {
   return (
-    <div className="mt-16 border-t pt-8 first:mt-10 first:border-t-0 first:pt-0" style={{ borderColor: STROKE_WEAK }}>
+    <div
+      id={id}
+      className="mt-16 scroll-mt-8 border-t pt-8 first:mt-10 first:border-t-0 first:pt-0"
+      style={{ borderColor: STROKE_WEAK }}
+    >
       <h2 className="text-[13px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
         {title}
       </h2>
@@ -2034,7 +2258,7 @@ function StudySections({ sections }: { sections: Section[] }) {
   return (
     <>
       {sections.map((section) => (
-          <section key={section.heading} className="mt-12">
+          <section key={section.heading} id={section.id} className="mt-12 scroll-mt-8">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h2
                 className="text-[11px] font-medium uppercase leading-[14px] tracking-[1.1px]"
@@ -2140,9 +2364,63 @@ const SHIPPED_SECTIONS: Section[] = [
   },
 ];
 
+// Sidebar: the explorations, grouped. Anchor links into the long scroll.
+const NAV_GROUPS: Array<{ label: string; items: Array<[string, string]> }> = [
+  { label: "Live", items: [["Shipped lifecycle", "#shipped"]] },
+  {
+    label: "Verdicts",
+    items: [
+      ["Completion — ring", "#ring-completion"],
+      ["Failure — urgency", "#ring-failure"],
+    ],
+  },
+  { label: "Corner", items: [["Overflow +N", "#overflow"]] },
+  {
+    label: "Research",
+    items: [
+      ["Thinking states", "#thinking"],
+      ["Color intent", "#color"],
+    ],
+  },
+  {
+    label: "Working studies",
+    items: [
+      ["Still", "#still"],
+      ["Gestures", "#gestures"],
+      ["Outside", "#outside"],
+      ["Ma — water & silence", "#ma"],
+    ],
+  },
+  { label: "Archive", items: [["Kinetic references", "#kinetic"]] },
+];
+
 export default function AgentInteractionsPage() {
   return (
-    <div className="flex flex-1 justify-center bg-white">
+    <div className="flex flex-1 justify-center gap-2 bg-white">
+      <aside className="sticky top-0 hidden max-h-screen w-44 shrink-0 self-start overflow-y-auto pb-24 pl-6 pt-24 lg:block">
+        <nav className="flex flex-col gap-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="flex flex-col gap-1.5">
+              <span
+                className="text-[10px] font-medium uppercase leading-3 tracking-[1px]"
+                style={{ color: "#a8a29e" }}
+              >
+                {group.label}
+              </span>
+              {group.items.map(([label, href]) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="text-[12px] leading-4 transition-colors hover:text-[#1a1817]"
+                  style={{ color: FG_TERTIARY }}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </aside>
       <main className="w-full max-w-4xl px-6 pb-24 pt-24">
         <h1 className="text-[14px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
           Agent motion — state studies
@@ -2155,6 +2433,7 @@ export default function AgentInteractionsPage() {
         </p>
 
         <SetHeader
+          id="shipped"
           title="Shipped — the states live on /agent-working"
           blurb={
             <>
@@ -2180,6 +2459,21 @@ export default function AgentInteractionsPage() {
         <StudySections sections={RING_SECTIONS} />
 
         <SetHeader
+          id="overflow"
+          title="Overflow — the +N question"
+          blurb={
+            <>
+              How should the corner say &ldquo;more agents than fit&rdquo;? The current
+              answer — a dark disc with a numeral — pretends to be an agent while carrying
+              the least agent-like content possible. Six candidates, most literal to most
+              Ma, auditioned on the white card with a real bubble row.
+            </>
+          }
+        />
+        <StudySections sections={OVERFLOW_SECTIONS} />
+
+        <SetHeader
+          id="thinking"
           title="Thinking states — field notes"
           blurb={
             <>
@@ -2193,6 +2487,7 @@ export default function AgentInteractionsPage() {
         <StudySections sections={THINKING_SECTIONS} />
 
         <SetHeader
+          id="color"
           title="Color intent"
           blurb={
             <>
@@ -2215,6 +2510,7 @@ export default function AgentInteractionsPage() {
         </div>
 
         <SetHeader
+          id="still"
           title="Still — calmer working states"
           blurb={
             <>
@@ -2228,6 +2524,7 @@ export default function AgentInteractionsPage() {
         <StudySections sections={STILL_SECTIONS} />
 
         <SetHeader
+          id="gestures"
           title="Gestures — the companion lifecycle"
           blurb={
             <>
@@ -2240,6 +2537,7 @@ export default function AgentInteractionsPage() {
         <StudySections sections={GESTURE_SECTIONS} />
 
         <SetHeader
+          id="outside"
           title="Outside — a landscape of companions"
           blurb={
             <>
@@ -2253,6 +2551,7 @@ export default function AgentInteractionsPage() {
         <StudySections sections={OUTSIDE_SECTIONS} />
 
         <SetHeader
+          id="ma"
           title="Ma — water & silence"
           blurb={
             <>
@@ -2266,6 +2565,7 @@ export default function AgentInteractionsPage() {
         <StudySections sections={MA_SECTIONS} />
 
         <SetHeader
+          id="kinetic"
           title="Kinetic references"
           blurb="The earliest exploration — Dynamic Island, watchOS breathe, Chrome downloads. Louder language, kept for contrast."
         />

@@ -2747,3 +2747,46 @@
 .ts-dot-running {
   animation: ts-dot 1.2s ease-in-out infinite;
 }
+
+/* ================= Overflow — the +N question (of-) =================
+   The live gauge: the count itself is the instrument. +6 swaps to +5
+   with a brief green tint when a hidden run completes, then back —
+   the number draining IS the progress readout. */
+@keyframes of-gauge-six {
+  0%,
+  46% {
+    opacity: 1;
+  }
+  52%,
+  94% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes of-gauge-five {
+  0%,
+  46% {
+    opacity: 0;
+    color: #16a34a;
+  }
+  52% {
+    opacity: 1;
+    color: #16a34a;
+  }
+  62%,
+  94% {
+    opacity: 1;
+    color: #a8a29e;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.of-gauge-six {
+  animation: of-gauge-six 6s ease-in-out infinite;
+}
+.of-gauge-five {
+  animation: of-gauge-five 6s ease-in-out infinite;
+}

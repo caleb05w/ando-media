@@ -372,10 +372,10 @@ export function useAgentEngine(
             // without this it would haunt the flyout as a zero-height
             // ghost row forever. The threshold must OUTLAST the longest
             // natural exit or it amputates visible departures mid-flight
-            // (at 1.5s it cut the 2s mist before the slot-close phase —
-            // survivors snapped over instead of gliding down the track).
-            // 2.6s = the G6 mist (2000ms) + heartbeat quantization slack.
-            now - run.removedAt >= 2600
+            // (at 1.5s it once cut the mist before its close finished —
+            // survivors snapped instead of gliding down the track).
+            // 2.2s = the mist (1600ms) + heartbeat quantization slack.
+            now - run.removedAt >= 2200
           ) {
             changed = true;
             return { ...run, concealed: true };

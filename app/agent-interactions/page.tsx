@@ -2389,7 +2389,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Depart",
         source: "aw-chip-out · mist rises, rotated to the row's door",
-        note: "The Gestures Depart (G6), promoted at board tempo: dismissed, the bubble becomes weather — fade, 2.5px blur, 1.05 swell — drifting rightward instead of up, out the row's own exit. The slot closes across the ENTIRE 2s, synchronized with the drift: the departing face rides its collapsing slot right while it evaporates, and the neighbors flow right with it from frame zero — transforms don't move layout, so the width moves WITH the mist, never after it. Sixth cut: earlier exits had mechanics but no gesture; then a gesture the row waited on. Release, together.",
+        note: "The Gestures Depart (G6), promoted and tuned: dismissed, the bubble becomes weather — fade, 2.5px blur, 1.05 swell — drifting 3px rightward instead of up, out the row's own exit. The slot closes across the ENTIRE 1.6s, synchronized with the drift: the departing face rides its collapsing slot right while it evaporates, and the neighbors flow right with it from frame zero — transforms don't move layout, so the width moves WITH the mist, never after it. Tempo settled between the 680ms goodbye and the board loop's 2s; drift halved from the study's 6px. Release, together.",
         demo: <ShippedDepart />,
       },
       {

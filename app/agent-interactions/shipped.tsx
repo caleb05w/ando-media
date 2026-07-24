@@ -187,9 +187,8 @@ function WaveCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     // Finishes at 1.2/1.6/2.0s; shared depart at 3.6s; remount at 6s —
-    // the 2s mist must fully rise AND close its slots (the old 4.9s
-    // remount cut the exit at 1300ms, before the slot-close phase, so
-    // the survivor never got to glide down the track).
+    // comfortably past the 1.6s mist (a remount mid-exit amputates the
+    // glide; it happened once at 4.9s and the survivor never traveled).
     const timers = [1200, 1600, 2000, 3600].map((at, index) =>
       window.setTimeout(() => setTick(index + 1), at),
     );

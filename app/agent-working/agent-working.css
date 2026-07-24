@@ -85,30 +85,35 @@
 }
 
 /* Flyout rows render settled — the panel pop is the only entrance.
-   Two-phase exit: fade the row, then collapse the space it held so the
-   panel height eases instead of snapping when the row unmounts. */
+   Exit speaks the depart language, unified with the corner bubble's
+   aw-chip-out: the same 880ms, the same reversed-arrival curve, the
+   same fade/blur/shrink — anchored at the avatar side — while the
+   space the row held closes over the back half. One farewell,
+   both surfaces. */
 @keyframes aw-row-out {
   0% {
     opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
     max-height: 52px;
   }
   45% {
-    opacity: 0;
-    transform: translateY(3px) scale(0.98);
     max-height: 52px;
   }
   100% {
     opacity: 0;
-    transform: translateY(3px) scale(0.98);
+    transform: translateY(1px) scale(0.45);
+    filter: blur(2.5px);
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
   }
 }
 .aw-row-out {
-  animation: aw-row-out 260ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: aw-row-out 880ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
   pointer-events: none;
   overflow: hidden;
+  transform-origin: left center;
 }
 
 /* Corner bubbles condense into presence and dissolve out of it — promoted

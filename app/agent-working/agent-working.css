@@ -275,27 +275,19 @@
    no phases, no stagger — so the next row's × arrives under the cursor
    at click speed. Serial closing feels like flicking cards off a deck. */
 @keyframes aw-row-cut {
-  0% {
+  from {
     opacity: 1;
-    transform: translateX(0);
     max-height: 52px;
   }
-  /* Opacity holds while the row starts moving — the rightward LEAVE
-     must read before the fade lands, or a dismissal is just a
-     disappearance. Same grammar as the corner chip's dismiss. */
-  35% {
-    opacity: 1;
-  }
-  100% {
+  to {
     opacity: 0;
-    transform: translateX(8px);
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
   }
 }
 .aw-row-cut {
-  animation: aw-row-cut 200ms ease-out forwards;
+  animation: aw-row-cut 150ms ease-out forwards;
   pointer-events: none;
   overflow: hidden;
 }
@@ -408,56 +400,49 @@
   animation: aw-chip-out-overlap 1600ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 
-/* User delete: the depart grammar at click speed — 200ms of the same
-   rightward leaving (slot ride + 1.5px drift), opacity held through
-   the first 35% so the direction actually reads before the fade
-   lands. Quick and obedient, but it LEAVES rather than disappears.
-   The corner bubble is the single conceal source: it is always
-   mounted, while the flyout may not be. */
+/* User delete: DELETION, not departure — the two exit registers, on
+   purpose. A natural depart LEAVES rightward (mist, ride, release); a
+   dismissal is your erasure and must NOT share that grammar: no
+   direction, no travel, no drift — it just disappears, one quick
+   150ms fade with the slot closing in parallel. (This was gotten
+   wrong twice — rightward motion added to dismissals reads as the
+   agent leaving of its own accord. It didn't. You deleted it.) The
+   corner bubble is the single conceal source: it is always mounted,
+   while the flyout may not be. */
 @keyframes aw-chip-dismiss {
-  0% {
+  from {
     opacity: 1;
     width: 30px;
-    transform: translateX(0);
   }
-  35% {
-    opacity: 1;
-  }
-  100% {
+  to {
     opacity: 0;
     width: 0px;
     margin-left: 0;
-    transform: translateX(1.5px);
   }
 }
 @keyframes aw-chip-dismiss-overlap {
-  0% {
+  from {
     opacity: 1;
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
-    transform: translateX(0);
   }
-  35% {
-    opacity: 1;
-  }
-  100% {
+  to {
     opacity: 0;
     width: 0px;
     margin-left: 0;
-    transform: translateX(1.5px);
   }
 }
 .aw-chip-dismiss,
 .aw-chip-dismiss-overlap {
   pointer-events: none;
 }
-/* 200ms to the row cut's 150: the row settles first, conceal (fired
-   from here) lands a frame later. */
+/* Matches the row cut: fade and slot close in parallel, 150ms, so
+   conceal (fired from here) lands the moment the list has settled. */
 .aw-chip-dismiss {
-  animation: aw-chip-dismiss 200ms ease-out forwards;
+  animation: aw-chip-dismiss 150ms ease-out forwards;
 }
 .aw-chip-dismiss-overlap {
-  animation: aw-chip-dismiss-overlap 200ms ease-out forwards;
+  animation: aw-chip-dismiss-overlap 150ms ease-out forwards;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

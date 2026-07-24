@@ -40,6 +40,7 @@ function ShippedBubble({
   ping = false,
   overlap,
   z,
+  promoteDelayMs,
   onExited,
 }: {
   status: RunStatus;
@@ -51,6 +52,8 @@ function ShippedBubble({
   overlap?: number;
   /** Explicit stack layer, matching CornerStack's urgency banding. */
   z?: number;
+  /** Forwarded failure staging (see RingedFace). */
+  promoteDelayMs?: number;
   onExited?: () => void;
 }) {
   return (
@@ -63,7 +66,15 @@ function ShippedBubble({
         if (event.animationName === "aw-chip-out") onExited?.();
       }}
     >
-      <RingedFace agent={agent} status={status} size={30} strokeWidth={2} disc failPulse />
+      <RingedFace
+        agent={agent}
+        status={status}
+        size={30}
+        strokeWidth={2}
+        disc
+        failPulse
+        promoteDelayMs={promoteDelayMs}
+      />
       {status === "done" && ping ? (
         <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
       ) : null}
@@ -235,6 +246,7 @@ function PromotionCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
               status={status}
               overlap={index > 0 ? -8 : 0}
               z={(status === "failed" ? 4 : 2) * 10 - index}
+              promoteDelayMs={560}
             />
           </div>
         );

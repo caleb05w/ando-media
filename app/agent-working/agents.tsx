@@ -601,6 +601,7 @@ export function RingedFace({
   strokeWidth = 1.5,
   disc = false,
   failPulse = false,
+  promoteDelayMs,
 }: {
   agent: AgentDef;
   status: RunStatus;
@@ -609,11 +610,18 @@ export function RingedFace({
   disc?: boolean;
   /** Corner attention grammar: the red verdict ring breathes while failed. */
   failPulse?: boolean;
+  /** Failure staging: hold the working face for this long after the
+      status flips (the promotion travel), so the red verdict lands at
+      the destination — cause first, then effect. */
+  promoteDelayMs?: number;
 }) {
   // "Adjust state during render" pattern — detect the status flip without
   // an effect, so the seal overlay mounts on the exact transition frame.
   const [prevStatus, setPrevStatus] = useState(status);
   const [seal, setSeal] = useState<RunStatus | null>(null);
+  // A freshly-failed bubble travels first: pendingFail keeps the working
+  // face through the journey; a timer then runs the seal at arrival.
+  const [pendingFail, setPendingFail] = useState(false);
   // Phase-lock delays, computed once at element mount (see syncDelay).
   const [sync] = useState(() => ({ breathe: syncDelay(4000), comet: syncDelay(1600) }));
   // Success pop is sequenced after the seal (aw-after-seal), so it outlives
@@ -623,8 +631,12 @@ export function RingedFace({
   if (prevStatus !== status) {
     setPrevStatus(status);
     if (prevStatus === "working") {
-      setSeal(status);
-      if (status === "done") setCelebrate(true);
+      if (status === "failed" && promoteDelayMs != null) {
+        setPendingFail(true);
+      } else {
+        setSeal(status);
+        if (status === "done") setCelebrate(true);
+      }
     } else if (status === "working") {
       // Rerun kicking back in — clear any leftover seal, pop the ring.
       setSeal(null);
@@ -632,9 +644,22 @@ export function RingedFace({
       setRestarted(true);
     }
   }
+  // If the run leaves failed while still traveling (rerun), abandon the
+  // staged verdict.
+  if (pendingFail && status !== "failed") setPendingFail(false);
+  useEffect(() => {
+    if (!pendingFail) return;
+    const timer = window.setTimeout(() => {
+      setPendingFail(false);
+      setSeal("failed");
+    }, promoteDelayMs ?? 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingFail, promoteDelayMs]);
 
   const center = size / 2;
-  const working = status === "working";
+  // While the verdict is staged, the bubble still wears its working face.
+  const effStatus: RunStatus = pendingFail ? "working" : status;
+  const working = effStatus === "working";
   // Failed and stopped share one ring: same weight, same geometry —
   // the throb is the only thing that separates them.
   const radius = center - strokeWidth / 2;
@@ -697,7 +722,7 @@ export function RingedFace({
         <svg
           width={size}
           height={size}
-          className={`absolute inset-0 ${failPulse && status === "failed" ? "aw-fail-throb" : ""}`}
+          className={`absolute inset-0 ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
           aria-hidden
         >
           <circle
@@ -706,7 +731,7 @@ export function RingedFace({
             r={radius}
             fill="none"
             strokeWidth={strokeWidth}
-            stroke={RING_COLOR[seal ?? status]}
+            stroke={RING_COLOR[seal ?? effStatus]}
             strokeLinecap="round"
             className={seal != null ? "aw-seal-draw" : ""}
             strokeDasharray={seal != null ? circumference : undefined}
@@ -1010,7 +1035,17 @@ export function CornerStack({
             {/* failPulse: the red verdict ring breathes in place until the
                 failure is addressed. Failed only — a stop was the user's
                 own act, so it rests. */}
-            <RingedFace agent={run.agent} status={run.status} size={30} strokeWidth={2} disc failPulse />
+            <RingedFace
+              agent={run.agent}
+              status={run.status}
+              size={30}
+              strokeWidth={2}
+              disc
+              failPulse
+              // The verdict waits out the promotion travel and lands at
+              // the front — red appears where you're already looking.
+              promoteDelayMs={560}
+            />
             {/* Completion ping — mounts exactly when the run turns green. */}
             {run.status === "done" ? (
               <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />

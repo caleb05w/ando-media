@@ -881,16 +881,69 @@ export function CornerStack({
   // a reorder (React moving the keyed node) can't replay the bloom.
   const [enteredIds, setEnteredIds] = useState<Set<string>>(() => new Set());
 
-  // Reorders are deliberately NOT animated: promotions and step-asides
-  // land instantly, between glances — the shelf gap, z-order, and the
-  // pulse carry the meaning, and the corner pays no motion tax for
-  // other agents' housekeeping. Entries and exits remain the only
-  // choreographed moments. (enteredIds keeps a reorder from replaying
-  // the arrival bloom when React moves a keyed bubble.)
+  // Reorders are NOT animated — with one exception. Housekeeping
+  // (completions stepping aside, density shifts, stops you initiated)
+  // lands instantly, between glances: no motion tax. But a run FAILING
+  // is a signal, not housekeeping — the bubble travels to the
+  // requires-action shelf in the Dynamic Island grammar: picked up
+  // (slight lift), carried over the stack (it already owns the top
+  // z), and set down at the front, while displaced neighbors slide
+  // plainly. (enteredIds keeps any reorder from replaying the arrival
+  // bloom when React moves a keyed bubble.)
+  const stackRef = useRef<HTMLDivElement>(null);
+  const chipLefts = useRef(new Map<string, number>());
+  const prevStatusRef = useRef(new Map<string, RunStatus>());
+  useLayoutEffect(() => {
+    const stack = stackRef.current;
+    if (!stack) return;
+    const freshFailed = new Set<string>();
+    for (const run of visible) {
+      const prev = prevStatusRef.current.get(run.id);
+      if (run.status === "failed" && prev != null && prev !== "failed") {
+        freshFailed.add(run.id);
+      }
+    }
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const els = [...stack.querySelectorAll<HTMLElement>("[data-run-id]")];
+    for (const el of els) {
+      const id = el.dataset.runId;
+      if (!id) continue;
+      const left = el.offsetLeft;
+      const prevLeft = chipLefts.current.get(id);
+      if (!reduceMotion && freshFailed.size > 0 && prevLeft != null && prevLeft !== left) {
+        const dx = prevLeft - left;
+        if (freshFailed.has(id)) {
+          // The promotion itself: spring travel with a mid-flight lift.
+          el.animate(
+            [
+              { transform: `translateX(${dx}px) scale(1)` },
+              { transform: `translateX(${dx * 0.35}px) scale(1.07)`, offset: 0.55 },
+              { transform: "translateX(0) scale(1)" },
+            ],
+            { duration: 560, easing: "cubic-bezier(0.3, 0, 0.2, 1)" },
+          );
+        } else {
+          // Displaced neighbors step aside without ceremony.
+          el.animate(
+            [{ transform: `translateX(${dx}px)` }, { transform: "translateX(0)" }],
+            { duration: 300, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+          );
+        }
+      }
+      chipLefts.current.set(id, left);
+    }
+    const ids = new Set(els.map((el) => el.dataset.runId));
+    for (const id of [...chipLefts.current.keys()]) {
+      if (!ids.has(id)) chipLefts.current.delete(id);
+    }
+    prevStatusRef.current = new Map(visible.map((run) => [run.id, run.status]));
+  });
+
   return (
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
     // offsets compensate so the rings still sit at right-16 / bottom-132.
     <div
+      ref={stackRef}
       className={`absolute bottom-[124px] right-2 z-40 flex items-center p-2 ${
         resting ? "aw-stack-rest" : ""
       }`}
@@ -906,6 +959,7 @@ export function CornerStack({
         return (
           <button
             key={run.id}
+            data-run-id={run.id}
             type="button"
             aria-label={`Jump to ${run.agent.name}'s invoking message`}
             onClick={() => onJumpRun(run)}

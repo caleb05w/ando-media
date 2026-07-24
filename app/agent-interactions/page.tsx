@@ -1405,8 +1405,8 @@ const RING_SECTIONS: Section[] = [
       },
       {
         title: "Urgent breath",
-        source: "timing only · 0.9s to 0.3",
-        note: "The serene pulse, forced: same sine shape, three times the tempo, twice the depth. The purest test of whether timing alone carries alarm.",
+        source: "timing only · 0.9s to 0.3 — shipped",
+        note: "The serene pulse, forced: same sine shape, three times the tempo, twice the depth. Timing alone carries the alarm. Now the failure pulse on /agent-working.",
         demo: <RVBreath />,
       },
       {
@@ -1961,7 +1961,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Not completed — failed",
         source: "seal → shake → throb",
-        note: "Red draws closed with a jolt, then the ring breathes — slow, shallow, serene (2.4s, to 0.45). Position at the front of the stack carries the urgency; the pulse just says still here. Loops until addressed.",
+        note: "Red draws closed with a jolt, then the ring breathes urgently — the working sine at 0.9s, dipping to 0.3. Timing alone carries the alarm; the front-of-stack position seconds it. Loops until addressed.",
         demo: <ShippedFailed />,
       },
       {

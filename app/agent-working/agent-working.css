@@ -414,21 +414,21 @@
   animation: aw-shake 320ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-/* Failure pulse: the ring stays where it sealed and breathes — a slow,
-   shallow, serene pulse. Position (front of the stack) carries the
-   urgency now; the pulse only has to say "still here", peacefully.
-   The 450ms delay lets the seal draw at full strength first. */
+/* Failure pulse — the board's "Urgent breath": the working breathe's
+   sine shape at triple tempo and double depth. Same gesture family as
+   everything else on the page, but the tempo alone says something is
+   wrong. The 450ms delay lets the seal draw at full strength first. */
 @keyframes aw-fail-throb {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.45;
+    opacity: 0.3;
   }
 }
 .aw-fail-throb {
-  animation: aw-fail-throb 2.4s ease-in-out 450ms infinite;
+  animation: aw-fail-throb 0.9s ease-in-out 450ms infinite;
 }
 
 /* Completion ping: a green ring rolls off a bubble after the seal closes

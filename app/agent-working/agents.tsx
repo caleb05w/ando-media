@@ -13,7 +13,7 @@
 //     no Complete tab). Rows: ringed avatar, live status line (chevron →
 //     trace modal), "↳ invoking message" sub-line, elapsed time that swaps
 //     to controls on hover (stop / rerun / remove). Row click jumps to the
-//     source message. Completed rows linger 5s, then fade away — the posted
+//     source message. Completed rows linger 2s, then fade away — the posted
 //     answer is the durable record. 4-row window with a "Showing 4 of N
 //     agents" pager that only renders at 5+ rows.
 //
@@ -339,8 +339,9 @@ export function useAgentEngine(
   }, []);
 
   // 1s heartbeat: advances elapsed displays, resolves finished runs, and
-  // fades lingering done runs out of the flyout after 5s (per the spec
-  // annotation) — the posted answer is the durable record.
+  // fades lingering done runs out after 2s — long enough to catch the
+  // green, short enough that the corner never collects trophies. The
+  // posted answer is the durable record.
   useEffect(() => {
     const timer = setInterval(() => {
       setTick((t) => t + 1);
@@ -365,7 +366,10 @@ export function useAgentEngine(
             run.status === "done" &&
             !run.removed &&
             run.doneAt != null &&
-            now - run.doneAt > 5000
+            // >= : doneAt is set on a heartbeat, so the 2s mark lands
+            // exactly on a later tick — strict > would wait a full extra
+            // second.
+            now - run.doneAt >= 2000
           ) {
             changed = true;
             return { ...run, removed: true };

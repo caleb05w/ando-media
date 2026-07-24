@@ -43,8 +43,10 @@
 
 /* Working comet — the Kinetic set's W2, promoted to be the working state
    itself (it replaced the dashed ring): one bright head with a fading
-   tail on a 1.6s orbit, head softened (0.6 peak, decay on both sides,
-   half-pixel blur). Two hue modes, flipped by a root class: brand blue
+   tail on a 1.6s orbit, head softened by the gradient decay alone —
+   the spec's half-pixel blur was cut: at 30px the softened band hugs
+   the portrait so closely it read as a blurry avatar edge, and the
+   crisp ring reads better. Two hue modes, flipped by a root class: brand blue
    (#2563EB, the page's activity color) by default, or each agent's own
    portrait tone via --aw-tint when .aw-hue-portrait is set on the page.
    Placed before aw-ring-fade so the fade's shorthand wins during the
@@ -75,7 +77,6 @@
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  filter: blur(0.5px);
   /* Linear: a steady orbit, no per-lap hitch — the motion itself is the
      signal, so it keeps a constant pace. */
   animation: aw-comet 1.6s linear infinite;

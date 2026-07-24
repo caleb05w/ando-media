@@ -801,10 +801,51 @@ export function CornerStack({
   const windowSet = ranked.slice(0, overflowing ? 3 : 4);
   const visible = windowSet;
   const hidden = ranked.slice(overflowing ? 3 : 4);
+
+  // Entry plays once: after aw-chip-in finishes the class comes off, so
+  // a reorder (React moving the keyed node) can't replay the bloom.
+  const [enteredIds, setEnteredIds] = useState<Set<string>>(() => new Set());
+
+  // FLIP on reorder: when the urgency sort moves a bubble (a status
+  // just changed), slide it from its old slot instead of teleporting —
+  // the promotion to the front is something you watch happen. Skipped
+  // while any chip entry/exit is actually running; those own the space.
+  const stackRef = useRef<HTMLDivElement>(null);
+  const chipLefts = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const stack = stackRef.current;
+    if (!stack) return;
+    const busy = stack
+      .getAnimations({ subtree: true })
+      .some((a) => {
+        const name = a instanceof CSSAnimation ? a.animationName : "";
+        return name.startsWith("aw-chip") && a.playState === "running";
+      });
+    const seen = new Set<string>();
+    for (const el of stack.querySelectorAll<HTMLElement>("[data-run-id]")) {
+      const id = el.dataset.runId;
+      if (!id) continue;
+      seen.add(id);
+      const left = el.offsetLeft;
+      const prev = chipLefts.current.get(id);
+      if (!busy && prev != null && prev !== left) {
+        el.animate(
+          [{ transform: `translateX(${prev - left}px)` }, { transform: "translateX(0)" }],
+          { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+        );
+      }
+      chipLefts.current.set(id, left);
+    }
+    for (const id of [...chipLefts.current.keys()]) {
+      if (!seen.has(id)) chipLefts.current.delete(id);
+    }
+  });
+
   return (
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
     // offsets compensate so the rings still sit at right-16 / bottom-132.
     <div
+      ref={stackRef}
       className={`absolute bottom-[124px] right-2 z-40 flex items-center p-2 ${
         resting ? "aw-stack-rest" : ""
       }`}
@@ -814,15 +855,16 @@ export function CornerStack({
       {visible.map((run, index) => (
         <button
           key={run.id}
+          data-run-id={run.id}
           type="button"
           aria-label={`Jump to ${run.agent.name}'s invoking message`}
           onClick={() => onJumpRun(run)}
-          // Condense in when a run spawns. Natural departures dissolve out
-          // with the condensation farewell (overlapped bubbles hold their −8
-          // margin so the face doesn't slide right mid-exit); a user delete
-          // instead leaves with the flyout row's quick fade. Conceal on
+          // Condense in when a run spawns (once — the class drops after
+          // the bloom so reorders can't replay it). Natural departures
+          // dissolve out with the condensation farewell; a user delete
+          // leaves with the flyout row's quick fade. Conceal on
           // animationend closes the gap either way.
-          className={`relative flex rounded-full ${
+          className={`aw-corner-chip relative flex rounded-full ${
             run.removed
               ? run.dismissed
                 ? index > 0
@@ -831,17 +873,31 @@ export function CornerStack({
                 : index > 0
                   ? "aw-chip-out-overlap"
                   : "aw-chip-out"
-              : "aw-chip-in"
+              : enteredIds.has(run.id)
+                ? ""
+                : "aw-chip-in"
           }`}
           onAnimationEnd={(event) => {
+            if (event.animationName === "aw-chip-in") {
+              setEnteredIds((prev) => {
+                const next = new Set(prev);
+                next.add(run.id);
+                return next;
+              });
+            }
             if (event.animationName.startsWith("aw-chip-out") || event.animationName.startsWith("aw-chip-dismiss"))
               onConceal(run.id);
           }}
           // Overlap lives on each bubble's own left margin so appending a
           // newcomer never touches an existing bubble's styles (no snap).
+          // z-order follows urgency, not position — the failed bubble
+          // leads the row AND overlaps its neighbor, never tucked behind;
+          // it also lifts 3px off the baseline (broken rank).
           style={{
             marginLeft: index > 0 ? -8 : 0,
             boxShadow: "0 0 0 2px white",
+            zIndex: urgency(run) + 1,
+            top: run.status === "failed" ? -3 : 0,
           }}
         >
           {/* failPulse: the red verdict ring breathes in place until the

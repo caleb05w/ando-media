@@ -309,8 +309,12 @@
    becomes weather — fading, blurring 2.5px, swelling 1.05 — and drifts
    6px RIGHTWARD instead of up, out the row's own door. At the board's
    own tempo: the vapor takes 1620ms to rise (G6's 30-55% segment of
-   6.5s, kept 1:1 like the arrival's 880ms bloom), then the empty slot
-   closes under it. Departure is release, not deletion. */
+   6.5s, kept 1:1 like the arrival's 880ms bloom). The slot does NOT
+   wait for the vapor's imperceptible tail — the fade is ~93% done by
+   55%, so the close starts there (under a ~7% ghost) and glides
+   through 100%: the eye follows the mist rightward and the track
+   flows right behind it, one continuous current, no dead beat of
+   empty slots hanging open. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
@@ -318,8 +322,10 @@
     transform: translateX(0) scale(1);
     filter: blur(0px);
   }
-  81% {
+  55% {
     width: 30px;
+  }
+  81% {
     opacity: 0;
     transform: translateX(6px) scale(1.05);
     filter: blur(2.5px);
@@ -343,9 +349,11 @@
     transform: translateX(0) scale(1);
     filter: blur(0px);
   }
-  81% {
+  55% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
+  }
+  81% {
     opacity: 0;
     transform: translateX(6px) scale(1.05);
     filter: blur(2.5px);

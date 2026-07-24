@@ -929,7 +929,7 @@ function MessageRow({
         {message.proactivityFooters?.map((entry) => (
           <span
             key={entry.agentName}
-            className="flex w-fit items-center gap-1 text-[12px] leading-4"
+            className="aw-attr-in flex w-fit items-center gap-1 text-[12px] leading-4"
             style={{ color: "#a8a29e" }}
           >
             {`${entry.agentName} updated its own proactivity to `}
@@ -1247,6 +1247,7 @@ export default function AgentWorkingPage() {
     // in the Worked-for spacing — attribution by position.
     const isStop = mentioned.length > 0 && /^stop[.!]?$/i.test(promptOf(text).trim());
     const footers: NonNullable<AwMessage["proactivityFooters"]> = [];
+    const stoppedAgentIds: string[] = [];
     if (isStop) {
       mentioned.forEach((agent) => {
         const workingRuns = engine.runs.filter(
@@ -1254,7 +1255,7 @@ export default function AgentWorkingPage() {
         );
         workingRuns.forEach((run) => engine.stop(run.id));
         if (workingRuns.length > 0) {
-          setProactivityLevels((prev) => ({ ...prev, [agent.id]: "mention only" }));
+          stoppedAgentIds.push(agent.id);
           footers.push({ agentName: agent.name, level: "mention only" });
         }
       });
@@ -1268,9 +1269,29 @@ export default function AgentWorkingPage() {
         avatar: { photo: OLI_PHOTO },
         time: nowLabel(),
         paragraphs: [segments],
-        proactivityFooters: footers.length > 0 ? footers : undefined,
       },
     ]);
+
+    // The kill switch is instant — the runs sealed to stopped above —
+    // but the acknowledgment is not: the agent takes a beat to process
+    // the command, flip its own level, and report. ~1s of thinking,
+    // then the footer materializes under the command it obeyed.
+    if (footers.length > 0) {
+      window.setTimeout(() => {
+        setProactivityLevels((prev) => {
+          const next = { ...prev };
+          stoppedAgentIds.forEach((agentId) => {
+            next[agentId] = "mention only";
+          });
+          return next;
+        });
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === id ? { ...message, proactivityFooters: footers } : message
+          )
+        );
+      }, 1000);
+    }
     if (mentioned.length === 0 || isStop) return;
 
     engine.spawn(id, promptOf(text), mentioned);

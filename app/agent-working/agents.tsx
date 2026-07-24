@@ -602,6 +602,7 @@ export function RingedFace({
   disc = false,
   failPulse = false,
   promoteDelayMs,
+  quiet = false,
 }: {
   agent: AgentDef;
   status: RunStatus;
@@ -614,6 +615,9 @@ export function RingedFace({
       status flips (the promotion travel), so the red verdict lands at
       the destination — cause first, then effect. */
   promoteDelayMs?: number;
+  /** Crowded-corner completions: seal only, no celebration pop — one
+      agent finishing is a moment; the fourth of seven is weather. */
+  quiet?: boolean;
 }) {
   // "Adjust state during render" pattern — detect the status flip without
   // an effect, so the seal overlay mounts on the exact transition frame.
@@ -635,7 +639,7 @@ export function RingedFace({
         setPendingFail(true);
       } else {
         setSeal(status);
-        if (status === "done") setCelebrate(true);
+        if (status === "done" && !quiet) setCelebrate(true);
       }
     } else if (status === "working") {
       // Rerun kicking back in — clear any leftover seal, pop the ring.
@@ -901,6 +905,10 @@ export function CornerStack({
   const overlap = -8;
   const overflowing = count > 4;
   const visibleCount = overflowing ? 3 : count;
+  // Celebration scales down with the crowd: past three agents, a
+  // completion plays the seal alone — no pop, no ping. The posted
+  // answer is already the signal; the corner doesn't applaud N times.
+  const crowded = count > 3;
   const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
   const visible = ranked.slice(0, visibleCount);
   const hidden = ranked.slice(visibleCount);
@@ -1049,9 +1057,11 @@ export function CornerStack({
               // The verdict waits out the promotion travel and lands at
               // the front — red appears where you're already looking.
               promoteDelayMs={560}
+              quiet={crowded}
             />
-            {/* Completion ping — mounts exactly when the run turns green. */}
-            {run.status === "done" ? (
+            {/* Completion ping — mounts exactly when the run turns green,
+                and only while the corner is uncrowded. */}
+            {run.status === "done" && !crowded ? (
               <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
             ) : null}
           </button>

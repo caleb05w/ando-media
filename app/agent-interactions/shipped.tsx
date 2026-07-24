@@ -41,6 +41,7 @@ function ShippedBubble({
   overlap,
   z,
   promoteDelayMs,
+  quiet = false,
   onExited,
 }: {
   status: RunStatus;
@@ -54,6 +55,8 @@ function ShippedBubble({
   z?: number;
   /** Forwarded failure staging (see RingedFace). */
   promoteDelayMs?: number;
+  /** Forwarded crowded-corner completion (seal only, no pop). */
+  quiet?: boolean;
   onExited?: () => void;
 }) {
   return (
@@ -74,6 +77,7 @@ function ShippedBubble({
         disc
         failPulse
         promoteDelayMs={promoteDelayMs}
+        quiet={quiet}
       />
       {status === "done" && ping ? (
         <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
@@ -179,6 +183,44 @@ export function ShippedStopped() {
   return (
     <Frame>
       <Sequenced key={gen} to="stopped" at={1800} hold={3400} onCycleEnd={bump} />
+    </Frame>
+  );
+}
+
+// Crowded completion — celebration scales down. Four agents work; one
+// completes with the seal alone (quiet: no pop, no ping), because the
+// fourth finish in a crowd is weather, not a moment. Compare with the
+// solo Completed card above.
+function CrowdCycle({ onCycleEnd }: { onCycleEnd: () => void }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const flip = setTimeout(() => setDone(true), 1800);
+    const end = setTimeout(onCycleEnd, 1800 + 2600);
+    return () => {
+      clearTimeout(flip);
+      clearTimeout(end);
+    };
+  }, [onCycleEnd]);
+  return (
+    <div className="flex items-center">
+      {AGENTS.slice(0, 4).map((agent, index) => (
+        <ShippedBubble
+          key={agent.id}
+          agent={agent}
+          status={index === 3 && done ? "done" : "working"}
+          overlap={index > 0 ? -8 : 0}
+          quiet
+        />
+      ))}
+    </div>
+  );
+}
+
+export function ShippedCrowdedCompletion() {
+  const { gen, bump } = useGeneration();
+  return (
+    <Frame wide>
+      <CrowdCycle key={gen} onCycleEnd={bump} />
     </Frame>
   );
 }

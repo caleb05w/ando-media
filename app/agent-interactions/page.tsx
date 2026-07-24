@@ -15,6 +15,7 @@ import {
   ShippedDepart,
   ShippedTruncation,
   ShippedPromotion,
+  ShippedCrowdedCompletion,
 } from "./shipped";
 
 const P = "/agent-working";
@@ -2340,9 +2341,15 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Completed",
-        source: "seal → pop → ping",
+        source: "seal → pop → ping · three agents or fewer",
         note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs 2s later in the product — the choreography lands, then the green holds a beat.",
         demo: <ShippedCompleted />,
+      },
+      {
+        title: "Completed — crowded",
+        source: "seal only · four agents or more",
+        note: "Celebration scales down with the crowd: past three agents a completion plays the seal alone — no pop, no ping. One agent finishing is a moment; the fourth of seven is weather, and the posted answer already carries the news.",
+        demo: <ShippedCrowdedCompletion />,
       },
       {
         title: "Not completed — failed",

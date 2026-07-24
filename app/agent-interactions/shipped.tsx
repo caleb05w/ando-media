@@ -349,14 +349,31 @@ export function ShippedTruncation() {
   );
 }
 
-// Depart: mounts settled, then the arrival plays backward.
+// Depart: the G6 mist, in the minimal honest pair — one worker stays,
+// the rightmost dissolves. Right-anchored like the corner, so the demo
+// shows BOTH halves of the current gesture: the departing face riding
+// its collapsing slot rightward as it evaporates, and the neighbor
+// flowing right with it from frame zero. A solo bubble on a centered
+// stage could show neither.
 function DepartOnce({ onExited }: { onExited: () => void }) {
   const [removed, setRemoved] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setRemoved(true), 1600);
     return () => clearTimeout(t);
   }, []);
-  return <ShippedBubble status="working" removed={removed} onExited={onExited} />;
+  return (
+    <div className="flex items-center justify-end" style={{ width: 52 }}>
+      <ShippedBubble agent={TADAO} status="working" z={20} />
+      <ShippedBubble
+        agent={AGENTS[1]}
+        status="working"
+        overlap={-8}
+        z={19}
+        removed={removed}
+        onExited={onExited}
+      />
+    </div>
+  );
 }
 
 export function ShippedDepart() {

@@ -663,8 +663,15 @@ export function RingedFace({
   // the catch's fast laps launch exactly where the comet's head was.
   // Deterministic from the shared phase clock (no DOM read needed).
   const [catchTheta, setCatchTheta] = useState("0deg");
-  // Phase-lock delays, computed once at element mount (see syncDelay).
-  const [sync] = useState(() => ({ breathe: syncDelay(4000), comet: syncDelay(1600) }));
+  // Phase-lock delays, computed once per element — but only on the
+  // client. The board SSRs these faces, and a server Date.now() is a
+  // different clock: server-rendered delays hydrate as a mismatch. SSR
+  // emits no delay; the first client frame runs unphased (imperceptible)
+  // and the effect locks every element to the shared epoch.
+  const [sync, setSync] = useState<{ breathe: string; comet: string } | null>(null);
+  useEffect(() => {
+    setSync({ breathe: syncDelay(4000), comet: syncDelay(1600) });
+  }, []);
   // Success pop is sequenced after the seal (aw-after-seal), so it outlives
   // the seal state and clears on its own animation end.
   const [celebrate, setCelebrate] = useState(false);
@@ -753,7 +760,7 @@ export function RingedFace({
           the inline delay can never poison the root's pop/shake. */}
       <span
         className={`absolute inset-0 ${working ? "aw-breathe" : ""}`}
-        style={working ? { animationDelay: sync.breathe } : undefined}
+        style={working && sync ? { animationDelay: sync.breathe } : undefined}
       >
       {/* Working comet — the Kinetic set's W2: one bright head, fading
           tail, on a 1.6s orbit. Brand blue by default; carries the
@@ -782,11 +789,13 @@ export function RingedFace({
           }`}
           style={{
             ...(agent.hue ? { "--aw-tint": agent.hue } : null),
-            ...(working
-              ? { animationDelay: sync.comet }
-              : seal === "done"
-                ? { animationDelay: `${sync.comet}, 0ms, 0ms`, "--aw-theta": catchTheta }
-                : null),
+            ...(working && sync ? { animationDelay: sync.comet } : null),
+            ...(seal === "done"
+              ? {
+                  ...(sync ? { animationDelay: `${sync.comet}, 0ms, 0ms` } : null),
+                  "--aw-theta": catchTheta,
+                }
+              : null),
           } as React.CSSProperties}
           aria-hidden
         />

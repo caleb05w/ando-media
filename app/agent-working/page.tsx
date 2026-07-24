@@ -589,12 +589,14 @@ function MessageRow({
   flashing,
   onStopRun,
   onOpenTrace,
+  onOpenRunTrace,
 }: {
   message: AwMessage;
   chipRuns: AgentRun[];
   flashing: boolean;
   onStopRun: (runId: string) => void;
   onOpenTrace: (message: AwMessage) => void;
+  onOpenRunTrace: (runId: string) => void;
 }) {
   return (
     <div
@@ -670,7 +672,7 @@ function MessageRow({
             </svg>
           </button>
         ) : null}
-        <SessionChips runs={chipRuns} onStop={onStopRun} />
+        <SessionChips runs={chipRuns} onStop={onStopRun} onOpenTrace={onOpenRunTrace} />
       </div>
     </div>
   );
@@ -1030,6 +1032,7 @@ export default function AgentWorkingPage() {
                   flashing={flashId === message.id}
                   onStopRun={engine.stop}
                   onOpenTrace={(target) => setTraceRunId(target.runId ?? null)}
+                  onOpenRunTrace={setTraceRunId}
                 />
                 {message.threadFooter ? <ThreadFooter footer={message.threadFooter} /> : null}
               </div>

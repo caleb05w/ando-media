@@ -675,14 +675,17 @@ export function RingedFace({
 /* ------------------------------ inline chips ------------------------------- */
 
 // Session chips under the invoking message. Working: label + elapsed + stop.
-// Failed/stopped: red label + final elapsed. Done: chip disappears (the
-// answer message is the completion signal).
+// Failed/stopped: red label (with stop attribution) + final elapsed + a
+// trace affordance — a dead run should explain itself one click away.
+// Done: chip disappears (the answer message is the completion signal).
 export function SessionChips({
   runs,
   onStop,
+  onOpenTrace,
 }: {
   runs: AgentRun[];
   onStop: (runId: string) => void;
+  onOpenTrace: (runId: string) => void;
 }) {
   const visible = runs.filter((r) => r.status !== "done");
   if (visible.length === 0) return null;
@@ -712,11 +715,18 @@ export function SessionChips({
           ) : (
             <>
               <span className="text-[13px] leading-4 text-[#dc2626]">
-                {run.status === "stopped" ? "Stopped" : "Failed"}
+                {run.status === "stopped" ? `Stopped by ${run.stoppedBy ?? "you"}` : "Failed"}
               </span>
               <span className="text-[12px] leading-4 tabular-nums text-[#a8a29e]">
                 {formatDuration(elapsedMs(run))}
               </span>
+              <button
+                type="button"
+                onClick={() => onOpenTrace(run.id)}
+                className="flex h-5 items-center rounded-[5px] border-[0.5px] border-[#e7e5e4] px-1.5 text-[11px] leading-4 text-[#58524e] transition-colors hover:bg-[#f5f5f4]"
+              >
+                trace
+              </button>
             </>
           )}
         </div>

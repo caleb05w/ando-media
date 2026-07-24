@@ -634,6 +634,10 @@ export function RingedFace({
   // A freshly-failed bubble travels first: pendingFail keeps the working
   // face through the journey; a timer then runs the seal at arrival.
   const [pendingFail, setPendingFail] = useState(false);
+  // The orbit angle at the moment completion strikes — frozen once so
+  // the catch's fast laps launch exactly where the comet's head was.
+  // Deterministic from the shared phase clock (no DOM read needed).
+  const [catchTheta, setCatchTheta] = useState("0deg");
   // Phase-lock delays, computed once at element mount (see syncDelay).
   const [sync] = useState(() => ({ breathe: syncDelay(4000), comet: syncDelay(1600) }));
   // Success pop is sequenced after the seal (aw-after-seal), so it outlives
@@ -647,7 +651,10 @@ export function RingedFace({
         setPendingFail(true);
       } else {
         setSeal(status);
-        if (status === "done" && !quiet) setCelebrate(true);
+        if (status === "done") {
+          setCatchTheta(`${Math.round(((Date.now() % 1600) / 1600) * 360)}deg`);
+          if (!quiet) setCelebrate(true);
+        }
       }
     } else if (status === "working") {
       // Rerun kicking back in — clear any leftover seal, pop the ring.
@@ -741,7 +748,7 @@ export function RingedFace({
             ...(working
               ? { animationDelay: sync.comet }
               : seal === "done"
-                ? { animationDelay: `${sync.comet}, 0ms` }
+                ? { animationDelay: `${sync.comet}, 0ms, 0ms`, "--aw-theta": catchTheta }
                 : null),
           } as React.CSSProperties}
           aria-hidden

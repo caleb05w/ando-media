@@ -108,10 +108,24 @@
     --aw-live: #16a34a;
   }
 }
+/* The board card's racing finish: 660° — nearly two quick laps —
+   decelerating into the close. Listed LAST so it owns transform during
+   the catch (overriding the base orbit's rotate); it launches from
+   --aw-theta, the orbit's live angle at the flip (deterministic from
+   the shared phase clock), so there's no jump at takeoff. */
+@keyframes aw-catch-spin {
+  from {
+    transform: rotate(var(--aw-theta, 0deg));
+  }
+  to {
+    transform: rotate(calc(var(--aw-theta, 0deg) + 660deg));
+  }
+}
 .aw-comet-catching {
   animation:
     aw-comet 1.6s linear infinite,
-    aw-catch-close 1200ms cubic-bezier(0.3, 0, 0.2, 1) both;
+    aw-catch-close 1200ms cubic-bezier(0.3, 0, 0.2, 1) both,
+    aw-catch-spin 1200ms cubic-bezier(0.3, 0, 0.2, 1) both;
 }
 /* Settled done (through the linger): the closed ring, still — same
    texture, no orbit. */

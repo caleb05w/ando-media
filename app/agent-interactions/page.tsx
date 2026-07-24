@@ -635,96 +635,90 @@ function RVLand() {
   );
 }
 
-function RVGap() {
+function RVHeartbeat() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} dashArray={117} dashOffset={117} className="rf-gap" />
+      <RingSvg color={RED} className="rfu-heartbeat" />
     </Bubble>
   );
 }
 
-function RVCrack() {
+function RVSonar() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} className="rf-crack" />
-      <span className="rf-crack-tick" />
+      <span className="rfu-sonar" />
+      <RingSvg color={RED} />
     </Bubble>
   );
 }
 
-function RVRecoil() {
+function RVBreath() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} dashArray={117} dashOffset={117} className="rf-recoil" />
+      <RingSvg color={RED} className="rfu-breath" />
     </Bubble>
   );
 }
 
-function RVFlicker() {
+function RVFlare() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} className="rf-flicker" />
+      <span className="rfu-flare" />
+      <RingSvg color={RED} />
     </Bubble>
   );
 }
 
-function RVSlip() {
+function RVAccel() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} className="rf-slip" />
+      <RingSvg color={RED} className="rfu-accel" />
     </Bubble>
   );
 }
 
-function RVHalf() {
+function RVEmber() {
   return (
     <Bubble face={TADAO}>
-      {/* no -90 rotate: the arc runs 3 → 9 o'clock through the bottom */}
-      <svg width={SIZE} height={SIZE} className="absolute inset-0 rf-half" aria-hidden>
-        <circle
-          cx={C}
-          cy={C}
-          r={R}
-          fill="none"
-          stroke={RED}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeDasharray="58.5 58.5"
-        />
-      </svg>
+      <span className="rfu-ember" />
+      <RingSvg color={RED} />
     </Bubble>
   );
 }
 
-function RVStatic() {
+function RVBeacon() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} dashed className="rf-static" />
+      <RingSvg color={RED} className="rfu-beacon-base" />
+      <span className="rfu-beacon-arc" />
     </Bubble>
   );
 }
 
-function RVDeflate() {
+function RVAlternator() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} className="rf-deflate" />
+      <span className="rfu-alt-halo" />
+      <RingSvg color={RED} className="rfu-alt-ring" />
     </Bubble>
   );
 }
 
-function RVStain() {
+function RVShockwave() {
   return (
     <Bubble face={TADAO}>
-      <span className="rf-stain-halo" />
-      <RingSvg color={RED} className="rf-stain-ring" />
+      <span className="rfu-wave-a" />
+      <span className="rfu-wave-b" />
+      <RingSvg color={RED} />
     </Bubble>
   );
 }
 
-function RVUnravel() {
+function RVPressure() {
   return (
     <Bubble face={TADAO}>
-      <RingSvg color={RED} dashArray={117} dashOffset={117} className="rf-unravel" />
+      <span className="rfu-pressure" />
+      <RingSvg color={RED} />
     </Bubble>
   );
 }
@@ -1394,68 +1388,68 @@ const RING_SECTIONS: Section[] = [
     ],
   },
   {
-    heading: "2 · Failure",
-    blurb: "Ten ways the ring can fail to hold — disturbance without alarm.",
+    heading: "2 · Failure — urgency",
+    blurb: "Ten timing and halo studies for a danger that must be felt. Continuous loops — judge the standing pull.",
     studies: [
       {
-        title: "Never closed",
-        source: "the standing gap",
-        note: "The draw stops short and holds, a gap standing at the top. The circuit that didn't complete — legible in a still frame.",
-        demo: <RVGap />,
+        title: "Heartbeat",
+        source: "lub-dub, rest · 1.4s",
+        note: "Cardiac timing on the ring: two close beats with a tiny swell, then quiet. Biological urgency — the body already knows this rhythm.",
+        demo: <RVHeartbeat />,
       },
       {
-        title: "Crack",
-        source: "sealed, then flawed",
-        note: "The ring seals, jolts once, and a hairline notch opens at the top-right. Whole, but not sound.",
-        demo: <RVCrack />,
+        title: "Sonar",
+        source: "halo · repeating ping · 1.6s",
+        note: "A red ring rolls off the rim and dissolves, again and again. The call-pulse grammar — insistence through repetition, each wave asking again.",
+        demo: <RVSonar />,
       },
       {
-        title: "Recoil",
-        source: "almost · sprang back",
-        note: "The draw nearly makes it, springs back, and hangs at three-quarters. The effort stays visible in the arc it kept.",
-        demo: <RVRecoil />,
+        title: "Urgent breath",
+        source: "timing only · 0.9s to 0.3",
+        note: "The serene pulse, forced: same sine shape, three times the tempo, twice the depth. The purest test of whether timing alone carries alarm.",
+        demo: <RVBreath />,
       },
       {
-        title: "Faulty sign",
-        source: "neon flicker · hard cuts",
-        note: "The sealed ring flickers like failing neon and settles dim. Power without integrity.",
-        demo: <RVFlicker />,
+        title: "Flare",
+        source: "halo · standing burn · 1.4s",
+        note: "The aura never leaves — it swells and tightens around the sealed ring like a slow burn. Constant presence, oscillating intensity.",
+        demo: <RVFlare />,
       },
       {
-        title: "Slipped halo",
-        source: "posture, not motion",
-        note: "The ring loses its seat, drops a few pixels and rests askew. Failure worn like a crooked halo.",
-        demo: <RVSlip />,
+        title: "Accelerando",
+        source: "timing · the beat quickens · 3s",
+        note: "Each cycle the pulse starts patient and winds up — beats arriving closer and closer, then reset. Urgency as trajectory, not state.",
+        demo: <RVAccel />,
       },
       {
-        title: "Half mast",
-        source: "the lowered flag",
-        note: "Only the lower half arrives, and it sags a pixel. The most somber of the ten.",
-        demo: <RVHalf />,
+        title: "Ember",
+        source: "halo inverted · heat within · 1.2s",
+        note: "The halo turned inward: the portrait itself glows red under a steady ring, breathing fast. The problem is inside.",
+        demo: <RVEmber />,
       },
       {
-        title: "Static",
-        source: "signal noise",
-        note: "Red dashes shiver in place by a fraction of a degree, then freeze. Where a steady orbit should be, interference.",
-        demo: <RVStatic />,
+        title: "Beacon",
+        source: "timing · 0.9s sweep",
+        note: "A bright head sweeps fast over a dimmed solid ring — lighthouse grammar. Reads as working gone wrong: wrong color, wrong speed.",
+        demo: <RVBeacon />,
       },
       {
-        title: "Deflate",
-        source: "scale · lost strength",
-        note: "The ring shrinks off the rim and sits small against the face — a verdict without the strength to hold its line.",
-        demo: <RVDeflate />,
+        title: "Alternator",
+        source: "ring ⇄ halo · opposite phase · 1s",
+        note: "Ring and outer halo trade energy in counter-phase — a mechanical two-stroke. Nothing is ever still, but nothing ever travels.",
+        demo: <RVAlternator />,
       },
       {
-        title: "Stain",
-        source: "the bleed that stays",
-        note: "The ring seals and its color bleeds outward — and stays. A ping that dissolves is celebration; a stain that doesn't is a problem.",
-        demo: <RVStain />,
+        title: "Shockwave pair",
+        source: "halo · two waves, then flat · 1.8s",
+        note: "Two waves leave together, a beat apart, then the sea goes flat. The pairing reads as deliberate signaling rather than ambient ripple.",
+        demo: <RVShockwave />,
       },
       {
-        title: "Unravel",
-        source: "success revoked",
-        note: "It sealed — then came undone, unwinding to a hanging arc. The most narrative failure: done, and then not.",
-        demo: <RVUnravel />,
+        title: "Pressure",
+        source: "halo · sawtooth build · 2.5s",
+        note: "The halo builds slowly brighter and wider, releases, and starts again — tension that never resolves. The most unsettling of the ten at the lowest tempo.",
+        demo: <RVPressure />,
       },
     ],
   },

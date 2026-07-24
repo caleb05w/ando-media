@@ -285,8 +285,11 @@ export type AgentRun = {
   doneAt?: number;
   // removed = leaving (plays the exit animation); concealed = exit finished
   // (dropped from presence surfaces, kept in `runs` so message footers can
-  // still resolve their trace).
+  // still resolve their trace). dismissed marks a user-initiated removal —
+  // the corner skips its condensation farewell and leaves with the same
+  // quick fade the flyout row uses.
   removed: boolean;
+  dismissed?: boolean;
   concealed: boolean;
   answerMessageId?: string;
   override?: SpawnOverride;
@@ -451,7 +454,10 @@ export function useAgentEngine(
   }, []);
 
   const remove = useCallback((runId: string) => {
-    setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, removed: true } : r)));
+    // User delete: quick dismissal, not the long depart.
+    setRuns((prev) =>
+      prev.map((r) => (r.id === runId ? { ...r, removed: true, dismissed: true } : r)),
+    );
   }, []);
 
   // Called from the leaving element's animationend — after the exit motion
@@ -784,17 +790,25 @@ export function CornerStack({
           type="button"
           aria-label={`Jump to ${run.agent.name}'s invoking message`}
           onClick={() => onJumpRun(run)}
-          // Condense in when a run spawns; dissolve out after removal, then
-          // conceal on animationend so the stack closes the gap. Overlapped
-          // bubbles use the variant that holds their −8 margin while the
-          // bloom fades, so the face doesn't slide right mid-exit.
+          // Condense in when a run spawns. Natural departures dissolve out
+          // with the condensation farewell (overlapped bubbles hold their −8
+          // margin so the face doesn't slide right mid-exit); a user delete
+          // instead leaves with the flyout row's quick fade. Conceal on
+          // animationend closes the gap either way.
           className={`relative flex rounded-full ${
-            run.removed ? (index > 0 ? "aw-chip-out-overlap" : "aw-chip-out") : "aw-chip-in"
+            run.removed
+              ? run.dismissed
+                ? "aw-chip-dismiss"
+                : index > 0
+                  ? "aw-chip-out-overlap"
+                  : "aw-chip-out"
+              : "aw-chip-in"
           }`}
           onAnimationEnd={(event) => {
             if (
               event.animationName === "aw-chip-out" ||
-              event.animationName === "aw-chip-out-overlap"
+              event.animationName === "aw-chip-out-overlap" ||
+              event.animationName === "aw-chip-dismiss"
             )
               onConceal(run.id);
           }}

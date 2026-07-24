@@ -206,6 +206,24 @@
   animation: aw-chip-out-overlap 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
 }
 
+/* User delete: no farewell — the bubble leaves with the same quick fade
+   as the flyout row it was deleted from (200ms, 1px drift), and the gap
+   closes at conceal. */
+@keyframes aw-chip-dismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(1px);
+  }
+}
+.aw-chip-dismiss {
+  animation: aw-chip-dismiss 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's
    "Analyzing stack trace…" treatment). Dark variant for the flyout, light
    for the inline chips. */

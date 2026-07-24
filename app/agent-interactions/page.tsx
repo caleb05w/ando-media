@@ -587,6 +587,17 @@ function RVCatch() {
   );
 }
 
+// The superseded product version of the catch: comet vanishes, an SVG
+// arc takes over. Kept as documentation (see the note).
+function RVCatchHandoff() {
+  return (
+    <Bubble face={TADAO}>
+      <span className="aw-comet rv-hf-comet" aria-hidden />
+      <RingSvg color={GREEN} dashArray={117} dashOffset={0} className="rc-catch" />
+    </Bubble>
+  );
+}
+
 function RVEcho() {
   return (
     <Bubble face={TADAO}>
@@ -1635,6 +1646,12 @@ const RING_SECTIONS: Section[] = [
         source: "comet resolves · continuity — shipped",
         note: "A green comet takes two last laps and its tail closes the circle — the working motion itself resolving into stillness. Now the completion on /agent-working, with the pop and ping kept as the affordance.",
         demo: <RVCatch />,
+      },
+      {
+        title: "The catch as a handoff",
+        source: "superseded · comet swaps to an SVG arc",
+        note: "The first shipped catch: the comet vanished at the flip and a green SVG arc took over — green from frame one, head teleported to twelve, texture changed mid-thought. Replaced by the in-body catch, where the ring is the comet's own gradient closing. Kept as the why.",
+        demo: <RVCatchHandoff />,
       },
       {
         title: "Echo",

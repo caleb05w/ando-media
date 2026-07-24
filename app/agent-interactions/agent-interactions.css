@@ -2790,3 +2790,27 @@
 .of-gauge-five {
   animation: of-gauge-five 6s ease-in-out infinite;
 }
+
+/* ============= Completion archaeology: the handoff (rv-hf-) =============
+   The superseded middle step between the drawn seal and the in-body
+   catch: the working comet vanished at the flip and a green SVG arc
+   took over — green from frame one, head teleported to twelve, texture
+   changed mid-thought. Kept as documentation of why the in-body catch
+   exists. Timed against rc-catch's 32–62% window on the shared 4s. */
+@keyframes rv-hf-fade {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  32%,
+  100% {
+    opacity: 0;
+  }
+}
+/* Double class outranks agent-working.css's .aw-comet shorthand, which
+   loads later in the board's import order. */
+.aw-comet.rv-hf-comet {
+  animation:
+    aw-comet 1.6s linear infinite,
+    rv-hf-fade 4s linear infinite;
+}

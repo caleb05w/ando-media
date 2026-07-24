@@ -94,6 +94,11 @@
    closes, alphas rise to solid, hue drifts to the verdict green. Board
    RC4's tempo: 1.2s. */
 @keyframes aw-catch-close {
+  /* Anticipation: the tail gathers — shrinks a touch — before it
+     sweeps around to close. A breath in before the exhale. */
+  18% {
+    --aw-gap: 63%;
+  }
   to {
     --aw-gap: 0%;
     --aw-a1: 100%;

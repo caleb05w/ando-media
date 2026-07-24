@@ -474,11 +474,15 @@ export function useAgentEngine(
   }, []);
 
   const remove = useCallback((runId: string) => {
-    // User delete: quick dismissal, not the long depart. removedAt arms
-    // the conceal backstop for runs with no corner bubble.
+    // User delete is INSTANT: concealed in the same state update, no
+    // exit animation on either surface. Bulk-clearing agents means the
+    // next row's × occupies the cursor position on the very next frame
+    // — any exit choreography here, however short, reads as lag.
     setRuns((prev) =>
       prev.map((r) =>
-        r.id === runId ? { ...r, removed: true, dismissed: true, removedAt: Date.now() } : r,
+        r.id === runId
+          ? { ...r, removed: true, dismissed: true, concealed: true, removedAt: Date.now() }
+          : r,
       ),
     );
   }, []);
@@ -968,11 +972,14 @@ export function CornerStack({
           // (and gives touch a path to it). Sits on the staging shelf: a
           // gap if the last visible bubble is requires-action.
           onClick={() => onHoverChange(true)}
-          className="aw-chip-in flex rounded-full"
+          className="aw-chip-in relative flex rounded-full"
           style={{
             marginLeft:
               visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : overlap,
             boxShadow: "0 0 0 2px white",
+            // End-cap: above every bubble's urgency z, so the count is
+            // never tucked behind its neighbor.
+            zIndex: 5,
           }}
         >
           <OverflowDisc count={hidden.length} />

@@ -118,8 +118,9 @@
    a single pixel of drift. The row's SPACE moves only while the row is
    invisible: it eases open before the fade-in and eases shut after the
    fade-out, so the panel height glides instead of snapping — but no
-   visible content ever slides. (The 680ms condensation belongs to the
-   corner bubbles; the command bar stays utilitarian.) */
+   visible content ever slides. Deliberately NOT the corner's
+   condensation language: these follow intentional actions, so they are
+   plain, quick, and obedient — 200ms, decelerating. */
 @keyframes aw-row-in {
   0% {
     opacity: 0;
@@ -129,7 +130,7 @@
     padding-bottom: 0;
   }
   /* Slot open, still invisible. */
-  41% {
+  40% {
     opacity: 0;
     transform: translateY(1px);
     max-height: 52px;
@@ -145,7 +146,7 @@
   }
 }
 .aw-row-in {
-  animation: aw-row-in 340ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: aw-row-in 200ms ease-out both;
   overflow: hidden;
 }
 @keyframes aw-row-out {
@@ -155,7 +156,7 @@
     max-height: 52px;
   }
   /* Faded out; the slot is still open. */
-  59% {
+  60% {
     opacity: 0;
     transform: translateY(1px);
     max-height: 52px;
@@ -169,7 +170,7 @@
   }
 }
 .aw-row-out {
-  animation: aw-row-out 340ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: aw-row-out 200ms ease-out forwards;
   pointer-events: none;
   overflow: hidden;
 }
@@ -264,20 +265,20 @@
   animation: aw-chip-out-overlap 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
 }
 
-/* User delete: no farewell — the bubble fades in the same 200ms the
-   flyout row does (width and margin held, so nothing slides while
-   visible), then the emptied slot eases shut over the back stretch.
-   By the time conceal unmounts the element it occupies zero width, so
-   the neighbors glide instead of snapping. The corner bubble is the
-   single conceal source: it is always mounted, while the flyout may
-   not be. */
+/* User delete: no farewell — an intentional action gets an obedient
+   exit, nothing like the corner's condensation. The bubble fades in
+   the row's 120ms (width and margin held, so nothing slides while
+   visible), then the emptied slot eases shut over the back stretch —
+   200ms total, matching aw-row-out so conceal (fired from here) lands
+   exactly when the row finishes. The corner bubble is the single
+   conceal source: it is always mounted, while the flyout may not be. */
 @keyframes aw-chip-dismiss {
   0% {
     opacity: 1;
     transform: translateY(0);
     width: 30px;
   }
-  59% {
+  60% {
     opacity: 0;
     transform: translateY(1px);
     width: 30px;
@@ -299,7 +300,7 @@
     width: 30px;
     margin-left: -8px;
   }
-  59% {
+  60% {
     opacity: 0;
     transform: translateY(1px);
     width: 30px;
@@ -317,10 +318,10 @@
   pointer-events: none;
 }
 .aw-chip-dismiss {
-  animation: aw-chip-dismiss 340ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: aw-chip-dismiss 200ms ease-out forwards;
 }
 .aw-chip-dismiss-overlap {
-  animation: aw-chip-dismiss-overlap 340ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: aw-chip-dismiss-overlap 200ms ease-out forwards;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

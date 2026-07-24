@@ -261,7 +261,7 @@
   }
   65% {
     width: 30px;
-    margin-left: -8px;
+    margin-left: var(--aw-overlap, -8px);
   }
   100% {
     width: 0px;
@@ -308,7 +308,7 @@
   from {
     opacity: 1;
     width: 30px;
-    margin-left: -8px;
+    margin-left: var(--aw-overlap, -8px);
   }
   to {
     opacity: 0;

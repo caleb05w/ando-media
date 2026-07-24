@@ -805,7 +805,7 @@ export function SessionChips({
 // Toolbar's collapsed-count pattern. A full solid circle, no status ring:
 // a count is not an alarm, and status belongs to the agents themselves
 // (failures persist in the flyout until addressed).
-function OverflowDisc({ count }: { count: number }) {
+export function OverflowDisc({ count }: { count: number }) {
   return (
     <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-[#1c1917] text-[11px] font-medium leading-none text-white">
       {`+${count}`}
@@ -859,11 +859,19 @@ export function CornerStack({
   // the most urgent at the LEFT — first thing the eye meets reading the
   // stack. Sorts are keyed to status, so bubbles only move on a state
   // change, never mid-orbit; stable within a class.
-  const overflowing = runs.length > 4;
+  //
+  // Elastic density (promoted from the overflow board): past four the
+  // overlap tightens −8 → −12 so up to seven bubbles fit before any
+  // truncation; the +N disc only appears at eight. Density shifts land
+  // instantly, like reorders — no motion tax for housekeeping.
+  const count = runs.length;
+  const dense = count > 4;
+  const overlap = dense ? -12 : -8;
+  const overflowing = count > 7;
+  const visibleCount = overflowing ? 6 : count;
   const ranked = [...runs].sort((a, b) => urgency(b) - urgency(a));
-  const windowSet = ranked.slice(0, overflowing ? 3 : 4);
-  const visible = windowSet;
-  const hidden = ranked.slice(overflowing ? 3 : 4);
+  const visible = ranked.slice(0, visibleCount);
+  const hidden = ranked.slice(visibleCount);
 
   // Entry plays once: after aw-chip-in finishes the class comes off, so
   // a reorder (React moving the keyed node) can't replay the bloom.
@@ -929,14 +937,17 @@ export function CornerStack({
             // Overlap lives on each bubble's own left margin so appending
             // a newcomer never touches an existing bubble's styles (no
             // snap). z-order follows urgency so within a shelf the more
-            // urgent bubble overlaps; the shelves themselves are held
-            // apart by the gap, and FLIP glides everything when the
-            // boundary moves.
-            style={{
-              marginLeft: index === 0 ? 0 : overlapped ? -8 : 6,
-              boxShadow: "0 0 0 2px white",
-              zIndex: urgency(run) + 1,
-            }}
+            // urgent bubble overlaps; the shelves are held apart by the
+            // gap. --aw-overlap feeds the exit keyframes so a dense
+            // bubble's dismiss pins the margin it actually has.
+            style={
+              {
+                marginLeft: index === 0 ? 0 : overlapped ? overlap : 6,
+                boxShadow: "0 0 0 2px white",
+                zIndex: urgency(run) + 1,
+                "--aw-overlap": `${overlap}px`,
+              } as React.CSSProperties
+            }
           >
             {/* failPulse: the red verdict ring breathes in place until the
                 failure is addressed. Failed only — a stop was the user's
@@ -960,7 +971,7 @@ export function CornerStack({
           className="aw-chip-in flex rounded-full"
           style={{
             marginLeft:
-              visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : -8,
+              visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : overlap,
             boxShadow: "0 0 0 2px white",
           }}
         >

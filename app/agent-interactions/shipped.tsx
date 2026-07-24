@@ -8,7 +8,7 @@
 // product.
 
 import { useCallback, useEffect, useState } from "react";
-import { AGENTS, RingedFace, type RunStatus } from "../agent-working/agents";
+import { AGENTS, OverflowDisc, RingedFace, type AgentDef, type RunStatus } from "../agent-working/agents";
 import "../agent-working/agent-working.css";
 
 const TADAO = AGENTS[0];
@@ -17,10 +17,12 @@ const TADAO = AGENTS[0];
 
 // White stage: the product corner lives on a white card, so the shipped
 // states are judged on white — not the board's gray.
-function Frame({ children }: { children: React.ReactNode }) {
+function Frame({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
   return (
     <div
-      className="flex h-20 w-36 items-center justify-center rounded-[10px] border-[0.5px] bg-white"
+      className={`flex h-20 items-center justify-center rounded-[10px] border-[0.5px] bg-white ${
+        wide ? "w-56" : "w-36"
+      }`}
       style={{ borderColor: "#ebe9e8" }}
     >
       {children}
@@ -32,15 +34,20 @@ function Frame({ children }: { children: React.ReactNode }) {
 // done, failPulse through to RingedFace, chip-in/out lifecycle classes.
 function ShippedBubble({
   status,
+  agent = TADAO,
   entering = false,
   removed = false,
   ping = false,
+  overlap,
   onExited,
 }: {
   status: RunStatus;
+  agent?: AgentDef;
   entering?: boolean;
   removed?: boolean;
   ping?: boolean;
+  /** Inline overlap margin, matching CornerStack's density values. */
+  overlap?: number;
   onExited?: () => void;
 }) {
   return (
@@ -48,12 +55,12 @@ function ShippedBubble({
       type="button"
       tabIndex={-1}
       className={`relative flex rounded-full ${removed ? "aw-chip-out" : entering ? "aw-chip-in" : ""}`}
-      style={{ boxShadow: "0 0 0 2px white" }}
+      style={{ boxShadow: "0 0 0 2px white", marginLeft: overlap }}
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-chip-out") onExited?.();
       }}
     >
-      <RingedFace agent={TADAO} status={status} size={30} strokeWidth={2} disc failPulse />
+      <RingedFace agent={agent} status={status} size={30} strokeWidth={2} disc failPulse />
       {status === "done" && ping ? (
         <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
       ) : null}
@@ -158,6 +165,29 @@ export function ShippedStopped() {
   return (
     <Frame>
       <Sequenced key={gen} to="stopped" at={1800} hold={3400} onCycleEnd={bump} />
+    </Frame>
+  );
+}
+
+// Truncation — elastic density at the cap: eight agents render as six
+// dense bubbles (−12 overlap, the production value past four) plus the
+// +N disc. Production RingedFace, production OverflowDisc.
+export function ShippedTruncation() {
+  return (
+    <Frame wide>
+      <div className="flex items-center">
+        {AGENTS.slice(0, 6).map((agent, index) => (
+          <ShippedBubble
+            key={agent.id}
+            agent={agent}
+            status="working"
+            overlap={index > 0 ? -12 : 0}
+          />
+        ))}
+        <span className="inline-flex rounded-full" style={{ marginLeft: -12, boxShadow: "0 0 0 2px white" }}>
+          <OverflowDisc count={2} />
+        </span>
+      </div>
     </Frame>
   );
 }

@@ -13,6 +13,7 @@ import {
   ShippedFailed,
   ShippedStopped,
   ShippedDepart,
+  ShippedTruncation,
 } from "./shipped";
 
 const P = "/agent-working";
@@ -1778,8 +1779,8 @@ const OVERFLOW_SECTIONS: Section[] = [
       },
       {
         title: "Elastic density",
-        source: "delay the problem",
-        note: "Compress the overlap as the roster grows (−8 → −12) so six or seven fit before truncating at all. Often the indicator never appears; pairs with any of the above.",
+        source: "delay the problem — shipped",
+        note: "Compress the overlap as the roster grows (−8 → −12) so up to seven fit before truncating at all. Often the indicator never appears; pairs with any of the above. Now live on /agent-working: dense past four, disc at eight.",
         demo: <OFDense />,
       },
     ],
@@ -2359,6 +2360,12 @@ const SHIPPED_SECTIONS: Section[] = [
         source: "aw-chip-out · the arrival reversed, a touch quicker",
         note: "The bloom reverses — fade, blur, shrink — while the slot closes, at 680ms to the arrival's 880: goodbyes don't linger. The exact keyframes the corner plays when a chip leaves.",
         demo: <ShippedDepart />,
+      },
+      {
+        title: "Truncation",
+        source: "elastic density · shipped",
+        note: "Past four agents the overlap tightens −8 → −12, so up to seven fit before any truncation; the +N disc only appears at eight. Shown at the cap: six dense bubbles and the disc.",
+        demo: <ShippedTruncation />,
       },
     ],
   },

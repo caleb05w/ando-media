@@ -982,7 +982,33 @@ export default function AgentWorkingPage() {
         paragraphs: [segments],
       },
     ]);
-    if (mentioned.length > 0) engine.spawn(id, promptOf(text), mentioned);
+    if (mentioned.length === 0) return;
+
+    // "@Agent stop" is a command, not a prompt: stop that agent's working
+    // runs instead of spawning, and the agent acknowledges in chat.
+    if (/^stop[.!]?$/i.test(promptOf(text).trim())) {
+      mentioned.forEach((agent) => {
+        const workingRuns = engine.runs.filter(
+          (run) => run.agent.id === agent.id && run.status === "working" && !run.removed
+        );
+        workingRuns.forEach((run) => engine.stop(run.id));
+        if (workingRuns.length > 0) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: nextMessageId(),
+              authorName: agent.name,
+              avatar: { agent },
+              time: nowLabel(),
+              paragraphs: [[{ text: "changed proactivity" }]],
+            },
+          ]);
+        }
+      });
+      return;
+    }
+
+    engine.spawn(id, promptOf(text), mentioned);
   };
 
   // Bubble and row clicks both navigate to the message that invoked the

@@ -761,20 +761,26 @@ function OverflowDisc({ count }: { count: number }) {
 // on top). At 5+ agents the fourth slot becomes a "+N" disc. Hovering the
 // stack opens the flyout; clicking an individual bubble jumps to the
 // message that invoked that agent.
-// Urgency rank — orders both presence surfaces. Failures outrank the
-// living so they can never hide in the +N disc; stops (your own act)
-// and dones sit behind the work.
+// Urgency rank — orders both presence surfaces. The requires-action
+// shelf (failed, then stopped — runs parked until you decide) outranks
+// staging (working, then done), so nothing needing a decision can fold
+// into the +N disc.
 function urgency(run: AgentRun): number {
   switch (run.status) {
     case "failed":
       return 3;
-    case "working":
-      return 2;
     case "stopped":
+      return 2;
+    case "working":
       return 1;
     default:
       return 0;
   }
+}
+
+// The two corner shelves: requires-action vs staging.
+function needsAction(run: AgentRun): boolean {
+  return run.status === "failed" || run.status === "stopped";
 }
 
 export function CornerStack({
@@ -806,39 +812,48 @@ export function CornerStack({
   // a reorder (React moving the keyed node) can't replay the bloom.
   const [enteredIds, setEnteredIds] = useState<Set<string>>(() => new Set());
 
-  // FLIP on reorder: when the urgency sort moves a bubble (a status
-  // just changed), slide it from its old slot instead of teleporting —
-  // the promotion to the front is something you watch happen. Skipped
-  // while any chip entry/exit is actually running; those own the space.
+  // FLIP on reorder: when the urgency sort or the shelf boundary moves
+  // bubbles, they glide from their old slots at the presence tempo —
+  // the same family as arrive/depart, so a promotion reads as an agent
+  // walking, not chrome snapping. Slides fire ONLY when the relative
+  // order of surviving bubbles or the shelf signature changes; plain
+  // layout drift (a neighbor's exit collapsing its slot, baseline
+  // refreshes on heartbeat ticks) never animates, which is what keeps
+  // moves from stuttering with catch-up corrections.
   const stackRef = useRef<HTMLDivElement>(null);
   const chipLefts = useRef(new Map<string, number>());
+  const prevIdsRef = useRef<string[]>([]);
+  const prevShelfSigRef = useRef<string | null>(null);
+  const shelfSig = visible.map((run) => (needsAction(run) ? "!" : ".")).join("");
   useLayoutEffect(() => {
     const stack = stackRef.current;
     if (!stack) return;
-    const busy = stack
-      .getAnimations({ subtree: true })
-      .some((a) => {
-        const name = a instanceof CSSAnimation ? a.animationName : "";
-        return name.startsWith("aw-chip") && a.playState === "running";
-      });
-    const seen = new Set<string>();
-    for (const el of stack.querySelectorAll<HTMLElement>("[data-run-id]")) {
+    const els = [...stack.querySelectorAll<HTMLElement>("[data-run-id]")];
+    const currentIds = els.map((el) => el.dataset.runId ?? "");
+    const survivors = prevIdsRef.current.filter((id) => currentIds.includes(id));
+    const survivorsNow = currentIds.filter((id) => survivors.includes(id));
+    const orderChanged = survivors.join("|") !== survivorsNow.join("|");
+    const shelfChanged =
+      prevShelfSigRef.current != null && prevShelfSigRef.current !== shelfSig;
+    const shouldAnimate = orderChanged || shelfChanged;
+    for (const el of els) {
       const id = el.dataset.runId;
       if (!id) continue;
-      seen.add(id);
       const left = el.offsetLeft;
       const prev = chipLefts.current.get(id);
-      if (!busy && prev != null && prev !== left) {
+      if (shouldAnimate && prev != null && prev !== left) {
         el.animate(
           [{ transform: `translateX(${prev - left}px)` }, { transform: "translateX(0)" }],
-          { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+          { duration: 520, easing: "cubic-bezier(0.2, 0, 0.2, 1)" },
         );
       }
       chipLefts.current.set(id, left);
     }
     for (const id of [...chipLefts.current.keys()]) {
-      if (!seen.has(id)) chipLefts.current.delete(id);
+      if (!currentIds.includes(id)) chipLefts.current.delete(id);
     }
+    prevIdsRef.current = currentIds;
+    prevShelfSigRef.current = shelfSig;
   });
 
   return (
@@ -852,73 +867,85 @@ export function CornerStack({
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
     >
-      {visible.map((run, index) => (
-        <button
-          key={run.id}
-          data-run-id={run.id}
-          type="button"
-          aria-label={`Jump to ${run.agent.name}'s invoking message`}
-          onClick={() => onJumpRun(run)}
-          // Condense in when a run spawns (once — the class drops after
-          // the bloom so reorders can't replay it). Natural departures
-          // dissolve out with the condensation farewell; a user delete
-          // leaves with the flyout row's quick fade. Conceal on
-          // animationend closes the gap either way.
-          className={`aw-corner-chip relative flex rounded-full ${
-            run.removed
-              ? run.dismissed
-                ? index > 0
-                  ? "aw-chip-dismiss-overlap"
-                  : "aw-chip-dismiss"
-                : index > 0
-                  ? "aw-chip-out-overlap"
-                  : "aw-chip-out"
-              : enteredIds.has(run.id)
-                ? ""
-                : "aw-chip-in"
-          }`}
-          onAnimationEnd={(event) => {
-            if (event.animationName === "aw-chip-in") {
-              setEnteredIds((prev) => {
-                const next = new Set(prev);
-                next.add(run.id);
-                return next;
-              });
-            }
-            if (event.animationName.startsWith("aw-chip-out") || event.animationName.startsWith("aw-chip-dismiss"))
-              onConceal(run.id);
-          }}
-          // Overlap lives on each bubble's own left margin so appending a
-          // newcomer never touches an existing bubble's styles (no snap).
-          // z-order follows urgency, not position — the failed bubble
-          // leads the row AND overlaps its neighbor, never tucked behind;
-          // it also lifts 3px off the baseline (broken rank).
-          style={{
-            marginLeft: index > 0 ? -8 : 0,
-            boxShadow: "0 0 0 2px white",
-            zIndex: urgency(run) + 1,
-            top: run.status === "failed" ? -3 : 0,
-          }}
-        >
-          {/* failPulse: the red verdict ring breathes in place until the
-              failure is addressed. Failed only — a stop was the user's
-              own act, so it rests. */}
-          <RingedFace agent={run.agent} status={run.status} size={30} strokeWidth={2} disc failPulse />
-          {/* Completion ping — mounts exactly when the run turns green. */}
-          {run.status === "done" ? (
-            <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
-          ) : null}
-        </button>
-      ))}
+      {visible.map((run, index) => {
+        // Overlap only within a shelf; a shelf boundary opens a gap
+        // instead, so requires-action sits visibly apart from staging.
+        // The exit variants must match the actual margin: overlap
+        // keyframes pin −8 mid-flight, so gap-leaders take the base.
+        const overlapped = index > 0 && needsAction(visible[index - 1]) === needsAction(run);
+        return (
+          <button
+            key={run.id}
+            data-run-id={run.id}
+            type="button"
+            aria-label={`Jump to ${run.agent.name}'s invoking message`}
+            onClick={() => onJumpRun(run)}
+            // Condense in when a run spawns (once — the class drops after
+            // the bloom so reorders can't replay it). Natural departures
+            // dissolve out with the condensation farewell; a user delete
+            // leaves with the flyout row's quick fade. Conceal on
+            // animationend closes the gap either way.
+            className={`relative flex rounded-full ${
+              run.removed
+                ? run.dismissed
+                  ? overlapped
+                    ? "aw-chip-dismiss-overlap"
+                    : "aw-chip-dismiss"
+                  : overlapped
+                    ? "aw-chip-out-overlap"
+                    : "aw-chip-out"
+                : enteredIds.has(run.id)
+                  ? ""
+                  : "aw-chip-in"
+            }`}
+            onAnimationEnd={(event) => {
+              if (event.animationName === "aw-chip-in") {
+                setEnteredIds((prev) => {
+                  const next = new Set(prev);
+                  next.add(run.id);
+                  return next;
+                });
+              }
+              if (event.animationName.startsWith("aw-chip-out") || event.animationName.startsWith("aw-chip-dismiss"))
+                onConceal(run.id);
+            }}
+            // Overlap lives on each bubble's own left margin so appending
+            // a newcomer never touches an existing bubble's styles (no
+            // snap). z-order follows urgency so within a shelf the more
+            // urgent bubble overlaps; the shelves themselves are held
+            // apart by the gap, and FLIP glides everything when the
+            // boundary moves.
+            style={{
+              marginLeft: index === 0 ? 0 : overlapped ? -8 : 6,
+              boxShadow: "0 0 0 2px white",
+              zIndex: urgency(run) + 1,
+            }}
+          >
+            {/* failPulse: the red verdict ring breathes in place until the
+                failure is addressed. Failed only — a stop was the user's
+                own act, so it rests. */}
+            <RingedFace agent={run.agent} status={run.status} size={30} strokeWidth={2} disc failPulse />
+            {/* Completion ping — mounts exactly when the run turns green. */}
+            {run.status === "done" ? (
+              <span aria-hidden className="aw-ping absolute inset-0 rounded-full" />
+            ) : null}
+          </button>
+        );
+      })}
       {overflowing ? (
         <button
           type="button"
           aria-label={`${hidden.length} more agents`}
           // No single message to jump to — opening the roster is the answer
-          // (and gives touch a path to it).
+          // (and gives touch a path to it). Sits on the staging shelf: a
+          // gap if the last visible bubble is requires-action.
           onClick={() => onHoverChange(true)}
           className="aw-chip-in flex rounded-full"
-          style={{ marginLeft: -8, boxShadow: "0 0 0 2px white" }}
+          style={{
+            marginLeft:
+              visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : -8,
+            boxShadow: "0 0 0 2px white",
+          }}
         >
           <OverflowDisc count={hidden.length} />
         </button>
@@ -1081,8 +1108,9 @@ export function AgentFlyout({
   // short row-in. Lazy state snapshots the opening roster exactly once.
   const [openingIds] = useState(() => new Set(runs.map((run) => run.id)));
 
-  // Same urgency order as the corner: failures first, then working —
-  // the top of the list is the anchor the panel opens toward.
+  // Same shelf order as the corner: requires-action (failed, stopped)
+  // first, then staging — the top of the list is the anchor the panel
+  // opens toward.
   const rows = [...runs].sort((a, b) => urgency(b) - urgency(a));
 
   // FLIP on reorder: when the urgency sort moves a row (a status just

@@ -534,14 +534,6 @@
   animation: aw-pill-bump 200ms cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
-/* Corner bubbles: urgency owns the vertical too — a failed bubble
-   lifts 3px off the baseline (broken rank), easing up when the state
-   flips. The lift rides `top`, which never collides with the transform
-   the entry/exit keyframes and the FLIP slide use. */
-.aw-corner-chip {
-  transition: top 240ms ease;
-}
-
 /* Spotlight discipline: while the flyout is open it is the one stage —
    the corner stack rests. Loops pause mid-frame and the working comets
    dim; the panel's rows carry the live signal alone. Eases back in

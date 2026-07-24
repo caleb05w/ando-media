@@ -512,6 +512,16 @@ function elapsedMs(run: AgentRun): number {
   return (run.endedAt ?? Date.now()) - run.startedAt;
 }
 
+// Phase-lock helper: a negative delay against the shared epoch, so every
+// instance of a looping animation lands on the same global phase — the
+// stack breathes as one organism instead of a desynced swarm. MUST be
+// computed exactly once per element (lazy state at mount): recomputing
+// on re-renders re-phases the running animation against its original
+// start time and drifts everything apart.
+function syncDelay(periodMs: number): string {
+  return `-${Date.now() % periodMs}ms`;
+}
+
 // Live status line: walks the agent's scripted thought beats (uneven dwell
 // times), then cycles the working tail from `loopFrom` so long runs stay
 // visibly alive; settles on the outcome (answer preview / failed / stopped).
@@ -600,6 +610,8 @@ export function RingedFace({
   // an effect, so the seal overlay mounts on the exact transition frame.
   const [prevStatus, setPrevStatus] = useState(status);
   const [seal, setSeal] = useState<RunStatus | null>(null);
+  // Phase-lock delays, computed once at element mount (see syncDelay).
+  const [sync] = useState(() => ({ breathe: syncDelay(4000), comet: syncDelay(1600) }));
   // Success pop is sequenced after the seal (aw-after-seal), so it outlives
   // the seal state and clears on its own animation end.
   const [celebrate, setCelebrate] = useState(false);
@@ -638,9 +650,7 @@ export function RingedFace({
       // aw-breathe: the working bubble inhales/exhales. Transition
       // classes (pop, shake) are defined later in the CSS, so they take
       // the animation shorthand for their moment and hand it back.
-      className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${
-        working ? "aw-breathe" : ""
-      } ${wrapperFx}`}
+      className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
       style={{ width: size, height: size }}
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-seal-draw") setSeal(null);
@@ -650,15 +660,29 @@ export function RingedFace({
         }
       }}
     >
+      {/* Synchronized breathing: every working bubble computes its
+          animation delay against the same epoch, so the whole stack
+          inhales as one organism — same motion, none of the swarm
+          texture desync creates. Breathe lives on its own wrapper so
+          the inline delay can never poison the root's pop/shake. */}
+      <span
+        className={`absolute inset-0 ${working ? "aw-breathe" : ""}`}
+        style={working ? { animationDelay: sync.breathe } : undefined}
+      >
       {/* Working comet — the Kinetic set's W2: one bright head, fading
           tail, on a 1.6s orbit. Brand blue by default; carries the
           agent's portrait tone so the page-level .aw-hue-portrait class
           can flip every comet at once. Kept mounted while sealing so it
-          fades under the outcome ring instead of vanishing. */}
+          fades under the outcome ring instead of vanishing; the sync
+          delay applies only while working so the seal's aw-ring-fade
+          keeps its own clock. */}
       {working || seal != null ? (
         <span
           className={`aw-comet ${seal != null ? "aw-ring-fade" : ""}`}
-          style={agent.hue ? ({ "--aw-tint": agent.hue } as React.CSSProperties) : undefined}
+          style={{
+            ...(agent.hue ? { "--aw-tint": agent.hue } : null),
+            ...(working ? { animationDelay: sync.comet } : null),
+          } as React.CSSProperties}
           aria-hidden
         />
       ) : null}
@@ -694,11 +718,26 @@ export function RingedFace({
             beat is the sole rhythm in the corner. */}
         <AgentFace agent={agent} size={size - 6} />
       </span>
+      </span>
     </span>
   );
 }
 
 /* ------------------------------ inline chips ------------------------------- */
+
+// Chip status line with its own mount-time shimmer phase (one component
+// per run, so the lazy state is per-element).
+function ChipShimmer({ text }: { text: string }) {
+  const [delay] = useState(() => syncDelay(2200));
+  return (
+    <span
+      className="aw-shimmer-light min-w-0 truncate text-[13px] leading-4"
+      style={{ animationDelay: delay }}
+    >
+      {text}
+    </span>
+  );
+}
 
 // Session chips under the invoking message. Working: label + elapsed + stop.
 // Failed/stopped: red label (with stop attribution) + final elapsed + a
@@ -723,10 +762,9 @@ export function SessionChips({
           {run.status === "working" ? (
             <>
               {/* Live thought line, shimmering while the agent works;
-                  beats swap in place. */}
-              <span className="aw-shimmer-light min-w-0 truncate text-[13px] leading-4">
-                {statusLine(run)}
-              </span>
+                  beats swap in place. Shimmer phase-locked to the
+                  global clock like every working motion. */}
+              <ChipShimmer text={statusLine(run)} />
               <span className="shrink-0 text-[12px] leading-4 tabular-nums text-[#a8a29e]">
                 {formatDuration(elapsedMs(run))}
               </span>
@@ -1229,6 +1267,8 @@ function FlyoutRow({
 }) {
   const working = run.status === "working";
   const failed = run.status === "failed" || run.status === "stopped";
+  // Mount-time shimmer phase (see syncDelay).
+  const [rowShimmerDelay] = useState(() => syncDelay(2200));
   return (
     // Row click returns to the invoked message; inner controls stop the
     // bubble so stop/rerun/remove/trace never double as navigation. In
@@ -1260,11 +1300,13 @@ function FlyoutRow({
             className="flex min-w-0 items-center gap-1 text-left"
           >
             {/* Thought beats swap in place — the shimmer alone signals live
-                work; no roll on text changes. */}
+                work; no roll on text changes. Phase-locked to the global
+                clock like every working motion. */}
             <span
               className={`truncate text-[13px] leading-4 ${
                 working ? "aw-shimmer-dark" : "text-white"
               }`}
+              style={working ? { animationDelay: rowShimmerDelay } : undefined}
             >
               {statusLine(run)}
             </span>

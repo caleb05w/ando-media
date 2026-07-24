@@ -60,10 +60,16 @@ type AwMessage = {
   // Agent answers carry the "Worked for Xm Ys ›" footer → trace modal.
   workedForMs?: number;
   runId?: string;
-  // System notices ("Tadao changed proactivity") — a quiet gray line in
-  // the text column, no avatar, no author header.
+  // System notices — a quiet gray line in the text column, no avatar,
+  // no author header. Proactivity notices ("Oli updated Tadao's
+  // proactivity to mention only") carry structured fields; the level is
+  // a brand-blue CTA that reopens the picker.
   system?: boolean;
+  proactivity?: { actor: string; agentName: string; level: ProactivityLevel };
 };
+
+const PROACTIVITY_LEVELS = ["high", "medium", "low", "mention only"] as const;
+type ProactivityLevel = (typeof PROACTIVITY_LEVELS)[number];
 
 const TADAO = AGENTS[0];
 const ANDO = AGENTS.find((agent) => agent.id === "ando")!;
@@ -586,6 +592,67 @@ function MessageAvatar({ avatar }: { avatar: AwMessage["avatar"] }) {
   return <AgentFace agent={avatar.agent} size={24} />;
 }
 
+// The level CTA inside a proactivity notice: brand blue, opens a small
+// picker; choosing a level posts a fresh notice.
+function ProactivityCta({
+  level,
+  onPick,
+}: {
+  level: ProactivityLevel;
+  onPick: (level: ProactivityLevel) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="text-[12px] leading-4 transition-colors hover:underline"
+        style={{ color: BRAND }}
+      >
+        {level}
+      </button>
+      {open ? (
+        <>
+          {/* click-away scrim */}
+          <span className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <span
+            className="aw-pop-enter absolute bottom-[calc(100%+4px)] left-0 z-50 flex w-[124px] flex-col rounded-[8px] border-[0.5px] bg-white py-1 shadow-[0px_8px_24px_-6px_rgba(16,16,16,0.18),0px_0px_0.5px_0.75px_rgba(16,16,16,0.08)]"
+            style={{ borderColor: STROKE_WEAK }}
+          >
+            {PROACTIVITY_LEVELS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  if (option !== level) onPick(option);
+                }}
+                className="flex items-center justify-between px-2.5 py-1 text-left text-[12px] leading-4 transition-colors hover:bg-[#f5f5f4]"
+                style={{ color: option === level ? FG_PRIMARY : FG_SECONDARY }}
+              >
+                {option}
+                {option === level ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
+                    <path
+                      d="M2 5.2L4.2 7.4L8 3"
+                      fill="none"
+                      stroke={BRAND}
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : null}
+              </button>
+            ))}
+          </span>
+        </>
+      ) : null}
+    </span>
+  );
+}
+
 function MessageRow({
   message,
   chipRuns,
@@ -593,6 +660,7 @@ function MessageRow({
   onStopRun,
   onOpenTrace,
   onOpenRunTrace,
+  onSetProactivity,
 }: {
   message: AwMessage;
   chipRuns: AgentRun[];
@@ -600,15 +668,27 @@ function MessageRow({
   onStopRun: (runId: string) => void;
   onOpenTrace: (message: AwMessage) => void;
   onOpenRunTrace: (runId: string) => void;
+  onSetProactivity: (agentName: string, level: ProactivityLevel) => void;
 }) {
   // System notices: one quiet line aligned with the text column —
-  // functions like chrome, not conversation.
+  // functions like chrome, not conversation. Proactivity notices carry
+  // a brand-blue level CTA that opens the picker.
   if (message.system) {
     return (
       <div data-aw-msg-id={message.id} className="flex w-full px-4 py-1 pl-[50px]">
-        <span className="text-[12px] leading-4" style={{ color: "#a8a29e" }}>
-          {message.paragraphs[0]?.map((segment) => segment.text).join("")}
-        </span>
+        {message.proactivity ? (
+          <span className="text-[12px] leading-4" style={{ color: "#a8a29e" }}>
+            {`${message.proactivity.actor} updated ${message.proactivity.agentName}'s proactivity to `}
+            <ProactivityCta
+              level={message.proactivity.level}
+              onPick={(level) => onSetProactivity(message.proactivity!.agentName, level)}
+            />
+          </span>
+        ) : (
+          <span className="text-[12px] leading-4" style={{ color: "#a8a29e" }}>
+            {message.paragraphs[0]?.map((segment) => segment.text).join("")}
+          </span>
+        )}
       </div>
     );
   }
@@ -1014,8 +1094,9 @@ export default function AgentWorkingPage() {
               authorName: agent.name,
               avatar: { agent },
               time: nowLabel(),
-              paragraphs: [[{ text: `${agent.name} changed proactivity` }]],
+              paragraphs: [],
               system: true,
+              proactivity: { actor: "Oli", agentName: agent.name, level: "mention only" },
             },
           ]);
         }
@@ -1024,6 +1105,23 @@ export default function AgentWorkingPage() {
     }
 
     engine.spawn(id, promptOf(text), mentioned);
+  };
+
+  // Picking a level from a notice's CTA posts a fresh notice — settings
+  // changes leave a visible trail, never edit history.
+  const handleSetProactivity = (agentName: string, level: ProactivityLevel) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: nextMessageId(),
+        authorName: agentName,
+        avatar: "silhouette" as const,
+        time: nowLabel(),
+        paragraphs: [],
+        system: true,
+        proactivity: { actor: "Oli", agentName, level },
+      },
+    ]);
   };
 
   // Bubble and row clicks both navigate to the message that invoked the
@@ -1080,6 +1178,7 @@ export default function AgentWorkingPage() {
                   onStopRun={engine.stop}
                   onOpenTrace={(target) => setTraceRunId(target.runId ?? null)}
                   onOpenRunTrace={setTraceRunId}
+                  onSetProactivity={handleSetProactivity}
                 />
                 {message.threadFooter ? <ThreadFooter footer={message.threadFooter} /> : null}
               </div>

@@ -836,7 +836,11 @@ export function SessionChips({
 // (failures persist in the flyout until addressed).
 export function OverflowDisc({ count }: { count: number }) {
   return (
-    <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-[#1c1917] text-[11px] font-medium leading-none text-white">
+    // Chrome register, not agent register: the count is the least
+    // important thing in the corner, so it carries the least ink —
+    // the same quiet gray as the header's member-count pill. The old
+    // near-black disc outweighed the verdicts beside it.
+    <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-[#f5f5f4] text-[11px] font-medium leading-none text-[#58524e]">
       {`+${count}`}
     </span>
   );

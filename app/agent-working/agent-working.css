@@ -304,53 +304,68 @@
      margin on the right, never over the neighbor. */
   transform-origin: left center;
 }
-/* Exit is a dissolve with a little travel — the same masked-motion deal
-   as the arrival. Arrive opens the slot under a barely-formed face;
-   depart holds the slot through the first half of the fade, then closes
-   it under a mostly-faded ghost (~18% opacity when the slide begins),
-   which drifts right a touch as the space collapses. Pure opacity on
-   the face itself — no scale, no blur. */
+/* Exit is the Gestures board's Depart (G6, "mist rises") promoted onto
+   the corner and rotated to the exit's axis: dismissed, the bubble
+   becomes weather — fading, blurring 2.5px, swelling 1.05 — and drifts
+   6px RIGHTWARD instead of up, out the row's own door. The vapor
+   completes in the first half; the empty slot closes under it after.
+   Departure is release, not deletion. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
     opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
   }
   50% {
     width: 30px;
+    opacity: 0;
+    transform: translateX(6px) scale(1.05);
+    filter: blur(2.5px);
   }
   100% {
     width: 0px;
     margin-left: 0;
     opacity: 0;
+    transform: translateX(6px) scale(1.05);
+    filter: blur(2.5px);
   }
 }
 /* Overlapped bubbles (inline margin-left −8) additionally hold their
-   overlap through the same half — releasing it earlier would slide a
-   still-solid face to the right. */
+   overlap while the mist forms — releasing it earlier would slide a
+   still-solid face instead of vapor. */
 @keyframes aw-chip-out-overlap {
   0% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
     opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
   }
   50% {
     width: 30px;
     margin-left: var(--aw-overlap, -8px);
+    opacity: 0;
+    transform: translateX(6px) scale(1.05);
+    filter: blur(2.5px);
   }
   100% {
     width: 0px;
     margin-left: 0;
     opacity: 0;
+    transform: translateX(6px) scale(1.05);
+    filter: blur(2.5px);
   }
 }
 .aw-chip-out,
 .aw-chip-out-overlap {
-  /* Fourth cut at depart. Strict time-reverse ended at full speed;
-     forward curve still slid a half-solid ghost; the pure in-place
-     dissolve read as too still — departure lost its direction. Now the
-     fade runs the full 680ms while the slot holds to 50% and closes
-     under the ghost: a little travel returns, masked the way arrive
-     masks its shove. Goodbyes lean out the door, softly. */
+  /* Fifth cut at depart, and the one with a name: G6 from the Gestures
+     board, rotated horizontal. The lineage — strict time-reverse (ended
+     at speed), forward curve (half-solid ghost slid), in-place dissolve
+     (too still), dissolve with slot-travel (directionless) — kept
+     circling one miss: the exit had mechanics but no gesture. Mist
+     rising sideways is a gesture. Still 680ms: weather moves quickly
+     here. */
   pointer-events: none;
 }
 .aw-chip-out {

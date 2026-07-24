@@ -1893,8 +1893,8 @@ const GESTURE_SECTIONS: Section[] = [
       },
       {
         title: "Depart",
-        source: "mist rises",
-        note: "Dismissed, it becomes weather and leaves upward. Departure should feel like release, not deletion.",
+        source: "mist rises · shipped, rotated horizontal",
+        note: "Dismissed, it becomes weather and leaves upward. Departure should feel like release, not deletion. Promoted to the corner exit with its axis rotated — the mist leaves rightward, out the row's own door.",
         demo: <GDepart />,
       },
     ],
@@ -2388,8 +2388,8 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Depart",
-        source: "aw-chip-out · a dissolve with a little travel",
-        note: "Pure opacity fade over the full 680ms — no shrink, no blur — with the slot held to 50%, then closed under the mostly-faded ghost (~18% when the slide begins), which drifts right a touch as the space collapses. Fourth cut: strict reverse ended at speed, forward curve slid a half-solid ghost, the in-place dissolve read too still. Masked motion, like arrive's shove.",
+        source: "aw-chip-out · mist rises, rotated to the row's door",
+        note: "The Gestures Depart (G6), promoted: dismissed, the bubble becomes weather — fade, 2.5px blur, 1.05 swell — drifting 6px rightward instead of up, out the row's own exit. The vapor completes in the first 340ms; the empty slot closes unseen after. Fifth cut, the one with a name: earlier exits had mechanics but no gesture. Release, not deletion.",
         demo: <ShippedDepart />,
       },
       {

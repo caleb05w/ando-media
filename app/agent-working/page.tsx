@@ -509,8 +509,8 @@ function PageHeader({
   hueMode,
   onHueModeChange,
 }: {
-  hueMode: "blue" | "portrait";
-  onHueModeChange: (mode: "blue" | "portrait") => void;
+  hueMode: "blue" | "portrait" | "amber";
+  onHueModeChange: (mode: "blue" | "portrait" | "amber") => void;
 }) {
   return (
     <div
@@ -535,7 +535,7 @@ function PageHeader({
           role="group"
           aria-label="Working indicator color"
         >
-          {(["blue", "portrait"] as const).map((mode) => (
+          {(["blue", "portrait", "amber"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -545,7 +545,7 @@ function PageHeader({
               }`}
               style={{ color: hueMode === mode ? FG_PRIMARY : FG_TERTIARY }}
             >
-              {mode === "blue" ? "Blue" : "Portrait"}
+              {mode === "blue" ? "Blue" : mode === "portrait" ? "Portrait" : "Amber"}
             </button>
           ))}
         </span>
@@ -859,9 +859,10 @@ export default function AgentWorkingPage() {
   const [flashId, setFlashId] = useState<string | null>(null);
   // Trace modal target: a live run id, or "seed" for the canned run.
   const [traceRunId, setTraceRunId] = useState<string | null>(null);
-  // Working-comet hue: the page's brand blue, or each agent's portrait
-  // tone (root class .aw-hue-portrait flips the CSS for every comet).
-  const [hueMode, setHueMode] = useState<"blue" | "portrait">("blue");
+  // Working-comet hue: the page's brand blue, each agent's portrait
+  // tone, or the spec's original amber (a root class flips the CSS for
+  // every comet at once).
+  const [hueMode, setHueMode] = useState<"blue" | "portrait" | "amber">("blue");
   const messagesRef = useRef<HTMLDivElement>(null);
 
   // Jump-to-latest pill (dynamic island): agent answers landing while the
@@ -1010,7 +1011,7 @@ export default function AgentWorkingPage() {
   return (
     <div
       className={`aw-page flex h-dvh w-screen flex-col overflow-hidden ${
-        hueMode === "portrait" ? "aw-hue-portrait" : ""
+        hueMode === "portrait" ? "aw-hue-portrait" : hueMode === "amber" ? "aw-hue-amber" : ""
       }`}
       style={{ background: BG_TERTIARY, color: FG_PRIMARY }}
     >

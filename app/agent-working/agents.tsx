@@ -13,7 +13,7 @@
 //     no Complete tab). Rows: ringed avatar, live status line (chevron →
 //     trace modal), "↳ invoking message" sub-line, elapsed time that swaps
 //     to controls on hover (stop / rerun / remove). Row click jumps to the
-//     source message. Completed rows linger 1s, then fade away — the posted
+//     source message. Completed rows linger 2s, then fade away — the posted
 //     answer is the durable record. 4-row window with a "Showing 4 of N
 //     agents" pager that only renders at 5+ rows.
 //
@@ -339,9 +339,9 @@ export function useAgentEngine(
   }, []);
 
   // 500ms heartbeat: advances elapsed displays, resolves finished runs,
-  // and fades done runs out after 1s — just long enough for the full
-  // seal/pop/ping choreography (~1.15s) to essentially land before the
-  // depart begins. The posted answer is the durable record.
+  // and fades done runs out after 2s — the seal/pop/ping choreography
+  // (~1.15s) lands whole, then the green holds a beat before the
+  // depart. The posted answer is the durable record.
   useEffect(() => {
     const timer = setInterval(() => {
       setTick((t) => t + 1);
@@ -369,7 +369,7 @@ export function useAgentEngine(
             // >= : doneAt is set on a heartbeat, so the mark lands
             // exactly on a later tick — strict > would wait a full
             // extra tick.
-            now - run.doneAt >= 1000
+            now - run.doneAt >= 2000
           ) {
             changed = true;
             return { ...run, removed: true };
@@ -600,10 +600,9 @@ export function RingedFace({
 
   const center = size / 2;
   const working = status === "working";
-  // Failure carries extra weight — the not-completed verdict draws
-  // noticeably heavier than done/stopped.
-  const verdictStroke = status === "failed" ? strokeWidth + 0.75 : strokeWidth;
-  const radius = center - verdictStroke / 2;
+  // Failed and stopped share one ring: same weight, same geometry —
+  // the throb is the only thing that separates them.
+  const radius = center - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
   // Failure jolts immediately; success celebrates after the seal closes.
   const wrapperFx =
@@ -659,7 +658,7 @@ export function RingedFace({
             cy={center}
             r={radius}
             fill="none"
-            strokeWidth={verdictStroke}
+            strokeWidth={strokeWidth}
             stroke={RING_COLOR[seal ?? status]}
             strokeLinecap="round"
             className={seal != null ? "aw-seal-draw" : ""}

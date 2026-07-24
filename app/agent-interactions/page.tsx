@@ -2108,14 +2108,14 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Working",
-        source: "comet · brand blue / portrait",
-        note: "The softened comet on its 1.6s orbit, in both hue modes of the header toggle: the page's brand blue, and the agent's portrait tone.",
+        source: "comet · brand blue / portrait / amber",
+        note: "The softened comet on its 1.6s orbit, in the header toggle's three hue modes: the page's brand blue, the agent's portrait tone, and the spec's original amber.",
         demo: <ShippedWorking />,
       },
       {
         title: "Completed",
         source: "seal → pop → ping",
-        note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs 1s later in the product — just enough for the choreography to land.",
+        note: "The green ring draws itself closed over the fading comet, the bubble pops, and a ring rolls off. The chip departs 2s later in the product — the choreography lands, then the green holds a beat.",
         demo: <ShippedCompleted />,
       },
       {

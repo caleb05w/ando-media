@@ -111,15 +111,18 @@ export function ShippedArrive() {
   );
 }
 
-// Working: the comet in both hue modes — brand blue (default) and the
-// portrait tone (the page-level .aw-hue-portrait class, applied here to
-// a local wrapper).
+// Working: the comet in all three hue modes — brand blue (default),
+// the portrait tone, and the spec amber (the page-level hue classes,
+// applied here to local wrappers).
 export function ShippedWorking() {
   return (
     <Frame>
       <div className="flex items-center gap-3">
         <ShippedBubble status="working" />
         <span className="aw-hue-portrait inline-flex">
+          <ShippedBubble status="working" />
+        </span>
+        <span className="aw-hue-amber inline-flex">
           <ShippedBubble status="working" />
         </span>
       </div>

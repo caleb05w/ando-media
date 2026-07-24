@@ -50,6 +50,17 @@
     transparent 100%
   );
 }
+/* Third mode: the spec's original working amber. */
+.aw-hue-amber .aw-comet {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 55%,
+    rgba(245, 158, 11, 0.12) 66%,
+    rgba(245, 158, 11, 0.6) 90%,
+    rgba(245, 158, 11, 0.18) 97%,
+    transparent 100%
+  );
+}
 
 /* Flyout / mention menu enter, anchored to the corner (bottom right). */
 @keyframes aw-pop-in {

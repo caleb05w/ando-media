@@ -700,14 +700,13 @@ export function RingedFace({
     if (prevStatus === "working") {
       if (status === "failed" && promoteDelayMs != null) {
         setPendingFail(true);
-      } else if (status === "done" && quiet) {
-        // Wave finishes don't perform: no catch spin, no pop, no ping —
-        // the ring seals to solid green in place, instantly. The spin
-        // is applause too, and once three dones share the corner,
-        // applause has stopped. The wave's ONE motion is the universal
-        // shift right when it departs together.
-        setSeal(null);
       } else {
+        // Wave finishes don't perform — no racing spin, no pop, no
+        // ping (the spin is applause too, and once three dones share
+        // the corner, applause has stopped) — but quiet is not a
+        // teleport: the tail fills to green in place over 400ms while
+        // the orbit keeps turning (see aw-comet-catching-quiet). Solo
+        // completions keep the full ceremony.
         setSeal(status);
         if (status === "done") {
           setCatchTheta(catchLaunchAngle());
@@ -773,7 +772,10 @@ export function RingedFace({
       className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
       style={{ width: size, height: size }}
       onAnimationEnd={(event) => {
-        if (event.animationName === "aw-seal-draw" || event.animationName === "aw-catch-close")
+        if (
+          event.animationName === "aw-seal-draw" ||
+          event.animationName.startsWith("aw-catch-close")
+        )
           setSeal(null);
         if (event.animationName === "aw-scale-pop") {
           setCelebrate(false);
@@ -808,7 +810,9 @@ export function RingedFace({
         <span
           className={`aw-comet ${
             seal === "done"
-              ? "aw-comet-catching"
+              ? quiet
+                ? "aw-comet-catching-quiet"
+                : "aw-comet-catching"
               : effStatus === "done"
                 ? "aw-comet-done"
                 : seal != null
@@ -819,10 +823,12 @@ export function RingedFace({
             ...(agent.hue ? { "--aw-tint": agent.hue } : null),
             ...(working && sync ? { animationDelay: sync.comet } : null),
             ...(seal === "done"
-              ? {
-                  ...(sync ? { animationDelay: `${sync.comet}, 0ms, 0ms` } : null),
-                  "--aw-theta": catchTheta,
-                }
+              ? quiet
+                ? { ...(sync ? { animationDelay: `${sync.comet}, 0ms` } : null) }
+                : {
+                    ...(sync ? { animationDelay: `${sync.comet}, 0ms, 0ms` } : null),
+                    "--aw-theta": catchTheta,
+                  }
               : null),
           } as React.CSSProperties}
           aria-hidden

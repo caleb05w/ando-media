@@ -127,6 +127,25 @@
     aw-catch-close 1200ms cubic-bezier(0.3, 0, 0.2, 1) both,
     aw-catch-spin 1200ms cubic-bezier(0.3, 0, 0.2, 1) both;
 }
+/* Quiet catch (completion waves): the same registered-stop close, but
+   no racing spin and no anticipation gather — the orbit keeps its own
+   pace while the tail fills to green over 400ms. An exhale, not a
+   ceremony; quiet, but never a one-frame teleport. */
+@keyframes aw-catch-close-quiet {
+  to {
+    --aw-gap: 0%;
+    --aw-a1: 100%;
+    --aw-a2: 100%;
+    --aw-a3: 100%;
+    --aw-a4: 100%;
+    --aw-live: #16a34a;
+  }
+}
+.aw-comet-catching-quiet {
+  animation:
+    aw-comet 1.6s linear infinite,
+    aw-catch-close-quiet 400ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
 /* Settled done (through the linger): the closed ring, still — same
    texture, no orbit. */
 .aw-comet-done {
@@ -757,6 +776,9 @@
   }
   .aw-comet-catching {
     animation: aw-catch-close 1ms linear both;
+  }
+  .aw-comet-catching-quiet {
+    animation: aw-catch-close-quiet 1ms linear both;
   }
   /* The dial goes still: the new count lands in place; the outgoing
      label hides itself (its animationend never fires, so it would

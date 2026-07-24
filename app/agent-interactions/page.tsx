@@ -2365,7 +2365,7 @@ const SHIPPED_SECTIONS: Section[] = [
       {
         title: "Completion wave",
         source: "three or more finish together · one shared exit",
-        note: "When completions pile up, applause stops — ALL of it: no pop, no ping, and no catch spin either (the spin is applause too). A finish changes ink, never geometry: lingering greens keep their seat AND their working-band z, so no seal ever pops the stacking or teleports a chip. The cohort's one motion is the universal shift right when it departs together on the eldest's linger — one exhale. Departures never overlap anywhere: anything coming due mid-mist holds its green and joins the next cohort, so leaving is always solo or lockstep. The stage hangs from the right edge like the corner, so the survivor glides down the track with the shift.",
+        note: "When completions pile up, applause stops — no pop, no ping, no racing spin (the spin is applause too). But quiet is not a teleport: a wave finish fills its tail to green in place over 400ms while the orbit keeps turning — the comet simply becomes a ring. A finish changes ink, never geometry: lingering greens keep their seat AND their working-band z. The cohort's one motion is the universal shift right when it departs together on the eldest's linger. Departures never overlap anywhere: anything coming due mid-mist holds its green and joins the next cohort — leaving is always solo or lockstep. The stage hangs from the right edge like the corner, so the survivor glides with the shift.",
         demo: <ShippedCompletionWave />,
       },
       {

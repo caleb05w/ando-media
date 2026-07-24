@@ -148,8 +148,9 @@
   transform-origin: left center;
 }
 /* Exit is the arrival played backward: the bloom reverses (fade, blur,
-   shrink) while the slot closes over the back half — one symmetric
-   gesture in, one out. */
+   shrink) in place, and only then does the slot close — held open until
+   65%, so the visible bubble doesn't ride rightward while the space
+   collapses under it. */
 @keyframes aw-chip-out {
   0% {
     width: 30px;
@@ -157,25 +158,52 @@
     transform: translateY(0) scale(1);
     filter: blur(0px);
   }
-  45% {
+  65% {
     width: 30px;
   }
   100% {
     width: 0px;
-    /* Eases from each bubble's own inline overlap value. */
     margin-left: 0;
     opacity: 0;
     transform: translateY(1px) scale(0.45);
     filter: blur(2.5px);
   }
 }
-.aw-chip-out {
+/* Overlapped bubbles (inline margin-left −8) additionally hold their
+   overlap until the slot closes — otherwise the margin releases over
+   the whole exit and slides the still-visible face to the right. */
+@keyframes aw-chip-out-overlap {
+  0% {
+    width: 30px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+  65% {
+    width: 30px;
+    margin-left: -8px;
+  }
+  100% {
+    width: 0px;
+    margin-left: 0;
+    opacity: 0;
+    transform: translateY(1px) scale(0.45);
+    filter: blur(2.5px);
+  }
+}
+.aw-chip-out,
+.aw-chip-out-overlap {
   /* The arrival's curve, time-reversed — (0.2,0,0.2,1) played backward
      is (0.8,0,0.8,1). Same path, opposite momentum, run a touch quicker
      than the arrival: goodbyes don't linger. */
-  animation: aw-chip-out 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
   pointer-events: none;
   transform-origin: left center;
+}
+.aw-chip-out {
+  animation: aw-chip-out 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
+}
+.aw-chip-out-overlap {
+  animation: aw-chip-out-overlap 680ms cubic-bezier(0.8, 0, 0.8, 1) forwards;
 }
 
 /* Thinking shimmer: a highlight sweeps the working status line (Linear's

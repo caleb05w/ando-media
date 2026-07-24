@@ -785,10 +785,18 @@ export function CornerStack({
           aria-label={`Jump to ${run.agent.name}'s invoking message`}
           onClick={() => onJumpRun(run)}
           // Condense in when a run spawns; dissolve out after removal, then
-          // conceal on animationend so the stack closes the gap.
-          className={`relative flex rounded-full ${run.removed ? "aw-chip-out" : "aw-chip-in"}`}
+          // conceal on animationend so the stack closes the gap. Overlapped
+          // bubbles use the variant that holds their −8 margin while the
+          // bloom fades, so the face doesn't slide right mid-exit.
+          className={`relative flex rounded-full ${
+            run.removed ? (index > 0 ? "aw-chip-out-overlap" : "aw-chip-out") : "aw-chip-in"
+          }`}
           onAnimationEnd={(event) => {
-            if (event.animationName === "aw-chip-out") onConceal(run.id);
+            if (
+              event.animationName === "aw-chip-out" ||
+              event.animationName === "aw-chip-out-overlap"
+            )
+              onConceal(run.id);
           }}
           // Overlap lives on each bubble's own left margin so appending a
           // newcomer never touches an existing bubble's styles (no snap).

@@ -525,6 +525,18 @@ function elapsedMs(run: AgentRun): number {
   return (run.endedAt ?? Date.now()) - run.startedAt;
 }
 
+// Fresh-spawn test: the arrival bloom belongs to runs entering the room,
+// not to veterans surfacing from the +N disc or standby shuffles.
+function isFreshSpawn(run: AgentRun): boolean {
+  return Date.now() - run.startedAt < 1500;
+}
+
+// The orbit's live angle on the shared phase clock — where the catch's
+// racing laps launch from.
+function catchLaunchAngle(): string {
+  return `${Math.round(((Date.now() % 1600) / 1600) * 360)}deg`;
+}
+
 // Phase-lock helper: a negative delay against the shared epoch, so every
 // instance of a looping animation lands on the same global phase — the
 // stack breathes as one organism instead of a desynced swarm. MUST be
@@ -653,7 +665,7 @@ export function RingedFace({
       } else {
         setSeal(status);
         if (status === "done") {
-          setCatchTheta(`${Math.round(((Date.now() % 1600) / 1600) * 360)}deg`);
+          setCatchTheta(catchLaunchAngle());
           if (!quiet) setCelebrate(true);
         }
       }
@@ -1032,6 +1044,12 @@ export function CornerStack({
         // The exit variants must match the actual margin: overlap
         // keyframes pin −8 mid-flight, so gap-leaders take the base.
         const overlapped = index > 0 && needsAction(visible[index - 1]) === needsAction(run);
+        // The arrival bloom is for agents ENTERING THE ROOM — a run
+        // surfacing from the +N disc (or reshuffled from standby) was
+        // already here, just uncounted, so it lands instantly like any
+        // reorder. Age is the tell: only genuinely fresh spawns bloom.
+        const entering =
+          !enteredIds.has(run.id) && isFreshSpawn(run) && !run.removed;
         return (
           <button
             key={run.id}
@@ -1053,9 +1071,9 @@ export function CornerStack({
                   : overlapped
                     ? "aw-chip-out-overlap"
                     : "aw-chip-out"
-                : enteredIds.has(run.id)
-                  ? ""
-                  : "aw-chip-in"
+                : entering
+                  ? "aw-chip-in"
+                  : ""
             }`}
             onAnimationEnd={(event) => {
               if (event.animationName === "aw-chip-in") {
@@ -1365,7 +1383,7 @@ export function AgentFlyout({
             <div key={run.id} data-run-id={run.id}>
               <FlyoutRow
                 run={run}
-                entering={!openingIds.has(run.id)}
+                entering={!openingIds.has(run.id) && isFreshSpawn(run)}
                 onStop={onStop}
                 onRerun={onRerun}
                 onRemove={onRemove}

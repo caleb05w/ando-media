@@ -65,7 +65,13 @@ type AwMessage = {
   // proactivity to mention only") carry structured fields; the level is
   // a brand-blue CTA that reopens the picker.
   system?: boolean;
+  // Standalone notice: "{user} updated {agent}'s proactivity to {level}"
+  // — the settings/CTA voice, anchored to nothing.
   proactivity?: { actor: string; agentName: string; level: ProactivityLevel };
+  // Footers under the invoking message: "{agent} updated its own
+  // proactivity to {level}" — the chat-command voice, attributed by
+  // position, spaced like the Worked-for trace footer.
+  proactivityFooters?: Array<{ agentName: string; level: ProactivityLevel }>;
 };
 
 const PROACTIVITY_LEVELS = ["high", "medium", "low", "mention only"] as const;
@@ -517,9 +523,11 @@ function LocalNav() {
 function PageHeader({
   hueMode,
   onHueModeChange,
+  onOpenAgentSettings,
 }: {
   hueMode: "blue" | "portrait" | "amber";
   onHueModeChange: (mode: "blue" | "portrait" | "amber") => void;
+  onOpenAgentSettings: () => void;
 }) {
   return (
     <div
@@ -558,6 +566,15 @@ function PageHeader({
             </button>
           ))}
         </span>
+        {/* Agent settings — the out-of-transcript proactivity surface. */}
+        <button
+          type="button"
+          onClick={onOpenAgentSettings}
+          className="flex items-center justify-center rounded-[6px] bg-white px-2 py-1 text-[12px] leading-4 shadow-[0px_0px_0.5px_0.75px_#ebe9e8] transition-colors hover:bg-[#fafaf9]"
+          style={{ color: FG_SECONDARY }}
+        >
+          Agents
+        </button>
         <span className="flex items-center justify-center gap-1.5 rounded-[6px] bg-white px-2 py-1 shadow-[0px_0px_0.5px_0.75px_#ebe9e8]">
           <img src={`${A}/icon-people-header.svg`} alt="" className="size-4" />
           <span className="text-center text-[12px] leading-4" style={{ color: FG_SECONDARY }}>
@@ -590,6 +607,142 @@ function MessageAvatar({ avatar }: { avatar: AwMessage["avatar"] }) {
     );
   }
   return <AgentFace agent={avatar.agent} size={24} />;
+}
+
+// Agent settings — the out-of-transcript home for proactivity. A quiet
+// modal (trace-modal grammar): one row per agent, each with a level
+// picker; changes post a "from agent settings" notice to the channel so
+// nothing about an agent's behavior ever changes silently.
+function AgentSettingsModal({
+  levels,
+  onPick,
+  onClose,
+}: {
+  levels: Record<string, ProactivityLevel>;
+  onPick: (agent: AgentDef, level: ProactivityLevel) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-center justify-center bg-black/20"
+      onClick={onClose}
+    >
+      <div
+        className="aw-modal-enter w-[340px] rounded-[10px] bg-white shadow-[0px_16px_40px_-12px_rgba(16,16,16,0.28),0px_0px_0.5px_0.75px_rgba(16,16,16,0.08)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="flex items-center justify-between border-b-[0.5px] py-2 pl-4 pr-2"
+          style={{ borderColor: STROKE_WEAK }}
+        >
+          <span className="text-[13px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
+            Agent settings
+          </span>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex size-6 items-center justify-center rounded-[5px] text-[#a8a29e] transition-colors hover:bg-[#f5f5f4] hover:text-[#58524e]"
+          >
+            ×
+          </button>
+        </div>
+        <div className="flex flex-col p-1.5">
+          {AGENTS.map((agent) => (
+            <div key={agent.id} className="flex items-center gap-2.5 rounded-[8px] p-2">
+              <AgentFace agent={agent} size={24} />
+              <span
+                className="min-w-0 flex-1 truncate text-[13px] leading-4"
+                style={{ color: FG_PRIMARY }}
+              >
+                {agent.name}
+              </span>
+              <LevelPicker
+                level={levels[agent.id] ?? "medium"}
+                onPick={(level) => onPick(agent, level)}
+              />
+            </div>
+          ))}
+        </div>
+        <div
+          className="border-t-[0.5px] px-4 py-2 text-[11px] leading-4"
+          style={{ borderColor: STROKE_WEAK, color: FG_TERTIARY }}
+        >
+          Changes post a notice to #design — proactivity never changes silently.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Bordered level control for settings rows — same four levels as the
+// notice CTA, chrome register instead of brand blue.
+function LevelPicker({
+  level,
+  onPick,
+}: {
+  level: ProactivityLevel;
+  onPick: (level: ProactivityLevel) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 rounded-[6px] border-[0.5px] border-[#e7e5e4] px-2 py-1 text-[12px] leading-4 transition-colors hover:bg-[#f5f5f4]"
+        style={{ color: FG_SECONDARY }}
+      >
+        {level}
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
+          <path
+            d="M2.5 4L5 6.5L7.5 4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open ? (
+        <>
+          <span className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <span
+            className="aw-pop-enter absolute right-0 top-[calc(100%+4px)] z-50 flex w-[124px] flex-col rounded-[8px] border-[0.5px] bg-white py-1 shadow-[0px_8px_24px_-6px_rgba(16,16,16,0.18),0px_0px_0.5px_0.75px_rgba(16,16,16,0.08)]"
+            style={{ borderColor: STROKE_WEAK }}
+          >
+            {PROACTIVITY_LEVELS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  if (option !== level) onPick(option);
+                }}
+                className="flex items-center justify-between px-2.5 py-1 text-left text-[12px] leading-4 transition-colors hover:bg-[#f5f5f4]"
+                style={{ color: option === level ? FG_PRIMARY : FG_SECONDARY }}
+              >
+                {option}
+                {option === level ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
+                    <path
+                      d="M2 5.2L4.2 7.4L8 3"
+                      fill="none"
+                      stroke={BRAND}
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : null}
+              </button>
+            ))}
+          </span>
+        </>
+      ) : null}
+    </span>
+  );
 }
 
 // The level CTA inside a proactivity notice: brand blue, opens a small
@@ -771,6 +924,21 @@ function MessageRow({
             </svg>
           </button>
         ) : null}
+        {/* Chat-command proactivity changes attach here — the agent's
+            own act, in the Worked-for footer's exact spacing. */}
+        {message.proactivityFooters?.map((entry) => (
+          <span
+            key={entry.agentName}
+            className="flex w-fit items-center gap-1 text-[12px] leading-4"
+            style={{ color: "#a8a29e" }}
+          >
+            {`${entry.agentName} updated its own proactivity to `}
+            <ProactivityCta
+              level={entry.level}
+              onPick={(level) => onSetProactivity(entry.agentName, level)}
+            />
+          </span>
+        ))}
         <SessionChips runs={chipRuns} onStop={onStopRun} onOpenTrace={onOpenRunTrace} />
       </div>
     </div>
@@ -957,6 +1125,12 @@ export default function AgentWorkingPage() {
   // tone, or the spec's original amber (a root class flips the CSS for
   // every comet at once).
   const [hueMode, setHueMode] = useState<"blue" | "portrait" | "amber">("blue");
+  // One source of truth for proactivity — chat commands, notice CTAs,
+  // and the settings panel all read and write this map.
+  const [proactivityLevels, setProactivityLevels] = useState<Record<string, ProactivityLevel>>(
+    () => Object.fromEntries(AGENTS.map((agent) => [agent.id, "medium" as ProactivityLevel])),
+  );
+  const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
 
   // Jump-to-latest pill (dynamic island): agent answers landing while the
@@ -1066,6 +1240,26 @@ export default function AgentWorkingPage() {
       )
     );
     const id = nextMessageId();
+
+    // "@Agent stop" is a command, not a prompt: stop that agent's working
+    // runs instead of spawning. The acknowledgment rides the invoking
+    // message itself — "{agent} updated its own proactivity" as a footer
+    // in the Worked-for spacing — attribution by position.
+    const isStop = mentioned.length > 0 && /^stop[.!]?$/i.test(promptOf(text).trim());
+    const footers: NonNullable<AwMessage["proactivityFooters"]> = [];
+    if (isStop) {
+      mentioned.forEach((agent) => {
+        const workingRuns = engine.runs.filter(
+          (run) => run.agent.id === agent.id && run.status === "working" && !run.removed
+        );
+        workingRuns.forEach((run) => engine.stop(run.id));
+        if (workingRuns.length > 0) {
+          setProactivityLevels((prev) => ({ ...prev, [agent.id]: "mention only" }));
+          footers.push({ agentName: agent.name, level: "mention only" });
+        }
+      });
+    }
+
     setMessages((prev) => [
       ...prev,
       {
@@ -1074,42 +1268,23 @@ export default function AgentWorkingPage() {
         avatar: { photo: OLI_PHOTO },
         time: nowLabel(),
         paragraphs: [segments],
+        proactivityFooters: footers.length > 0 ? footers : undefined,
       },
     ]);
-    if (mentioned.length === 0) return;
-
-    // "@Agent stop" is a command, not a prompt: stop that agent's working
-    // runs instead of spawning, and the agent acknowledges in chat.
-    if (/^stop[.!]?$/i.test(promptOf(text).trim())) {
-      mentioned.forEach((agent) => {
-        const workingRuns = engine.runs.filter(
-          (run) => run.agent.id === agent.id && run.status === "working" && !run.removed
-        );
-        workingRuns.forEach((run) => engine.stop(run.id));
-        if (workingRuns.length > 0) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: nextMessageId(),
-              authorName: agent.name,
-              avatar: { agent },
-              time: nowLabel(),
-              paragraphs: [],
-              system: true,
-              proactivity: { actor: "Oli", agentName: agent.name, level: "mention only" },
-            },
-          ]);
-        }
-      });
-      return;
-    }
+    if (mentioned.length === 0 || isStop) return;
 
     engine.spawn(id, promptOf(text), mentioned);
   };
 
-  // Picking a level from a notice's CTA posts a fresh notice — settings
-  // changes leave a visible trail, never edit history.
+  // Every proactivity change — chat command, notice CTA, or the
+  // settings panel — updates the shared map and posts a fresh notice:
+  // a visible trail, never edited history. Settings-sourced changes
+  // carry via so the notice says where they came from.
   const handleSetProactivity = (agentName: string, level: ProactivityLevel) => {
+    const agent = AGENTS.find((a) => a.name === agentName);
+    if (agent) {
+      setProactivityLevels((prev) => ({ ...prev, [agent.id]: level }));
+    }
     setMessages((prev) => [
       ...prev,
       {
@@ -1160,7 +1335,11 @@ export default function AgentWorkingPage() {
         <LocalNav />
         {/* 6px gutter between the two cards — the page bg reads as the divider. */}
         <main className="relative ml-1.5 flex min-w-0 flex-1 flex-col overflow-clip rounded-tl-[6px] bg-white shadow-[0px_0px_0.5px_0.5px_rgba(15,13,13,0.08),0px_1px_2px_0px_rgba(15,13,13,0.05)]">
-          <PageHeader hueMode={hueMode} onHueModeChange={setHueMode} />
+          <PageHeader
+            hueMode={hueMode}
+            onHueModeChange={setHueMode}
+            onOpenAgentSettings={() => setAgentSettingsOpen(true)}
+          />
           {/* mt-auto spacer (not justify-end) pins messages to the bottom:
               justify-end makes top overflow unscrollable in flex containers. */}
           <div
@@ -1196,6 +1375,14 @@ export default function AgentWorkingPage() {
                 setPillState("hidden");
                 setPillFaces([]);
               }}
+            />
+          ) : null}
+
+          {agentSettingsOpen ? (
+            <AgentSettingsModal
+              levels={proactivityLevels}
+              onPick={(agent, level) => handleSetProactivity(agent.name, level)}
+              onClose={() => setAgentSettingsOpen(false)}
             />
           ) : null}
 

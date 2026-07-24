@@ -723,8 +723,20 @@ export function RingedFace({
       // aw-breathe: the working bubble inhales/exhales. Transition
       // classes (pop, shake) are defined later in the CSS, so they take
       // the animation shorthand for their moment and hand it back.
+      // Stopped rest: once the red seal has drawn (seal cleared), the
+      // whole face recedes to 0.75 — a stop was your own act, parked by
+      // you, so it yields the ink. Failed keeps full presence (and the
+      // throb). The recede takes the settle's tempo (400ms); waking back
+      // to work lifts quickly (150ms) under the restart pop.
       className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
-      style={{ width: size, height: size }}
+      style={{
+        width: size,
+        height: size,
+        opacity: effStatus === "stopped" && seal == null ? 0.75 : 1,
+        transition: `opacity ${
+          effStatus === "stopped" && seal == null ? 400 : 150
+        }ms cubic-bezier(0.2, 0, 0.2, 1)`,
+      }}
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-seal-draw" || event.animationName === "aw-catch-close")
           setSeal(null);

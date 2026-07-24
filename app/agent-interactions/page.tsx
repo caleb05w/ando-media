@@ -2376,8 +2376,8 @@ const SHIPPED_SECTIONS: Section[] = [
       },
       {
         title: "Not completed — stopped",
-        source: "seal → shake, then still",
-        note: "Same red seal and jolt, but still afterwards: a stop was your own act, so it doesn't call for attention.",
+        source: "seal → shake, then still and receded",
+        note: "Same red seal and jolt, but still afterwards — and once the seal settles, the whole face recedes to 0.75: a stop was your own act, parked by you, so it yields the ink. Failed keeps full presence and the throb; the fade lifts quickly on a rerun.",
         demo: <ShippedStopped />,
       },
       {

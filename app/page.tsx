@@ -11,6 +11,13 @@ type Entry = {
 
 const ENTRIES: Entry[] = [
   {
+    href: "/slack-sync-cards",
+    title: "Slack retirement cards",
+    tag: "(Prototype)",
+    brief:
+      "Interaction study for the post-sync Wrapped deck — drag with edge rubber-banding, stories tap zones, hold-to-pause autoplay, and a live Slide/Deck/Fade switcher.",
+  },
+  {
     href: "/multi-select",
     title: "Message multi-select",
     tag: "(Prototype)",

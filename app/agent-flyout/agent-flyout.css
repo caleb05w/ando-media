@@ -1,0 +1,149 @@
+/* Motion for the agent flyout prototype (curves match the multi-select lab). */
+
+/* Working ring: slow clockwise crawl of the dashed amber ring. */
+@keyframes af-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.af-spin {
+  animation: af-spin 5.5s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* Flyout panel enter, anchored to the stack (bottom right). */
+@keyframes af-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.af-pop-enter {
+  animation: af-pop-in 160ms cubic-bezier(0.2, 0, 0, 1) both;
+  transform-origin: bottom right;
+}
+
+/* Rows / cards enter + leave. */
+@keyframes af-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.af-row-in {
+  animation: af-row-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes af-row-out {
+  to {
+    opacity: 0;
+    transform: translateY(3px) scale(0.98);
+  }
+}
+.af-leaving {
+  animation: af-row-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+/* Chips arriving in / leaving the compressed stack. */
+@keyframes af-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.af-chip-in {
+  animation: af-chip-in 240ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+@keyframes af-chip-out {
+  to {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+.af-chip-out {
+  animation: af-chip-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Live-activity ellipsis on "tool invoked" lines. */
+@keyframes af-dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+}
+.af-dots::after {
+  content: "";
+  animation: af-dots 1.4s infinite;
+}
+
+/* Current-step pulse (progress segment, console bullet). */
+@keyframes af-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.af-pulse {
+  animation: af-pulse 1.1s ease-in-out infinite;
+}
+
+/* awaitingInput ring: a slow breathe — attention without alarm. */
+@keyframes af-breathe {
+  50% {
+    opacity: 0.4;
+  }
+}
+.af-breathe {
+  animation: af-breathe 1.6s ease-in-out infinite;
+}
+
+/* Completion ping on the aggregate chip: a green ring rolls off once each
+   time an agent finishes (Chrome downloads bubble's completion pulse). */
+@keyframes af-ping {
+  from {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+.af-ping {
+  pointer-events: none;
+  border: 2px solid #22c55e;
+  animation: af-ping 700ms cubic-bezier(0.2, 0, 0.4, 1) both;
+}
+
+/* Console caret. */
+@keyframes af-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.af-caret {
+  display: inline-block;
+  width: 5px;
+  height: 11px;
+  background: currentColor;
+  animation: af-blink 1s steps(1) infinite;
+}

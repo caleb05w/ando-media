@@ -25,6 +25,13 @@ const ENTRIES: Entry[] = [
       "Drag across messages to block-select them, Notion-style — corner checkmarks, shift-click ranges, edge auto-scroll, and an A/B toggle for the action bar.",
   },
   {
+    href: "/channel",
+    title: "Channel view",
+    tag: "(Demo)",
+    brief:
+      "The #design channel with agent handoff — drag to multi-select messages, Send to Agent to spawn agents that work or fail (tracked in a bottom-right stack), plus a working composer.",
+  },
+  {
     href: "/agent-working",
     title: "Agent working",
     tag: "(Prototype)",

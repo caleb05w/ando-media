@@ -39,6 +39,13 @@ const ENTRIES: Entry[] = [
       "@mention an agent to spawn a run — inline session chips, ringed corner presence, an Active/Complete flyout with stop and rerun, and a tool-call trace modal.",
   },
   {
+    href: "/agent-interactions",
+    title: "Agent motion studies",
+    tag: "(Motion)",
+    brief:
+      "Sixteen looping motion studies for the agent working, completion, and failure states — Dynamic Island, watchOS-breathe, and Chrome-downloads inspired.",
+  },
+  {
     href: "/automation-test",
     title: "Create automation",
     brief:

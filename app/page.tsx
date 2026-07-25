@@ -18,6 +18,13 @@ const ENTRIES: Entry[] = [
       "Interaction study for the post-sync Wrapped deck — drag with edge rubber-banding, stories tap zones, hold-to-pause autoplay, and a live Slide/Deck/Fade switcher.",
   },
   {
+    href: "/agent-flyout",
+    title: "Agent flyout",
+    tag: "(Prototype)",
+    brief:
+      "Active agents compress above the composer, then fly out into per-agent detail — four iterations (v2 rollup, rows, cards, console) with working / needs-input / failed / success states, stop CTAs, and tool traces.",
+  },
+  {
     href: "/multi-select",
     title: "Message multi-select",
     tag: "(Prototype)",

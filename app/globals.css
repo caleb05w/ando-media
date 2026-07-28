@@ -3,6 +3,42 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Stops for the glyph-cycle keyframe, from the palette swatches on the
+     Figma canvas (18358:36 / 18358:43). Held as variables so the animation
+     can be edited live rather than only at author time. */
+  --glyph-c1: #2563eb;
+  --glyph-c2: #6b8fea;
+  --glyph-c3: #7d8a66;
+  --glyph-c4: #ebdc85;
+  --glyph-c5: #6c9fc4;
+  /* Timing for each glyph behaviour. Kept as variables so the whole set is
+     editable at runtime; these are the committed defaults. --*-stagger is
+     multiplied by each element's --i to space a group out. */
+  --glyph-type-duration: 1.84s;
+  --glyph-type-ease: cubic-bezier(0.2, 0, 0, 1);
+  --glyph-type-stagger: 0.16s;
+  --glyph-cycle-duration: 8s;
+  --glyph-cycle-ease: cubic-bezier(0.2, 0, 0, 1);
+  --glyph-cycle-stagger: 1.6s;
+  --glyph-swap-duration: 3.2s;
+  --glyph-swap-ease: cubic-bezier(0.2, 0, 0, 1);
+  /* How far a card travels on a deck swap. Wider means the outgoing and
+     incoming cards overlap less mid-flight — they're 38% white glass, so
+     overlap reads as double-exposure. */
+  --deck-travel: 160px;
+  --glyph-shoot-duration: 3.2s;
+  --glyph-shoot-ease: cubic-bezier(0.2, 0, 0, 1);
+  --glyph-shoot-stagger: 0.18s;
+  --glyph-lightsout-duration: 6s;
+  --glyph-lightsout-stagger: 0.55s;
+  --glyph-volley-duration: 2.4s;
+  --glyph-volley-stagger: 0.16s;
+  --glyph-quiet-duration: 5s;
+  --glyph-quiet-stagger: 0.07s;
+  --glyph-breathe-duration: 4.4s;
+  --glyph-breathe-stagger: 0.5s;
+  --glyph-ghost-duration: 4.5s;
+  --glyph-ghost-ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @theme inline {
@@ -10,6 +46,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Leaves immediately, settles softly. Registered in @theme so Tailwind also
+     generates an `ease-fast` utility for use in classnames. */
+  --ease-fast: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +62,13 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Tailwind's preflight sets `cursor: default` on buttons, so every control has
+   to opt back in individually. Restore the pointer once, here. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
 }
 
 /* Apple-style spring keyframes */
@@ -60,4 +106,273 @@ body {
 .card-exit {
   animation: card-exit 1.1s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   pointer-events: none;
+}
+
+/* Slack sync deck — direction-aware card swap. The whole card travels, the
+   way a Wrapped story does: the outgoing card leaves against the direction of
+   travel while the incoming one arrives with it, so the deck reads as a strip
+   of cards rather than a frame with swapping contents. */
+@keyframes deck-in-next {
+  from { opacity: 0; transform: translate3d(var(--deck-travel), 0, 0) scale(0.92); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes deck-out-next {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to   { opacity: 0; transform: translate3d(calc(var(--deck-travel) * -1), 0, 0) scale(0.92); }
+}
+
+@keyframes deck-in-prev {
+  from { opacity: 0; transform: translate3d(calc(var(--deck-travel) * -1), 0, 0) scale(0.92); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes deck-out-prev {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to   { opacity: 0; transform: translate3d(var(--deck-travel), 0, 0) scale(0.92); }
+}
+
+/* Both halves ride --ease-fast; the outgoing card just runs a shorter
+   duration so it clears before the incoming one lands. */
+.deck-in-next  { animation: deck-in-next  0.52s var(--ease-fast) both; }
+.deck-in-prev  { animation: deck-in-prev  0.52s var(--ease-fast) both; }
+.deck-out-next { animation: deck-out-next 0.34s var(--ease-fast) both; pointer-events: none; }
+.deck-out-prev { animation: deck-out-prev 0.34s var(--ease-fast) both; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-in-next,
+  .deck-in-prev,
+  .deck-out-next,
+  .deck-out-prev {
+    animation-duration: 0.01s;
+    animation-timing-function: linear;
+  }
+}
+
+/* Slack sync deck — glyph behaviours. Each card's mark acts out its own stat,
+   so the squares carry the idea instead of just sitting there. Palette comes
+   from the swatch grid on the canvas (Figma 18358:36 / 18358:43). */
+
+/* Fun fact reveal — the agent-arrival gesture from the corner chip stack
+   (aw-chip-in), reduced to the part that isn't about geometry. The chip's
+   width/margin growth opened a slot in a horizontal row, and its scale made a
+   face pop; neither belongs on a line of text. What's left is the
+   materialising: a 2.5px blur clearing as it fades up through a single pixel
+   of rise. */
+@keyframes funfact-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(1px);
+    filter: blur(2.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+.funfact-arrive {
+  animation: funfact-arrive 500ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funfact-arrive {
+    animation-duration: 0.01s;
+  }
+}
+
+/* Cold open — three squares bouncing like a typing indicator, then resting.
+   The bounce itself is 0.84s and the cycle is 1.84s, so the percentages below
+   put ~1s of stillness between waves. CSS can't take a variable inside a
+   keyframe offset, so the rest is baked into the ratio: dialling the duration
+   scales the pause along with the bounce. */
+@keyframes glyph-type {
+  0%, 45.7%, 100% { transform: translateY(0); }
+  22.8%           { transform: translateY(-7px); }
+}
+
+/* Agents used — brand blue drifting through the rest of the palette. */
+@keyframes glyph-cycle {
+  0%   { background-color: var(--glyph-c1); }
+  20%  { background-color: var(--glyph-c2); }
+  40%  { background-color: var(--glyph-c3); }
+  60%  { background-color: var(--glyph-c4); }
+  80%  { background-color: var(--glyph-c5); }
+  100% { background-color: var(--glyph-c1); }
+}
+
+/* Context switching — the two squares trade places, one arcing over the
+   other. 61px is centre-to-centre: 10.5 + 12 + 16 + 12 + 10.5. */
+@keyframes glyph-swap-left {
+  0%, 12%   { transform: translate(0, 0); }
+  50%       { transform: translate(61px, -9px); }
+  88%, 100% { transform: translate(0, 0); }
+}
+
+@keyframes glyph-swap-right {
+  0%, 12%   { transform: translate(0, 0); }
+  50%       { transform: translate(-61px, 9px); }
+  88%, 100% { transform: translate(0, 0); }
+}
+
+/* Delegation — the main square fires the two smaller ones out to their slots,
+   holds, then reclaims them. --shoot-from is each square's own start offset:
+   the distance back to the main square's centre, so both launch from the same
+   point despite landing in different places. */
+@keyframes glyph-shoot {
+  0% {
+    transform: translateX(var(--shoot-from, 0)) scale(0.4);
+    opacity: 0;
+  }
+  10% {
+    transform: translateX(var(--shoot-from, 0)) scale(0.4);
+    opacity: 0.4;
+  }
+  40%,
+  84% {
+    transform: translateX(0) scale(1);
+    opacity: 0.4;
+  }
+  96% {
+    transform: translateX(0) scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(var(--shoot-from, 0)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* Latest message — the room goes to bed one square at a time. The last square
+   carries no animation at all: it's the one still awake at 2:14am. */
+@keyframes glyph-lightsout {
+  0%,
+  18% {
+    opacity: 1;
+  }
+  38%,
+  82% {
+    opacity: 0.18;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Reply latency — a question and an answer, barely apart. */
+@keyframes glyph-volley {
+  0%,
+  6% {
+    opacity: 0.28;
+    transform: scale(0.88);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  32%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.88);
+  }
+}
+
+/* Joined but never spoke — every channel lights up as you join, then all but
+   the few you actually talk in go quiet again. The lit ones don't animate. */
+@keyframes glyph-quiet {
+  0% {
+    opacity: 0.12;
+  }
+  12%,
+  36% {
+    opacity: 1;
+  }
+  58%,
+  100% {
+    opacity: 0.12;
+  }
+}
+
+/* After hours — the two squares at the end of the week never quite settle. */
+@keyframes glyph-breathe {
+  0%,
+  100% {
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Ghosted — starts brand blue, shudders, then gives up and dims. */
+@keyframes glyph-ghost {
+  0%, 45%   { opacity: 1; transform: translateX(0); }
+  50%       { opacity: 1; transform: translateX(-2px); }
+  54%       { opacity: 1; transform: translateX(2px); }
+  58%       { opacity: 1; transform: translateX(-2px); }
+  62%       { opacity: 1; transform: translateX(2px); }
+  66%       { opacity: 1; transform: translateX(0); }
+  78%, 100% { opacity: 0.4; transform: translateX(0); }
+}
+
+.glyph-type {
+  animation: glyph-type var(--glyph-type-duration) var(--glyph-type-ease) infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-type-stagger));
+}
+
+.glyph-cycle {
+  /* Keeps the square filled if reduced motion cancels the loop. */
+  background-color: var(--glyph-c1);
+  animation: glyph-cycle var(--glyph-cycle-duration) var(--glyph-cycle-ease) infinite;
+  /* Negative, so each square starts further into the cycle rather than later. */
+  animation-delay: calc(var(--i, 0) * var(--glyph-cycle-stagger) * -1);
+}
+
+.glyph-shoot {
+  animation: glyph-shoot var(--glyph-shoot-duration) var(--glyph-shoot-ease) infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-shoot-stagger));
+}
+
+.glyph-lightsout {
+  animation: glyph-lightsout var(--glyph-lightsout-duration) var(--ease-fast) infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-lightsout-stagger));
+}
+
+.glyph-volley {
+  animation: glyph-volley var(--glyph-volley-duration) var(--ease-fast) infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-volley-stagger));
+}
+
+.glyph-quiet {
+  animation: glyph-quiet var(--glyph-quiet-duration) var(--ease-fast) infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-quiet-stagger));
+}
+
+.glyph-breathe {
+  animation: glyph-breathe var(--glyph-breathe-duration) ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-breathe-stagger));
+}
+
+.glyph-swap-l { animation: glyph-swap-left  var(--glyph-swap-duration) var(--glyph-swap-ease) infinite; }
+.glyph-swap-r { animation: glyph-swap-right var(--glyph-swap-duration) var(--glyph-swap-ease) infinite; }
+.glyph-ghost  { animation: glyph-ghost      var(--glyph-ghost-duration) var(--glyph-ghost-ease) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-type,
+  .glyph-cycle,
+  .glyph-shoot,
+  .glyph-swap-l,
+  .glyph-swap-r,
+  .glyph-ghost,
+  .glyph-lightsout,
+  .glyph-volley,
+  .glyph-quiet,
+  .glyph-breathe {
+    animation: none;
+  }
+  /* Without the loop the delegated squares need their resting state back. */
+  .glyph-shoot { opacity: 0.4; }
+  /* Without the loop the ghosted square needs its resting state back. */
+  .glyph-ghost { opacity: 0.4; }
 }

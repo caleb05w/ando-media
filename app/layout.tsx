@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Agentation } from "agentation";
+import { DialRoot } from "dialkit";
 import "./globals.css";
+import "dialkit/styles.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +37,10 @@ export default function RootLayout({
             Ships its own "use client" boundary, so this layout stays a
             Server Component. */}
         <Agentation />
+        {/* DialKit — real-time parameter tweaking. A sibling of {children}
+            rather than a wrapper, so it never sits in the render path of the
+            routes it adjusts. Also ships its own "use client" boundary. */}
+        <DialRoot />
       </body>
     </html>
   );

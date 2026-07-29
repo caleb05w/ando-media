@@ -39,6 +39,11 @@
   --glyph-breathe-stagger: 0.5s;
   --glyph-ghost-duration: 4.5s;
   --glyph-ghost-ease: cubic-bezier(0.2, 0, 0, 1);
+  --glyph-cheer-duration: 2.8s;
+  --glyph-cheer-ease: cubic-bezier(0.2, 0, 0, 1);
+  --glyph-stamp-duration: 3.4s;
+  --glyph-stamp-ease: cubic-bezier(0.2, 0, 0, 1);
+  --glyph-stamp-stagger: 0.22s;
 }
 
 @theme inline {
@@ -305,6 +310,61 @@ button:not(:disabled),
   }
 }
 
+/* Celebration — the core square gathers itself, pops, and throws four bits of
+   confetti. The bits launch on the beat the pop lands (50%), tumble out to
+   their --cx/--cy vectors, and fade before the next cycle. */
+@keyframes glyph-cheer-core {
+  0%, 38%   { transform: scale(1) rotate(0deg); }
+  46%       { transform: scale(0.78) rotate(-6deg); }
+  56%       { transform: scale(1.22) rotate(4deg); }
+  68%, 100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes glyph-cheer-bit {
+  0%, 50% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+  58% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 0;
+    transform: translate(var(--cx, 0), var(--cy, 0)) rotate(var(--cr, 0deg)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+}
+
+/* The repeat question — each square arrives oversized and presses flat, like
+   a stamp landing. The row fills left to right, holds, then empties in the
+   same order: the delay stagger shifts each square's whole cycle, so arrival
+   and departure both read as a queue. */
+@keyframes glyph-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  10% {
+    transform: scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
 /* Ghosted — starts brand blue, shudders, then gives up and dims. */
 @keyframes glyph-ghost {
   0%, 45%   { opacity: 1; transform: translateX(0); }
@@ -354,6 +414,21 @@ button:not(:disabled),
   animation-delay: calc(var(--i, 0) * var(--glyph-breathe-stagger));
 }
 
+.glyph-cheer-core {
+  animation: glyph-cheer-core var(--glyph-cheer-duration) var(--glyph-cheer-ease) infinite;
+}
+
+.glyph-cheer-bit {
+  animation: glyph-cheer-bit var(--glyph-cheer-duration) var(--glyph-cheer-ease) infinite;
+}
+
+.glyph-stamp {
+  animation: glyph-stamp var(--glyph-stamp-duration) var(--glyph-stamp-ease) infinite;
+  animation-delay: calc(var(--i, 0) * var(--glyph-stamp-stagger));
+  /* Squares are invisible until their first cycle begins. */
+  opacity: 0;
+}
+
 .glyph-swap-l { animation: glyph-swap-left  var(--glyph-swap-duration) var(--glyph-swap-ease) infinite; }
 .glyph-swap-r { animation: glyph-swap-right var(--glyph-swap-duration) var(--glyph-swap-ease) infinite; }
 .glyph-ghost  { animation: glyph-ghost      var(--glyph-ghost-duration) var(--glyph-ghost-ease) infinite; }
@@ -368,9 +443,16 @@ button:not(:disabled),
   .glyph-lightsout,
   .glyph-volley,
   .glyph-quiet,
-  .glyph-breathe {
+  .glyph-breathe,
+  .glyph-cheer-core,
+  .glyph-cheer-bit,
+  .glyph-stamp {
     animation: none;
   }
+  /* Without the loop the confetti bits should not sit on the core square. */
+  .glyph-cheer-bit { opacity: 0; }
+  /* Without the loop the stamped row should read as fully posted. */
+  .glyph-stamp { opacity: 1; }
   /* Without the loop the delegated squares need their resting state back. */
   .glyph-shoot { opacity: 0.4; }
   /* Without the loop the ghosted square needs its resting state back. */

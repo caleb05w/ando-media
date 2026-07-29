@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Agentation } from "agentation";
-import { DialRoot } from "dialkit";
+// import { Agentation } from "agentation";
+// import { DialRoot } from "dialkit";
 import "./globals.css";
-import "dialkit/styles.css";
+// import "dialkit/styles.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,15 +32,19 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
-        {/* Agentation — annotate any view and copy structured feedback for
+        {/* Both tools are parked so the deck can be presented clean — no
+            annotation toolbar, no dial panel over the cards. Uncomment these
+            (and their imports above) to get them back.
+
+            Agentation — annotate any view and copy structured feedback for
             coding agents. Mounted here so every route gets the toolbar.
             Ships its own "use client" boundary, so this layout stays a
             Server Component. */}
-        <Agentation />
+        {/* <Agentation /> */}
         {/* DialKit — real-time parameter tweaking. A sibling of {children}
             rather than a wrapper, so it never sits in the render path of the
             routes it adjusts. Also ships its own "use client" boundary. */}
-        <DialRoot />
+        {/* <DialRoot /> */}
       </body>
     </html>
   );

@@ -11,22 +11,24 @@
 //
 // Card content and the shared card shell live in ./cards.
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { useDialKit, type TransitionConfig } from "dialkit";
+import { useCallback, useEffect, useState } from "react";
+// DialKit is parked while the deck is presented clean — see layout.tsx, where
+// <DialRoot /> is commented out alongside this.
+// import { useDialKit, type TransitionConfig } from "dialkit";
 import { CARDS, INSIGHT_CARDS, CardView, type CardDef } from "./cards";
 
 /** CSS `animation-timing-function` can't express a spring, so a spring from the
     control's Physics tab falls back to the committed curve. */
-function motion(curve: TransitionConfig, fallbackSeconds: number) {
-  return curve.type === "easing"
-    ? {
-        duration: `${curve.duration}s`,
-        ease: `cubic-bezier(${curve.ease.join(", ")})`,
-      }
-    : { duration: `${fallbackSeconds}s`, ease: "cubic-bezier(0.2, 0, 0, 1)" };
-}
+// function motion(curve: TransitionConfig, fallbackSeconds: number) {
+//   return curve.type === "easing"
+//     ? {
+//         duration: `${curve.duration}s`,
+//         ease: `cubic-bezier(${curve.ease.join(", ")})`,
+//       }
+//     : { duration: `${fallbackSeconds}s`, ease: "cubic-bezier(0.2, 0, 0, 1)" };
+// }
 
-type Tab = "deck" | "all";
+type Tab = "deck" | "shuffle" | "all";
 
 type DeckState = {
   index: number;
@@ -44,18 +46,39 @@ const DECK = INSIGHT_CARDS;
 const WRAPPED = CARDS.filter((c) => !c.archived);
 const ARCHIVED = CARDS.filter((c) => c.archived);
 
+/** The shuffle tab's pool: both decks, minus anything archived. */
+const SHUFFLE_POOL = [...INSIGHT_CARDS, ...WRAPPED];
+
+/** How long each card holds before the shuffle tab advances. */
+const SHUFFLE_INTERVAL_MS = 7000;
+
+function shuffledIndexes(length: number): number[] {
+  const order = Array.from({ length }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
 export default function SlackSyncCardsPage() {
   const [tab, setTab] = useState<Tab>("deck");
   const [deck, setDeck] = useState<DeckState>({ index: 0, leaving: null, dir: 1 });
+  const [shuffle, setShuffle] = useState<DeckState>({ index: 0, leaving: null, dir: 1 });
+  /* Identity order until the tab is opened: shuffling belongs to the client
+     clock, so it never happens during render (see the phase-lock rule). */
+  const [order, setOrder] = useState<number[]>(() =>
+    SHUFFLE_POOL.map((_, i) => i)
+  );
   const [funFacts, setFunFacts] = useState<Record<string, boolean>>({});
   /* Archived cards have no slot in the running order, so they open in place
      rather than jumping into the deck. */
   const [preview, setPreview] = useState<CardDef | null>(null);
 
-  /* Registered here rather than inside the glyphs so the panel is available
-     from any card — a glyph-level panel only exists while its own card is
-     mounted. Values are published as CSS variables on the page root, which is
-     what the .glyph-* rules read. */
+  /* DialKit is parked. The panel published these values as CSS variables on
+     the page root; without it the committed defaults in globals.css hold —
+     they are the same numbers the dials were seeded with.
+
   const dials = useDialKit("Glyph animations", {
     typing: {
       // 0.84s of bounce + ~1s of rest. See the glyph-type keyframe.
@@ -99,18 +122,46 @@ export default function SlackSyncCardsPage() {
     "--glyph-c4": dials.palette.color4,
     "--glyph-c5": dials.palette.color5,
   } as CSSProperties;
+  */
 
   const toggleFunFact = useCallback((id: string) => {
     setFunFacts((f) => ({ ...f, [id]: !f[id] }));
   }, []);
 
-  const go = useCallback((delta: 1 | -1) => {
-    setDeck((s) => {
-      const next = Math.min(Math.max(s.index + delta, 0), DECK.length - 1);
-      if (next === s.index) return s;
-      return { index: next, leaving: s.index, dir: delta };
-    });
-  }, []);
+  const go = useCallback(
+    (delta: 1 | -1) => {
+      const step = (length: number) => (s: DeckState) => {
+        const next = Math.min(Math.max(s.index + delta, 0), length - 1);
+        if (next === s.index) return s;
+        return { index: next, leaving: s.index, dir: delta };
+      };
+      if (tab === "shuffle") setShuffle(step(SHUFFLE_POOL.length));
+      else setDeck(step(DECK.length));
+    },
+    [tab]
+  );
+
+  /* Entering the shuffle tab deals a fresh order and starts from the top.
+     Client-only by construction: the tab can't be active during hydration. */
+  useEffect(() => {
+    if (tab !== "shuffle") return;
+    setOrder(shuffledIndexes(SHUFFLE_POOL.length));
+    setShuffle({ index: 0, leaving: null, dir: 1 });
+  }, [tab]);
+
+  /* Autoplay — every 7s the shuffle deck advances, wrapping back to the top
+     of the same order so a full pass shows each card exactly once. */
+  useEffect(() => {
+    if (tab !== "shuffle") return;
+    const timer = setInterval(() => {
+      setShuffle((s) => ({
+        index: (s.index + 1) % SHUFFLE_POOL.length,
+        leaving: s.index,
+        dir: 1,
+      }));
+    }, SHUFFLE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [tab]);
 
   useEffect(() => {
     if (!preview) return;
@@ -122,7 +173,7 @@ export default function SlackSyncCardsPage() {
   }, [preview]);
 
   useEffect(() => {
-    if (tab !== "deck" || preview) return;
+    if (tab === "all" || preview) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
         e.preventDefault();
@@ -136,13 +187,17 @@ export default function SlackSyncCardsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [go, tab, preview]);
 
-  const suffix = deck.dir === 1 ? "next" : "prev";
+  /* The deck and shuffle tabs share the carousel; only the card list and the
+     cursor differ. The shuffle tab reads its cards through the dealt order. */
+  const isCarousel = tab !== "all";
+  const carouselCards =
+    tab === "shuffle" ? order.map((i) => SHUFFLE_POOL[i]) : DECK;
+  const carousel = tab === "shuffle" ? shuffle : deck;
+  const setCarousel = tab === "shuffle" ? setShuffle : setDeck;
+  const suffix = carousel.dir === 1 ? "next" : "prev";
 
   return (
-    <div
-      className="relative flex flex-1 flex-col overflow-hidden bg-[#dfdcd4]"
-      style={dialVars}
-    >
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-[#dfdcd4]">
       {/* Ambient wash — the cards are glass (38% white over a 28px backdrop
           blur), so they need something behind them to refract. */}
       <div
@@ -172,6 +227,7 @@ export default function SlackSyncCardsPage() {
           {(
             [
               ["deck", "Insight cards"],
+              ["shuffle", "Shuffle play"],
               ["all", "Show all cards"],
             ] as const
           ).map(([value, label]) => (
@@ -192,28 +248,34 @@ export default function SlackSyncCardsPage() {
         </div>
       </div>
 
-      {tab === "deck" ? (
+      {isCarousel ? (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-[28px] pb-16">
           <div className="relative h-[531px] w-[400px] max-w-full">
-            {deck.leaving !== null && (
+            {carousel.leaving !== null && (
               <CardView
-                key={`leaving-${deck.leaving}`}
-                card={DECK[deck.leaving]}
-                position={deck.leaving + 1}
-                total={DECK.length}
-                showFunFact={funFacts[DECK[deck.leaving].id]}
-                onToggleFunFact={() => toggleFunFact(DECK[deck.leaving!].id)}
+                key={`leaving-${tab}-${carousel.leaving}`}
+                card={carouselCards[carousel.leaving]}
+                position={carousel.leaving + 1}
+                total={carouselCards.length}
+                showFunFact={funFacts[carouselCards[carousel.leaving].id]}
+                onToggleFunFact={() =>
+                  toggleFunFact(carouselCards[carousel.leaving!].id)
+                }
                 className={`deck-out-${suffix}`}
-                onAnimationEnd={() => setDeck((s) => ({ ...s, leaving: null }))}
+                onAnimationEnd={() =>
+                  setCarousel((s) => ({ ...s, leaving: null }))
+                }
               />
             )}
             <CardView
-              key={`current-${deck.index}`}
-              card={DECK[deck.index]}
-              position={deck.index + 1}
-              total={DECK.length}
-              showFunFact={funFacts[DECK[deck.index].id]}
-              onToggleFunFact={() => toggleFunFact(DECK[deck.index].id)}
+              key={`current-${tab}-${carousel.index}`}
+              card={carouselCards[carousel.index]}
+              position={carousel.index + 1}
+              total={carouselCards.length}
+              showFunFact={funFacts[carouselCards[carousel.index].id]}
+              onToggleFunFact={() =>
+                toggleFunFact(carouselCards[carousel.index].id)
+              }
               className={`deck-in-${suffix}`}
             />
           </div>

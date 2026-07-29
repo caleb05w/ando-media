@@ -144,6 +144,29 @@ const GlyphAbsent = <div className="glyph-ghost size-[21px] shrink-0 bg-[#2563eb
 /* Cover — one square drifting the palette, to introduce the colour language. */
 const GlyphDrift = <div className="glyph-cycle size-[21px] shrink-0 bg-[#2563eb]" />;
 
+/* Celebration — the sync landed. The core square gathers itself, pops, and
+   throws four smaller squares out like confetti; they tumble as they fade.
+   Each bit's flight is its own vector (--cx/--cy/--cr), all launched from the
+   core's centre on the same beat the pop lands. */
+const CHEER_BITS = [
+  { x: "-30px", y: "-26px", r: "-135deg" },
+  { x: "28px", y: "-30px", r: "120deg" },
+  { x: "-26px", y: "24px", r: "-100deg" },
+  { x: "30px", y: "22px", r: "150deg" },
+];
+const GlyphCelebrate = (
+  <div className="relative">
+    <div className="glyph-cheer-core size-[21px] shrink-0 bg-[#2563eb]" />
+    {CHEER_BITS.map((b, i) => (
+      <div
+        key={i}
+        className="glyph-cheer-bit absolute left-1/2 top-1/2 -ml-[5px] -mt-[5px] size-[10px] bg-[#2563eb]"
+        style={{ "--cx": b.x, "--cy": b.y, "--cr": b.r } as CSSProperties}
+      />
+    ))}
+  </div>
+);
+
 /* Person — a lit seat beside one that hasn't been claimed yet. The empty seat
    breathes: present, waiting, not off. */
 const GlyphInvite = (
@@ -199,6 +222,37 @@ const GlyphQuiet = (
         />
       ),
     )}
+  </div>
+);
+
+/* The repeat question — the same message, stamped in again and again. Each
+   square slams down (oversized, then pressed flat), the row fills in rhythm,
+   and then it clears in the same order it arrived — a queue that never learns.
+   The delay stagger does both ends: later squares land later and leave later. */
+const GlyphStamp = (
+  <div className="flex items-center gap-[12px]">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <div
+        key={i}
+        className="glyph-stamp size-[21px] shrink-0 bg-[#2563eb]"
+        style={{ "--i": i } as CSSProperties}
+      />
+    ))}
+  </div>
+);
+
+/* Ending — a settled 2×2 block, breathing in a slow wave. Nothing arrives,
+   nothing leaves: the sync is done and everything is where it lives now. */
+const GlyphSettled = (
+  <div className="grid grid-cols-2 gap-[12px]">
+    {[0, 1, 3, 2].map((i, slot) => (
+      <div
+        key={slot}
+        className="glyph-breathe size-[21px] shrink-0 bg-[#2563eb]"
+        // Clockwise wave: the stagger order walks the grid corner by corner.
+        style={{ "--i": i } as CSSProperties}
+      />
+    ))}
   </div>
 );
 
@@ -363,6 +417,9 @@ export const CARDS: CardDef[] = [
     id: "ghosted",
     node: "18401:91",
     name: "Ghosted",
+    archived: true,
+    archivedNote:
+      "Cut from the running order: the deck already ends on a forward-looking note, and a card about being ignored lands badly right before one about moving in. Kept because the stat is real and the glyph is the best in the set.",
     glyph: GlyphAbsent,
     headline: "You were ghosted 17 times.",
     body: [
@@ -374,6 +431,9 @@ export const CARDS: CardDef[] = [
     id: "share",
     node: "18401:133",
     name: "Final share card",
+    archived: true,
+    archivedNote:
+      "Cut from the running order: it's a share artifact, not an insight — it summarises the deck rather than telling you something new, and its four stat rows still carry placeholder Xs.",
     headline: "After X hours of Slacking, I’m finally retiring",
     compactHeadline: true,
     // Archetype and the funny line now open the deck on the cover card, so
@@ -397,50 +457,56 @@ export const INSIGHT_CARDS: CardDef[] = [
     id: "overview",
     node: "new",
     name: "Overview",
-    overline: "Overview",
-    glyph: GlyphTyping,
-    headline: "Your Slack is in.",
-    body: ["48,392 messages across 23 channels, plus 247 custom emoji."],
+    glyph: GlyphCelebrate,
+    headline: "Your Slack made it.",
+    body: ["48,392 messages, 23 channels, 247 custom emoji. Zero left behind."],
   },
   {
     id: "connect-linear",
     node: "new",
     name: "Connect an app",
-    overline: "Connect an app",
     glyph: GlyphSwitch,
-    headline: "214 messages linked to Linear.",
-    body: ["Connect Linear so agents can read and update those issues."],
-    cta: "Connect Linear",
-  },
-  {
-    id: "import-design",
-    node: "new",
-    name: "Skipped channel",
-    overline: "Channel",
-    glyph: GlyphAbsent,
-    headline: "#design has 8,200 messages you didn’t import.",
-    body: ["It was in your export — you skipped it during setup."],
-    cta: "Import #design",
+    headline: "You mentioned Linear 214 times.",
+    body: ["Connect it and agents can read and update those issues."],
+    // cta: "Connect Linear",
   },
   {
     id: "invite-sara",
     node: "new",
     name: "Person",
-    overline: "Person",
-    glyph: GlyphInvite,
-    headline: "Sara Du wrote 1,204 messages in your imported history.",
-    body: ["She hasn’t claimed her Ando account yet."],
-    cta: "Invite Sara",
+    glyph: GlyphTyping,
+    headline: "Sara Du sent over 1,200 messages.",
+    body: ["That’s a lot. If they’re not here yet, you should invite them!"],
+    // cta: "Invite Sara",
+  },
+  {
+    id: "repeat-question",
+    node: "new",
+    name: "The repeat question",
+    glyph: GlyphStamp,
+    headline: "The same question got asked 34 times.",
+    body: [
+      "“Where’s the staging login?” An agent learns the answer once and never gets tired of giving it.",
+    ],
+    // cta: "Teach an agent",
   },
   {
     id: "busiest-agent",
     node: "new",
     name: "Busiest channel",
-    overline: "Busiest channel",
-    glyph: GlyphSplit,
+    glyph: GlyphQuiet,
     headline: "#engineering is your busiest channel — 8,200 messages.",
     body: ["Add an agent to keep up with it."],
-    cta: "Add an agent",
+    // cta: "Add an agent",
+  },
+  {
+    id: "wrap",
+    node: "new",
+    name: "Ending",
+    glyph: GlyphSettled,
+    headline: "You’re all moved in.",
+    body: ["48,392 messages have made a new home."],
+    // cta: "Meet your agents",
   },
 ];
 

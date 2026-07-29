@@ -18,6 +18,13 @@ const ENTRIES: Entry[] = [
       "The post-sync Wrapped deck — frosted glass cards built from Figma, arrow keys to move between slides, and a fun fact tucked behind an eye toggle.",
   },
   {
+    href: "/agents",
+    title: "Agents directory",
+    tag: "(WIP)",
+    brief:
+      "The agents table from July Sprints with a Table / Cards switch — rows become tiles with a status-dot avatar, channel chips, connected apps, and working toggles.",
+  },
+  {
     href: "/agent-flyout",
     title: "Agent flyout",
     tag: "(Prototype)",

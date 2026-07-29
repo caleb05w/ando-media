@@ -6,6 +6,11 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3012
+    },
+    {
+      "name": "attach",
+      "url": "http://localhost:3012",
+      "port": 3012
     }
   ]
 }

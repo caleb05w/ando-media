@@ -144,6 +144,18 @@ const GlyphAbsent = <div className="glyph-ghost size-[21px] shrink-0 bg-[#2563eb
 /* Cover — one square drifting the palette, to introduce the colour language. */
 const GlyphDrift = <div className="glyph-cycle size-[21px] shrink-0 bg-[#2563eb]" />;
 
+/* Person — a lit seat beside one that hasn't been claimed yet. The empty seat
+   breathes: present, waiting, not off. */
+const GlyphInvite = (
+  <div className="flex items-center gap-[12px]">
+    <Sq />
+    <div
+      className="glyph-breathe size-[21px] shrink-0 bg-[#2563eb]"
+      style={{ "--i": 0 } as CSSProperties}
+    />
+  </div>
+);
+
 /* Latest message — four squares go dark in sequence; the fifth never does. */
 const GlyphLightsOut = (
   <div className="flex items-center gap-[12px]">
@@ -221,6 +233,8 @@ export type CardDef = {
   headline: string;
   body?: string[];
   funFact?: string;
+  /** Action pill in the bottom slot — insight cards end on a verb. */
+  cta?: string;
   /** Divider-separated points. Gives several lines of copy room to breathe
       instead of stacking them as one dense paragraph. */
   stats?: string[];
@@ -373,6 +387,63 @@ export const CARDS: CardDef[] = [
   },
 ];
 
+/* ----------------------------- insight track ------------------------------ */
+// The live carousel. Where the Wrapped deck looks backward (what your Slack
+// was), these look forward — every stat is exact and already computed at sync
+// time, and every card except the overview ends on a verb.
+
+export const INSIGHT_CARDS: CardDef[] = [
+  {
+    id: "overview",
+    node: "new",
+    name: "Overview",
+    overline: "Overview",
+    glyph: GlyphTyping,
+    headline: "Your Slack is in.",
+    body: ["48,392 messages across 23 channels, plus 247 custom emoji."],
+  },
+  {
+    id: "connect-linear",
+    node: "new",
+    name: "Connect an app",
+    overline: "Connect an app",
+    glyph: GlyphSwitch,
+    headline: "214 messages linked to Linear.",
+    body: ["Connect Linear so agents can read and update those issues."],
+    cta: "Connect Linear",
+  },
+  {
+    id: "import-design",
+    node: "new",
+    name: "Skipped channel",
+    overline: "Channel",
+    glyph: GlyphAbsent,
+    headline: "#design has 8,200 messages you didn’t import.",
+    body: ["It was in your export — you skipped it during setup."],
+    cta: "Import #design",
+  },
+  {
+    id: "invite-sara",
+    node: "new",
+    name: "Person",
+    overline: "Person",
+    glyph: GlyphInvite,
+    headline: "Sara Du wrote 1,204 messages in your imported history.",
+    body: ["She hasn’t claimed her Ando account yet."],
+    cta: "Invite Sara",
+  },
+  {
+    id: "busiest-agent",
+    node: "new",
+    name: "Busiest channel",
+    overline: "Busiest channel",
+    glyph: GlyphSplit,
+    headline: "#engineering is your busiest channel — 8,200 messages.",
+    body: ["Add an agent to keep up with it."],
+    cta: "Add an agent",
+  },
+];
+
 /* -------------------------------- card view ------------------------------- */
 
 const OVERLINE =
@@ -471,6 +542,23 @@ export function CardView({
 
       {/* Fixed bottom slot, mirroring the top. */}
       <div className="min-h-[16px] w-full shrink-0">
+        {card.cta ? (
+          <div className="flex w-full justify-center">
+            {asThumbnail ? (
+              /* Grid tiles are buttons themselves — render the pill inert. */
+              <div className="rounded-full bg-[#1a1817] px-[16px] py-[8px] text-[12px] leading-[16px] text-white">
+                {card.cta}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="rounded-full bg-[#1a1817] px-[16px] py-[8px] text-[12px] leading-[16px] text-white transition-opacity ease-fast hover:opacity-85"
+              >
+                {card.cta}
+              </button>
+            )}
+          </div>
+        ) : null}
         {card.funFact ? (
           <div className="flex w-full flex-col gap-[12px]">
             {asThumbnail ? (

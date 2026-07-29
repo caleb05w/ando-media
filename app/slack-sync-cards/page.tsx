@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useDialKit, type TransitionConfig } from "dialkit";
-import { CARDS, CardView, type CardDef } from "./cards";
+import { CARDS, INSIGHT_CARDS, CardView, type CardDef } from "./cards";
 
 /** CSS `animation-timing-function` can't express a spring, so a spring from the
     control's Physics tab falls back to the committed curve. */
@@ -37,9 +37,11 @@ type DeckState = {
 
 const GRID_SCALE = 0.62;
 
-/** The live deck. Archived cards stay in ./cards for reference but are out of
-    the running order, so numbering closes over the gap. */
-const DECK = CARDS.filter((c) => !c.archived);
+/** The live track is the insight cards. The Wrapped deck stays in the grid as
+    reference (it opens in the overlay, not the carousel), and archived cards
+    keep their own dimmed section below it. */
+const DECK = INSIGHT_CARDS;
+const WRAPPED = CARDS.filter((c) => !c.archived);
 const ARCHIVED = CARDS.filter((c) => c.archived);
 
 export default function SlackSyncCardsPage() {
@@ -110,18 +112,6 @@ export default function SlackSyncCardsPage() {
     });
   }, []);
 
-  const goTo = useCallback((next: number) => {
-    setDeck((s) => {
-      if (next === s.index) return s;
-      return { index: next, leaving: s.index, dir: next > s.index ? 1 : -1 };
-    });
-  }, []);
-
-  /* The cover's CTAs live below the card rather than inside it — they act on
-     the deck, not on the card's content. Kept mounted and faded so the row
-     always reserves its height and the card never shifts on navigation. */
-  const onCover = deck.index === 0;
-
   useEffect(() => {
     if (!preview) return;
     const onKey = (e: KeyboardEvent) => {
@@ -181,7 +171,7 @@ export default function SlackSyncCardsPage() {
         <div className="inline-flex items-center gap-[2px] rounded-full bg-white/35 p-[3px] backdrop-blur-[20px]">
           {(
             [
-              ["deck", "Deck"],
+              ["deck", "Insight cards"],
               ["all", "Show all cards"],
             ] as const
           ).map(([value, label]) => (
@@ -227,33 +217,15 @@ export default function SlackSyncCardsPage() {
               className={`deck-in-${suffix}`}
             />
           </div>
-
-          <div
-            className={`flex flex-col items-center gap-[12px] transition-opacity duration-300 ease-fast ${
-              onCover ? "opacity-100" : "pointer-events-none opacity-0"
-            }`}
-            aria-hidden={!onCover}
-          >
-            <button
-              type="button"
-              tabIndex={onCover ? 0 : -1}
-              onClick={() => goTo(1)}
-              className="rounded-full bg-[#1a1817] px-[18px] py-[9px] text-[12px] leading-[16px] text-white transition-opacity ease-fast hover:opacity-85"
-            >
-              Read through the cards
-            </button>
-            <button
-              type="button"
-              tabIndex={onCover ? 0 : -1}
-              onClick={() => goTo(DECK.length - 1)}
-              className="text-[12px] leading-[16px] text-[#58524e] transition-colors ease-fast hover:text-[#1a1817]"
-            >
-              Skip
-            </button>
-          </div>
         </div>
       ) : (
         <div className="relative z-10 flex-1 overflow-y-auto px-8 pb-16">
+          <div className="mx-auto mb-8 flex max-w-[1240px] items-center gap-4">
+            <p className="shrink-0 text-[10px] leading-[14px] font-medium tracking-[1px] text-[#58524e] uppercase">
+              Insight cards
+            </p>
+            <div className="h-[0.5px] flex-1 bg-[#58524e]/25" />
+          </div>
           <div className="mx-auto grid max-w-[1240px] grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-x-6 gap-y-10">
             {DECK.map((card, i) => (
               <div key={card.id} className="flex flex-col items-center gap-3">
@@ -293,6 +265,55 @@ export default function SlackSyncCardsPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* The retired Wrapped deck — reference, not the running order. Full
+              colour, but tiles open the overlay rather than the carousel. */}
+          <div className="mx-auto mt-16 max-w-[1240px]">
+            <div className="mb-8 flex items-center gap-4">
+              <p className="shrink-0 text-[10px] leading-[14px] font-medium tracking-[1px] text-[#58524e] uppercase">
+                Wrapped deck
+              </p>
+              <div className="h-[0.5px] flex-1 bg-[#58524e]/25" />
+            </div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-x-6 gap-y-10">
+              {WRAPPED.map((card) => (
+                <div key={card.id} className="flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPreview(card)}
+                    title={`Preview ${card.name}`}
+                    className="block cursor-pointer transition-transform ease-fast hover:-translate-y-1"
+                    style={{
+                      width: 400 * GRID_SCALE,
+                      height: 531 * GRID_SCALE,
+                    }}
+                  >
+                    <div
+                      className="relative h-[531px] w-[400px] origin-top-left"
+                      style={{ transform: `scale(${GRID_SCALE})` }}
+                    >
+                      <CardView
+                        card={card}
+                        position={0}
+                        total={DECK.length}
+                        showFunFact={funFacts[card.id]}
+                        asThumbnail
+                        hideCounter
+                      />
+                    </div>
+                  </button>
+                  <div className="max-w-[248px] text-center">
+                    <p className="text-[12px] leading-[16px] text-[#58524e]">
+                      {card.name}
+                    </p>
+                    <p className="mt-[2px] font-mono text-[10px] leading-[14px] text-[#8a827b]">
+                      {card.node}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {ARCHIVED.length > 0 && (
@@ -377,7 +398,7 @@ export default function SlackSyncCardsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[10px] leading-[14px] font-medium tracking-[1px] uppercase opacity-70">
-              Archived
+              {preview.archived ? "Archived" : "Wrapped deck"}
             </p>
             <p className="mt-[6px] text-[18px] leading-[1.2] font-medium">
               {preview.name}

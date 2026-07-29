@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3012
+    },
+    {
+      "name": "dev-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "-p", "3020"],
+      "port": 3020
+    }
+  ]
+}

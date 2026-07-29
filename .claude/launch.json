@@ -11,6 +11,12 @@
       "name": "attach",
       "url": "http://localhost:3012",
       "port": 3012
+    },
+    {
+      "name": "ando-storybook",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "/Users/calebwu/Documents/Github/ando/packages/ui", "storybook"],
+      "port": 6006
     }
   ]
 }

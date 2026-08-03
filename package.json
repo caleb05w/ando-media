@@ -6,9 +6,11 @@
     "dev": "next dev -p 3012",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit:animations": "node scripts/build-animation-audit.mjs"
   },
   "dependencies": {
+    "agentation": "^3.0.2",
     "dialkit": "^1.4.3",
     "motion": "^12.42.2",
     "next": "16.2.9",

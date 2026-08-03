@@ -1,17 +1,55 @@
-import Link from "next/link";
+"use client";
 
-// / — directory of every page in the app, one row per prototype.
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Stepper, weekLabel, weekRange } from "./stepper";
+
+// / — directory of every page in the app, split across two shelves behind a
+// floating switcher: Projects (prototypes and experiments) and Slides (dated
+// decks). Rows are styled after the Ando onboarding cards in
+// /caleb-slides/ando-mockups — grey rounded card, title over brief, chevron.
 
 type Entry = {
   href: string;
   title: string;
   tag?: string;
   brief: string;
+  /** Slides are dated; projects are not. */
+  date?: string;
+  /** Monday of the week the route was first committed, YYYY-MM-DD. Derived
+   *  from git history — see the Weeks stepper below. Projects with no commit
+   *  yet (still uncommitted) sit in the current week. */
+  week?: string;
 };
 
-const ENTRIES: Entry[] = [
+const PROJECTS: Entry[] = [
+  {
+    href: "/ando-draft-messages",
+    week: "2026-08-03",
+    title: "Suggested drafts",
+    tag: "(Prototype)",
+    brief:
+      "The draft-suggestion form factor from July Sprints — a capped list above the composer where the index badge becomes a return glyph on the active row, the chevron expands and the row body stages. Arrow keys move, enter stages, escape unwinds.",
+  },
+  {
+    href: "/animation-audit",
+    week: "2026-08-03",
+    title: "Animation audit",
+    tag: "(Motion)",
+    brief:
+      "Every animation in the Ando repo on one page, playing at the timing its real consumers use — frequency, easing, duration, delay, and what it is applied to. Extracted from the codebase, not written by hand.",
+  },
+  {
+    href: "/bubble-murmuration",
+    week: "2026-08-03",
+    title: "Login explorations",
+    tag: "(Motion)",
+    brief:
+      "The Ando login screen with the Convergence logo treatment — #, @, and / chips fly in and dock on a dashed rail around the icon tile, then the formation turns and breathes as one. UI untouched; only the logo moves.",
+  },
   {
     href: "/slack-sync-cards",
+    week: "2026-07-20",
     title: "Slack sync cards",
     tag: "(WIP)",
     brief:
@@ -19,6 +57,7 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/agents",
+    week: "2026-07-27",
     title: "Agents directory",
     tag: "(WIP)",
     brief:
@@ -26,6 +65,7 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/agent-flyout",
+    week: "2026-07-20",
     title: "Agent flyout",
     tag: "(Prototype)",
     brief:
@@ -33,6 +73,7 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/multi-select",
+    week: "2026-07-13",
     title: "Message multi-select",
     tag: "(Prototype)",
     brief:
@@ -40,6 +81,7 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/channel",
+    week: "2026-07-20",
     title: "Channel view",
     tag: "(Demo)",
     brief:
@@ -47,6 +89,7 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/agent-working",
+    week: "2026-07-20",
     title: "Agent working",
     tag: "(Prototype)",
     brief:
@@ -54,6 +97,7 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/agent-interactions",
+    week: "2026-07-20",
     title: "Agent motion studies",
     tag: "(Motion)",
     brief:
@@ -61,45 +105,138 @@ const ENTRIES: Entry[] = [
   },
   {
     href: "/automation-test",
+    week: "2026-06-29",
     title: "Create automation",
     brief:
       "Automation modal with natural-language scheduling — combobox, parser, invalid states, and compound schedules.",
   },
   {
     href: "/week2",
+    week: "2026-06-08",
     title: "Split-flap calendar",
     brief: "Countdown calendar with a split-flap board and 3D sky scene.",
   },
 ];
 
+const SLIDES: Entry[] = [
+  {
+    href: "/caleb-slides",
+    title: "Caleb slides",
+    date: "July 31, 2026",
+    brief:
+      "A showcase deck — every insight card as its own slide, a full-page grid of the whole set, then the channel, DM, and OAuth mockups. Arrow keys move between slides on the insight-deck swap.",
+  },
+];
+
+const TABS = [
+  ["projects", "Projects"],
+  ["slides", "Slides"],
+] as const;
+
+type Tab = (typeof TABS)[number][0];
+
+function EntryCard({ entry }: { entry: Entry }) {
+  return (
+    <Link
+      href={entry.href}
+      className="flex items-center gap-[16px] rounded-[10px] bg-[#f5f5f4] p-[16px] transition-colors ease-fast hover:bg-[#efeeec]"
+    >
+      <div className="min-w-0 flex-1 text-[14px] leading-[20px]">
+        <p className="font-medium text-[#1a1817]">
+          {entry.title}
+          {entry.tag ? (
+            <span className="ml-[8px] font-normal text-[#ea580c]">
+              {entry.tag}
+            </span>
+          ) : null}
+        </p>
+        <p className="mt-[2px] text-[#58524e]">{entry.brief}</p>
+      </div>
+      {entry.date ? (
+        <p className="shrink-0 font-mono text-[11px] leading-[16px] text-[#8a827b]">
+          {entry.date}
+        </p>
+      ) : null}
+      {/* Same exported chevron the Ando cards use. */}
+      <img
+        alt=""
+        src="/caleb-slides/chevron-right.svg"
+        className="size-[18px] shrink-0"
+      />
+    </Link>
+  );
+}
+
 export default function Home() {
+  const [tab, setTab] = useState<Tab>("projects");
+
+  // Weeks come from git — each route's first-commit date, collapsed to the
+  // Monday of that week. Newest first, so the current week reads first and
+  // opens selected; "All" sits at the end as the escape hatch rather than the
+  // default, since the page is usually opened to see what just shipped.
+  const weeks = useMemo(() => {
+    const set = new Set(
+      PROJECTS.map((p) => p.week).filter((w): w is string => Boolean(w)),
+    );
+    return [...set].sort().reverse();
+  }, []);
+
+  const [week, setWeek] = useState<string>(() => weeks[0] ?? "all");
+
+  const steps = useMemo(
+    () => [
+      ...weeks.map((w) => ({
+        value: w,
+        label: weekLabel(w),
+        title: weekRange(w),
+      })),
+      { value: "all", label: "All" },
+    ],
+    [weeks],
+  );
+
+  const entries =
+    tab === "slides"
+      ? SLIDES
+      : week === "all"
+        ? PROJECTS
+        : PROJECTS.filter((p) => p.week === week);
+
   return (
     <div className="flex flex-1 justify-center bg-white">
-      <main className="w-full max-w-xl px-6 pb-20 pt-24">
-        <h1 className="text-[14px] font-medium leading-5 text-[#1a1817]">
-          Projects &amp; writings
-        </h1>
-        <ul className="mt-10">
-          {ENTRIES.map((entry) => (
-            <li
-              key={entry.href}
-              className="border-b border-[#f0efee] last:border-b-0"
-            >
-              <Link href={entry.href} className="group block py-5">
-                <span className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[16px] leading-6 text-[#58524e] transition-colors group-hover:text-[#1a1817]">
-                    {entry.title}
-                  </span>
-                  {entry.tag ? (
-                    <span className="text-[13px] leading-6 text-[#ea580c]">
-                      {entry.tag}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="mt-1 block text-[13px] leading-[18px] text-[#a8a29e]">
-                  {entry.brief}
-                </span>
-              </Link>
+      <main className="w-full max-w-xl px-6 pb-20">
+        <div className="sticky top-0 z-10 flex justify-center pt-10 pb-6">
+          <div className="inline-flex items-center gap-[2px] rounded-full bg-white/85 p-[3px] shadow-[0px_0px_0px_1px_rgba(81,76,71,0.12),0px_8px_8px_-4px_rgba(22,25,29,0.03),0px_20px_24px_-4px_rgba(22,25,29,0.08)] backdrop-blur-[20px]">
+            {TABS.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTab(value)}
+                aria-pressed={tab === value}
+                className={`rounded-full px-[14px] py-[6px] text-[12px] leading-[16px] transition-colors ease-fast ${
+                  tab === value
+                    ? "bg-[#1a1817] text-white"
+                    : "text-[#58524e] hover:text-[#1a1817]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Weeks only apply to Projects — Slides carry their own dates. */}
+        {tab === "projects" ? (
+          <Stepper
+            steps={steps}
+            active={week}
+            onChange={setWeek}
+            ariaLabel="Filter projects by week"
+          />
+        ) : null}
+        <ul className="mt-4 flex flex-col gap-[12px]">
+          {entries.map((entry) => (
+            <li key={entry.href}>
+              <EntryCard entry={entry} />
             </li>
           ))}
         </ul>

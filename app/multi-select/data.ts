@@ -20,8 +20,9 @@ export type DemoMessage = {
   id: string;
   author: DemoAuthor;
   time: string;
-  // Paragraphs; a segment with `link` renders in brand blue.
-  body: Array<Array<{ text: string; link?: boolean }>>;
+  // Paragraphs; a segment with `link` renders in brand blue, and one with
+  // `mention` renders as an @-mention pill (brand text on a brand tint).
+  body: Array<Array<{ text: string; link?: boolean; mention?: boolean }>>;
   threadFooter?: {
     avatars: string[];
     countLabel: string;

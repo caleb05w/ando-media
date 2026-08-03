@@ -95,6 +95,99 @@ button:not(:disabled),
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Suggestion bolt — a shimmer sweeping across the glyph to say there is
+   something relevant waiting. The sweep is a moving gradient on a
+   pseudo-element, masked to the bolt's own silhouette (generated from the
+   same path data the icon renders, so the two cannot drift), which is what
+   makes the light travel *through* the shape rather than across a box.
+
+   Finite: three passes and it stops. A permanent shimmer beside the text
+   field would be a mosquito, and after three passes it has either been
+   noticed or it hasn't. */
+@keyframes bulb-shimmer {
+  from { background-position: 160% 0; }
+  to   { background-position: -60% 0; }
+}
+
+.bulb-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* A narrow bright band on a wide transparent field, so most of the cycle
+     is the glyph at rest and the highlight reads as a pass, not a pulse. */
+  background: linear-gradient(
+    105deg,
+    rgba(37, 99, 235, 0) 38%,
+    rgba(37, 99, 235, 0.95) 50%,
+    rgba(37, 99, 235, 0) 62%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.9992 2.35561C13.9992 1.12899 12.4165 0.636187 11.7202 1.64595L3.17236 14.0403C2.60048 14.8695 3.19407 15.9999 4.20137 15.9999H9.99917V21.6442C9.99917 22.8708 11.5818 23.3637 12.2782 22.3539L20.826 9.95958C21.3979 9.13036 20.8043 7.99992 19.797 7.99992H13.9992V2.35561Z' fill='%23000'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.9992 2.35561C13.9992 1.12899 12.4165 0.636187 11.7202 1.64595L3.17236 14.0403C2.60048 14.8695 3.19407 15.9999 4.20137 15.9999H9.99917V21.6442C9.99917 22.8708 11.5818 23.3637 12.2782 22.3539L20.826 9.95958C21.3979 9.13036 20.8043 7.99992 19.797 7.99992H13.9992V2.35561Z' fill='%23000'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  /* Matches PANEL_ICON, so the sweep covers the glyph exactly. */
+  -webkit-mask-size: 18px 18px;
+  mask-size: 18px 18px;
+  animation: bulb-shimmer 1.5s ease-in-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No sweep, but the signal still has to land: hold the brand tint once
+     rather than dropping the cue entirely. */
+  .bulb-shine::after {
+    animation: none;
+    background: none;
+  }
+  .bulb-shine {
+    color: #2563eb;
+  }
+}
+
+/* Tooltip — geometry lifted from the Ando design system's tooltip
+   (packages/ui/src/components/tooltip/styles.css), `description` variant,
+   which is the multi-line treatment: the default tooltip is a 999px pill and
+   wrapped text reads wrong inside a capsule.
+
+   Every value here is the DS's: 8px radius, 12/16 padding, 14px/20 type,
+   centred, max-width min(280px, 100vw - 24px), and the same
+   slide-from-bottom entry. Only the background differs — see the note in
+   page.tsx. */
+/* translateY only. An earlier version baked in translateX(-50%) for a
+   centred hover tooltip; on anything positioned by its own left edge that
+   yanks the element half its width sideways for the length of the animation,
+   then snaps back as the transform reverts. Keyframes that move an element
+   should not also encode where it sits. */
+@keyframes tip-slide-from-bottom {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ando-tip {
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #ffffff;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: min(280px, calc(100vw - 24px));
+  box-shadow: 0px 1px 2px 0px rgba(15, 13, 13, 0.08);
+  animation: tip-slide-from-bottom 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ando-tip {
+    animation-duration: 0.01s;
+  }
+}
+
 .card-enter {
   animation: card-enter 0.75s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
 }

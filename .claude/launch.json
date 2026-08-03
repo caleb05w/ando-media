@@ -17,6 +17,17 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["-C", "/Users/calebwu/Documents/Github/ando/packages/ui", "storybook"],
       "port": 6006
+    },
+    {
+      "name": "portfolio-attach",
+      "url": "http://localhost:3000",
+      "port": 3000
+    },
+    {
+      "name": "enactus-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "/Users/wu/Documents/Github/enactus-caleb-jr", "dev", "--port", "3013"],
+      "port": 3013
     }
   ]
 }

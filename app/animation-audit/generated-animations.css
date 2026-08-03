@@ -1,0 +1,550 @@
+/* GENERATED — do not edit by hand. See scripts/build-animation-audit.mjs.
+   Every @keyframes below is copied verbatim from the Ando repo; only the name
+   is prefixed with `aa-` so it cannot collide with this app's own
+   animations. The demo stage supplies stand-in values for the handful of
+   custom properties the keyframes read from their real components. */
+
+.aa-stage {
+  /* Stand-ins for properties the real components set on the animated node. */
+  --ando-overlay-base-transform: translate(0, 0);
+  --ando-sheet-closed-transform: translateY(100%);
+  --radix-collapsible-content-height: 56px;
+  --color-ando-bg-highlight: #fef3c7;
+  --color-ando-action-mention-tag: #dbeafe;
+  --color-ando-bg-warning: #fde68a;
+  --typing-text-blur: 2px;
+  --typing-text-distance: 8px;
+  --typing-text-dir-x: 0;
+  --typing-text-dir-y: 1;
+  --typing-text-stagger-index: 0;
+  --typing-text-stagger: 40ms;
+  --ando-thread-reply-enter-index: 0;
+  --onboarding-stagger: 0;
+  --i: 0;
+
+  /* The real motion tokens, so token-backed demos play at true values. */
+  --motion-duration-instant: 0ms;
+  --motion-duration-fast: 120ms;
+  --motion-duration-base: 180ms;
+  --motion-duration-moderate: 300ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  /* apps/web-local easing set (not design tokens — see the audit notes). */
+  --ease-slow: cubic-bezier(0.7, 0, 0.2, 1);
+  --ease-fast: cubic-bezier(0.62, 0.61, 0.02, 1);
+  --ease-fastfast: cubic-bezier(0.5, 0, 0, 1);
+}
+
+/* packages/ui/src/styles/motion.css:27 */
+@keyframes aa-ando-ui-overlay-enter {
+  from {
+  opacity: 0;
+  transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(1);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:39 */
+@keyframes aa-ando-ui-overlay-exit {
+  from {
+  opacity: 1;
+  transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(1);
+  }
+
+  to {
+  opacity: 0;
+  transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(0.95);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:119 */
+@keyframes aa-ando-ui-pulse {
+  50% {
+  opacity: 0.55;
+  }
+}
+
+/* packages/ui/src/styles/motion.css:71 */
+@keyframes aa-ando-ui-slide-from-bottom {
+  from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:83 */
+@keyframes aa-ando-ui-slide-from-left {
+  from {
+  opacity: 0;
+  transform: translateX(-8px) scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:95 */
+@keyframes aa-ando-ui-slide-from-right {
+  from {
+  opacity: 0;
+  transform: translateX(8px) scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:107 */
+@keyframes aa-ando-ui-slide-from-top {
+  from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  }
+}
+
+/* apps/status/src/styles.css:230 */
+@keyframes aa-status-skeleton-shimmer {
+  from {
+  background-position: 120% 0;
+  }
+
+  to {
+  background-position: -120% 0;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:775 */
+@keyframes aa-highlight-fade {
+  0% {
+  background-color: #fefce8; /* yellow-50 */
+  }
+  50% {
+  background-color: #fefce8; /* yellow-50 - hold the color longer */
+  }
+  100% {
+  background-color: transparent;
+  }
+}
+
+/* packages/ui/src/styles/motion.css:7 */
+@keyframes aa-ando-ui-fade-in {
+  from {
+  opacity: 0;
+  }
+
+  to {
+  opacity: 1;
+  }
+}
+
+/* packages/ui/src/styles/motion.css:17 */
+@keyframes aa-ando-ui-fade-out {
+  from {
+  opacity: 1;
+  }
+
+  to {
+  opacity: 0;
+  }
+}
+
+/* apps/web/src/app/(public)/auth/components/email-step.tsx:41 */
+@keyframes aa-sign-in-slot-exit {
+  from{transform:translateY(0)}to{transform:translateY(-100%)}
+}
+
+/* packages/ui/src/styles/motion.css:51 */
+@keyframes aa-ando-ui-sheet-enter {
+  from {
+  transform: var(--ando-sheet-closed-transform);
+  }
+
+  to {
+  transform: translate(0, 0);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:61 */
+@keyframes aa-ando-ui-sheet-exit {
+  from {
+  transform: translate(0, 0);
+  }
+
+  to {
+  transform: var(--ando-sheet-closed-transform);
+  }
+}
+
+/* apps/web/src/app/(public)/auth/components/email-step.tsx:40 */
+@keyframes aa-sign-in-slot-enter {
+  from{transform:translateY(100%)}to{transform:translateY(0)}
+}
+
+/* apps/web/src/app/styles/globals.css:571 */
+@keyframes aa-alpha-tag-stripes-drift {
+  from {
+  transform: translate3d(0, 0, 0);
+  }
+  to {
+  transform: translate3d(7px, 7px, 0);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:799 */
+@keyframes aa-highlight-fade-to-bookmark {
+  0% {
+  background-color: var(--color-ando-bg-highlight);
+  }
+  50% {
+  background-color: var(--color-ando-bg-highlight);
+  }
+  100% {
+  background-color: var(--color-ando-action-mention-tag);
+  }
+}
+
+/* apps/kanso/src/kanso-docs.css:11833 */
+@keyframes aa-ando-message-highlight-fade {
+  0% {
+  background: var(--color-ando-bg-warning);
+  }
+
+  50% {
+  background: var(--color-ando-bg-warning);
+  }
+
+  100% {
+  background: transparent;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:451 */
+@keyframes aa-onboarding-agent-birth-pulse {
+  0%,
+  100% {
+  transform: scale(1);
+  }
+  50% {
+  transform: scale(1.025);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:679 */
+@keyframes aa-shine {
+  0% {
+  transform: translateX(-100%);
+  opacity: 0;
+  }
+  20% {
+  opacity: 1;
+  }
+  80% {
+  opacity: 1;
+  }
+  100% {
+  transform: translateX(100%);
+  opacity: 0;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:787 */
+@keyframes aa-highlight-fade-dark {
+  0% {
+  background-color: #68643d;
+  }
+  50% {
+  background-color: #302e1d;
+  }
+  100% {
+  background-color: transparent;
+  }
+}
+
+/* packages/ui/src/components/collapsible/styles.css:19 */
+@keyframes aa-ando-ui-collapsible-down {
+  from {
+  height: 0;
+  }
+  to {
+  height: var(--radix-collapsible-content-height);
+  }
+}
+
+/* packages/ui/src/components/collapsible/styles.css:28 */
+@keyframes aa-ando-ui-collapsible-up {
+  from {
+  height: var(--radix-collapsible-content-height);
+  }
+  to {
+  height: 0;
+  }
+}
+
+/* packages/ui/src/components/spinner/styles.css:14 */
+@keyframes aa-ando-spinner-spin {
+  to {
+  transform: rotate(360deg);
+  }
+}
+
+/* packages/ui/src/styles/motion.css:1 */
+@keyframes aa-ando-ui-spin {
+  to {
+  transform: rotate(360deg);
+  }
+}
+
+/* apps/kanso/src/examples/component-examples/auth-onboarding-surface-example.tsx:283 */
+@keyframes aa-kanso-profile-hint-slot-enter-up {
+  from{opacity:0;transform:translateY(100%)}
+}
+
+/* apps/kanso/src/examples/component-examples/auth-onboarding-surface-example.tsx:285 */
+@keyframes aa-kanso-profile-hint-slot-enter-down {
+  from{opacity:0;transform:translateY(-100%)}
+}
+
+/* apps/web/src/app/(protected)/[workspaceId]/onboarding/components/slot-text.tsx:33 */
+@keyframes aa-onboarding-slot-enter-up {
+  from{opacity:0;transform:translateY(100%)}
+}
+
+/* apps/web/src/app/(protected)/[workspaceId]/onboarding/components/slot-text.tsx:34 */
+@keyframes aa-onboarding-slot-exit-up {
+  to{opacity:0;transform:translateY(-100%)}
+}
+
+/* apps/web/src/app/(protected)/[workspaceId]/onboarding/components/slot-text.tsx:35 */
+@keyframes aa-onboarding-slot-enter-down {
+  from{opacity:0;transform:translateY(-100%)}
+}
+
+/* apps/web/src/app/(protected)/[workspaceId]/onboarding/components/slot-text.tsx:36 */
+@keyframes aa-onboarding-slot-exit-down {
+  to{opacity:0;transform:translateY(100%)}
+}
+
+/* apps/web/src/app/common/components/typing-indicator.tsx:32 */
+@keyframes aa-typing-indicator-text-pop-in {
+  0% {
+  opacity: 0;
+  filter: blur(var(--typing-text-blur));
+  transform: translate(
+  calc(var(--typing-text-distance) * var(--typing-text-dir-x)),
+  calc(var(--typing-text-distance) * var(--typing-text-dir-y))
+  );
+  }
+  100% {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate(0, 0);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:311 */
+@keyframes aa-onboarding-step-fade-in {
+  from {
+  opacity: 0;
+  }
+  to {
+  opacity: 1;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:348 */
+@keyframes aa-onboarding-appearance-select {
+  from {
+  opacity: 0;
+  transform: scale(0.96);
+  }
+  to {
+  opacity: 1;
+  transform: scale(1);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:372 */
+@keyframes aa-onboarding-profile-celebrate {
+  0% {
+  transform: scale(1);
+  }
+  45% {
+  transform: scale(1.12);
+  }
+  100% {
+  transform: scale(1);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:400 */
+@keyframes aa-slack-backfill-complete-pop {
+  0% {
+  transform: scale(1);
+  }
+  45% {
+  transform: scale(1.12);
+  }
+  100% {
+  transform: scale(1);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:416 */
+@keyframes aa-slack-backfill-complete-sheen {
+  0% {
+  opacity: 1;
+  transform: translateX(-100%);
+  }
+  80% {
+  opacity: 1;
+  }
+  100% {
+  opacity: 0;
+  transform: translateX(100%);
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:823 */
+@keyframes aa-reaction-float {
+  0% {
+  opacity: 1;
+  transform: translateY(60px);
+  }
+  75% {
+  opacity: 1;
+  }
+  100% {
+  opacity: 0;
+  transform: translateY(-200px);
+  }
+}
+
+/* packages/ui/src/components/input-otp/styles.css:69 */
+@keyframes aa-ando-input-otp-caret {
+  0%,
+  70%,
+  100% {
+  opacity: 1;
+  }
+
+  20%,
+  50% {
+  opacity: 0;
+  }
+}
+
+/* packages/ui/src/components/thread/styles.css:100 */
+@keyframes aa-ando-thread-reply-enter {
+  from {
+  opacity: 0;
+  transform: translateY(6px);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateY(0);
+  }
+}
+
+/* apps/kanso/src/examples/component-examples/auth-onboarding-surface-example.tsx:282 */
+@keyframes aa-kanso-profile-hint-slot-exit-up {
+  to{opacity:0;transform:translateY(-100%)}
+}
+
+/* apps/kanso/src/examples/component-examples/auth-onboarding-surface-example.tsx:284 */
+@keyframes aa-kanso-profile-hint-slot-exit-down {
+  to{opacity:0;transform:translateY(100%)}
+}
+
+/* apps/kanso/src/examples/component-examples/composer-example.tsx:165 */
+@keyframes aa-kanso-composer-typing-dot-pulse {
+  0%, 100% {
+  opacity: 0.45;
+  transform: translateY(0) scale(1);
+  }
+  50% {
+  opacity: 1;
+  transform: translateY(-1.5px) scale(1.12);
+  }
+}
+
+/* apps/kanso/src/kanso-docs.css:10804 */
+@keyframes aa-kanso-usage-permalink-flash {
+  0%,
+  25% {
+  opacity: 1;
+  }
+
+  100% {
+  opacity: 0;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:480 */
+@keyframes aa-onboarding-vt-fade-out {
+  from {
+  opacity: 1;
+  }
+  to {
+  opacity: 0;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:489 */
+@keyframes aa-onboarding-vt-fade-in {
+  from {
+  opacity: 0;
+  }
+  to {
+  opacity: 1;
+  }
+}
+
+/* apps/web/src/app/styles/globals.css:714 */
+@keyframes aa-shine-reverse {
+  0% {
+  transform: translateX(100%);
+  opacity: 0;
+  }
+  20% {
+  opacity: 1;
+  }
+  80% {
+  opacity: 1;
+  }
+  100% {
+  transform: translateX(-100%);
+  opacity: 0;
+  }
+}
+
+/* apps/analytics/src/app/globals.css:35 */
+@keyframes aa-fade-in {
+  from {
+  opacity: 0;
+  transform: translateY(-4px);
+  }
+  to {
+  opacity: 1;
+  transform: translateY(0);
+  }
+}
+

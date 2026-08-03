@@ -11,7 +11,12 @@
 // CardView normalises both: a fixed top slot, an optically centred middle, and
 // a fixed bottom slot, so a headline lands at the same height on every card.
 
-import type { CSSProperties, ReactNode } from "react";
+import type {
+  AnimationEvent,
+  AnimationEventHandler,
+  CSSProperties,
+  ReactNode,
+} from "react";
 
 /* ---------------------------------- icons --------------------------------- */
 // Exact path data exported from the Figma components, recoloured to
@@ -512,6 +517,17 @@ export const INSIGHT_CARDS: CardDef[] = [
 
 /* -------------------------------- card view ------------------------------- */
 
+/** Glyph animations inside a card keep firing animationend, and those bubble
+    to the card root. Wrap a swap-complete callback in this so only the card's
+    own deck-in/out animation runs it. */
+export function ownAnimationEnd(
+  run: () => void
+): AnimationEventHandler<HTMLDivElement> {
+  return (e: AnimationEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) run();
+  };
+}
+
 const OVERLINE =
   "w-full text-center text-[10px] font-medium leading-[14px] tracking-[1px] uppercase";
 
@@ -536,7 +552,9 @@ export function CardView({
   showFunFact?: boolean;
   onToggleFunFact?: () => void;
   className?: string;
-  onAnimationEnd?: () => void;
+  /** Takes the event so callers can tell the card's own swap apart from a
+      glyph animation ending inside it — see ownAnimationEnd. */
+  onAnimationEnd?: AnimationEventHandler<HTMLDivElement>;
   /** Grid tiles are wrapped in their own button, so the fun-fact control has
       to render as static markup — a button inside a button is invalid HTML. */
   asThumbnail?: boolean;

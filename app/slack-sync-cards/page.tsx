@@ -16,6 +16,12 @@ import { useCallback, useEffect, useState } from "react";
 // <DialRoot /> is commented out alongside this.
 // import { useDialKit, type TransitionConfig } from "dialkit";
 import { CARDS, INSIGHT_CARDS, CardView, type CardDef } from "./cards";
+import {
+  AmbientWash,
+  CardPreview,
+  DECK,
+  ShowAllCards,
+} from "./show-all";
 
 /** CSS `animation-timing-function` can't express a spring, so a spring from the
     control's Physics tab falls back to the committed curve. */
@@ -37,17 +43,8 @@ type DeckState = {
   dir: 1 | -1;
 };
 
-const GRID_SCALE = 0.62;
-
-/** The live track is the insight cards. The Wrapped deck stays in the grid as
-    reference (it opens in the overlay, not the carousel), and archived cards
-    keep their own dimmed section below it. */
-const DECK = INSIGHT_CARDS;
-const WRAPPED = CARDS.filter((c) => !c.archived);
-const ARCHIVED = CARDS.filter((c) => c.archived);
-
 /** The shuffle tab's pool: both decks, minus anything archived. */
-const SHUFFLE_POOL = [...INSIGHT_CARDS, ...WRAPPED];
+const SHUFFLE_POOL = [...INSIGHT_CARDS, ...CARDS.filter((c) => !c.archived)];
 
 /** How long each card holds before the shuffle tab advances. */
 const SHUFFLE_INTERVAL_MS = 7000;
@@ -164,15 +161,6 @@ export default function SlackSyncCardsPage() {
   }, [tab]);
 
   useEffect(() => {
-    if (!preview) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPreview(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [preview]);
-
-  useEffect(() => {
     if (tab === "all" || preview) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
@@ -198,29 +186,7 @@ export default function SlackSyncCardsPage() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-[#dfdcd4]">
-      {/* Ambient wash — the cards are glass (38% white over a 28px backdrop
-          blur), so they need something behind them to refract. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: [
-            "radial-gradient(60% 55% at 22% 18%, #f3ece1 0%, transparent 70%)",
-            "radial-gradient(55% 50% at 82% 26%, #cfd9cb 0%, transparent 72%)",
-            "radial-gradient(70% 60% at 68% 88%, #b9c6cd 0%, transparent 75%)",
-            "radial-gradient(50% 45% at 12% 82%, #e3d9c6 0%, transparent 70%)",
-          ].join(","),
-        }}
-      />
-      {/* Figma applies a NOISE effect alongside the background blur. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.14] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")",
-        }}
-      />
+      <AmbientWash />
 
       <div className="relative z-10 flex shrink-0 justify-center px-6 pt-8 pb-6">
         <div className="inline-flex items-center gap-[2px] rounded-full bg-white/35 p-[3px] backdrop-blur-[20px]">
@@ -282,203 +248,24 @@ export default function SlackSyncCardsPage() {
         </div>
       ) : (
         <div className="relative z-10 flex-1 overflow-y-auto px-8 pb-16">
-          <div className="mx-auto mb-8 flex max-w-[1240px] items-center gap-4">
-            <p className="shrink-0 text-[10px] leading-[14px] font-medium tracking-[1px] text-[#58524e] uppercase">
-              Insight cards
-            </p>
-            <div className="h-[0.5px] flex-1 bg-[#58524e]/25" />
-          </div>
-          <div className="mx-auto grid max-w-[1240px] grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-x-6 gap-y-10">
-            {DECK.map((card, i) => (
-              <div key={card.id} className="flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeck({ index: i, leaving: null, dir: 1 });
-                    setTab("deck");
-                  }}
-                  title={`Open ${card.name} in the deck`}
-                  className="block cursor-pointer transition-transform ease-fast hover:-translate-y-1"
-                  style={{
-                    width: 400 * GRID_SCALE,
-                    height: 531 * GRID_SCALE,
-                  }}
-                >
-                  <div
-                    className="relative h-[531px] w-[400px] origin-top-left"
-                    style={{ transform: `scale(${GRID_SCALE})` }}
-                  >
-                    <CardView
-                      card={card}
-                      position={i + 1}
-                      total={DECK.length}
-                      showFunFact={funFacts[card.id]}
-                      asThumbnail
-                    />
-                  </div>
-                </button>
-                <div className="text-center">
-                  <p className="text-[12px] leading-[16px] text-[#1a1817]">
-                    {i + 1}. {card.name}
-                  </p>
-                  <p className="mt-[2px] font-mono text-[10px] leading-[14px] text-[#8a827b]">
-                    {card.node}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* The retired Wrapped deck — reference, not the running order. Full
-              colour, but tiles open the overlay rather than the carousel. */}
-          <div className="mx-auto mt-16 max-w-[1240px]">
-            <div className="mb-8 flex items-center gap-4">
-              <p className="shrink-0 text-[10px] leading-[14px] font-medium tracking-[1px] text-[#58524e] uppercase">
-                Wrapped deck
-              </p>
-              <div className="h-[0.5px] flex-1 bg-[#58524e]/25" />
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-x-6 gap-y-10">
-              {WRAPPED.map((card) => (
-                <div key={card.id} className="flex flex-col items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPreview(card)}
-                    title={`Preview ${card.name}`}
-                    className="block cursor-pointer transition-transform ease-fast hover:-translate-y-1"
-                    style={{
-                      width: 400 * GRID_SCALE,
-                      height: 531 * GRID_SCALE,
-                    }}
-                  >
-                    <div
-                      className="relative h-[531px] w-[400px] origin-top-left"
-                      style={{ transform: `scale(${GRID_SCALE})` }}
-                    >
-                      <CardView
-                        card={card}
-                        position={0}
-                        total={DECK.length}
-                        showFunFact={funFacts[card.id]}
-                        asThumbnail
-                        hideCounter
-                      />
-                    </div>
-                  </button>
-                  <div className="max-w-[248px] text-center">
-                    <p className="text-[12px] leading-[16px] text-[#58524e]">
-                      {card.name}
-                    </p>
-                    <p className="mt-[2px] font-mono text-[10px] leading-[14px] text-[#8a827b]">
-                      {card.node}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {ARCHIVED.length > 0 && (
-            <div className="mx-auto mt-16 max-w-[1240px]">
-              <div className="mb-8 flex items-center gap-4">
-                <p className="shrink-0 text-[10px] leading-[14px] font-medium tracking-[1px] text-[#58524e] uppercase">
-                  Archived
-                </p>
-                <div className="h-[0.5px] flex-1 bg-[#58524e]/25" />
-              </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-x-6 gap-y-10">
-                {ARCHIVED.map((card) => (
-                  <div key={card.id} className="flex flex-col items-center gap-3">
-                    {/* Opens in place rather than jumping into the deck —
-                        these have no slot in the running order. */}
-                    <button
-                      type="button"
-                      onClick={() => setPreview(card)}
-                      title={`Open ${card.name}`}
-                      className="relative block cursor-pointer opacity-55 grayscale-[0.35] transition-[opacity,transform,filter] ease-fast hover:-translate-y-1 hover:opacity-100 hover:grayscale-0"
-                      style={{
-                        width: 400 * GRID_SCALE,
-                        height: 531 * GRID_SCALE,
-                      }}
-                    >
-                      <div
-                        className="relative h-[531px] w-[400px] origin-top-left"
-                        style={{ transform: `scale(${GRID_SCALE})` }}
-                      >
-                        <CardView
-                          card={card}
-                          position={0}
-                          total={DECK.length}
-                          showFunFact={funFacts[card.id]}
-                          asThumbnail
-                          hideCounter
-                        />
-                      </div>
-                    </button>
-                    <div className="max-w-[248px] text-center">
-                      <p className="text-[12px] leading-[16px] text-[#58524e]">
-                        {card.name}
-                      </p>
-                      <p className="mt-[2px] font-mono text-[10px] leading-[14px] text-[#8a827b]">
-                        {card.node}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ShowAllCards
+            funFacts={funFacts}
+            onOpenInsight={(i) => {
+              setDeck({ index: i, leaving: null, dir: 1 });
+              setTab("deck");
+            }}
+            onPreview={(card) => setPreview(card)}
+          />
         </div>
       )}
 
       {preview && (
-        <div
-          /* Fixed, not absolute: the page root grows past the viewport when the
-             grid is long, so an absolute overlay would centre off-screen. */
-          className="fixed inset-0 z-20 flex items-center justify-center gap-[40px] bg-[#1a1817]/25 px-8 backdrop-blur-[6px]"
-          onClick={() => setPreview(null)}
-          role="presentation"
-        >
-          {/* Stop the card itself from dismissing; the backdrop and Esc do. */}
-          <div
-            className="relative h-[531px] w-[400px] max-w-full shrink-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CardView
-              card={preview}
-              position={0}
-              total={DECK.length}
-              showFunFact={funFacts[preview.id]}
-              onToggleFunFact={() => toggleFunFact(preview.id)}
-              hideCounter
-              className="deck-in-next"
-            />
-          </div>
-
-          <div
-            className="w-[300px] shrink-0 text-[#f3ece1]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-[10px] leading-[14px] font-medium tracking-[1px] uppercase opacity-70">
-              {preview.archived ? "Archived" : "Wrapped deck"}
-            </p>
-            <p className="mt-[6px] text-[18px] leading-[1.2] font-medium">
-              {preview.name}
-            </p>
-            {preview.archivedNote ? (
-              <p className="mt-[12px] text-[13px] leading-[19px] opacity-80">
-                {preview.archivedNote}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setPreview(null)}
-              className="mt-[20px] rounded-full bg-[#f3ece1] px-[16px] py-[8px] text-[12px] leading-[16px] text-[#1a1817] transition-opacity ease-fast hover:opacity-85"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <CardPreview
+          card={preview}
+          showFunFact={funFacts[preview.id]}
+          onToggleFunFact={() => toggleFunFact(preview.id)}
+          onClose={() => setPreview(null)}
+        />
       )}
     </div>
   );

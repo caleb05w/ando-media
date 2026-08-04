@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "../multi-select/multi-select.css";
 import "../channel/channel.css";
 import { MESSAGES, type DemoMessage } from "../multi-select/data";
@@ -37,12 +37,6 @@ import {
 // Palette comes from the shared channel chrome, so this prototype and
 // /channel cannot drift apart.
 
-// Reading measure for the expanded draft body. 66ch per the design call —
-// that renders ~80–95 characters, not 66, because `ch` is the width of "0"
-// rather than an average glyph. Drop to ~50ch for the classic 66-character
-// line. Resolved against PANEL_TEXT on the element that declares it.
-const COLUMN = "66ch";
-
 // The flyout reads at 14px — a step up from the old 13, since a suggestion
 // has to be scannable in the half-second before you decide to take it. Icons
 // and the keybind badge scale with it rather than staying at composer size,
@@ -58,14 +52,16 @@ const CHANNEL = "#design";
 // this is the border /agent-interactions uses on its cards, one step darker.
 const STROKE = "#e7e5e4";
 
+// Row hover / active tint. A step lighter than BG_TERTIARY (#f5f5f4), which
+// is doing other work in here — the keybind badges sit on it, so reusing it
+// for the row behind them flattened the two together.
+const ROW_ACTIVE = "#fafaf9";
+
 const PANEL_SHADOW =
   "0px 2px 12px 0px rgba(16,16,16,0.04),0px 16px 24px -12px rgba(16,16,16,0.08),0px 0px 0.5px 0.75px rgba(16,16,16,0.06)";
 
-// Same three rings at zero alpha — "none" is not interpolable, so the folded
-// bar carries an invisible shadow of identical structure and the transition
-// has something to animate between.
-const PANEL_SHADOW_OFF =
-  "0px 2px 12px 0px rgba(16,16,16,0),0px 16px 24px -12px rgba(16,16,16,0),0px 0px 0.5px 0.75px rgba(16,16,16,0)";
+// Quiet after a digit for it to count as a keybind rather than a character.
+const PICK_IDLE_AFTER = 500;
 
 /* --------------------------------------------------------------- icons ---- */
 
@@ -77,7 +73,6 @@ const PANEL_SHADOW_OFF =
 // only ships filled.
 const ICON_PATHS = {
   arrowCornerDownLeft: `<path d="M20.25 4.75V14.25C20.25 14.8023 19.8023 15.25 19.25 15.25H4.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.75 11.25L3.75 15.25L7.75 19.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
-  chevronRightSmall: `<path d="M10 16L13.6464 12.3536C13.8417 12.1583 13.8417 11.8417 13.6464 11.6464L10 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
   chevronDownSmall: `<path d="M8 10L11.6464 13.6464C11.8417 13.8417 12.1583 13.8417 12.3536 13.6464L16 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
   // Matched pair — the panel folds down with one, the bar unfolds up with
   // the other, so the gesture reads as reversible.
@@ -177,7 +172,12 @@ const NOTION_REPLY = [
  * is checked before `key` because it is layout-independent: an AZERTY top row
  * reports "&é\"" as `key` while `code` stays Digit1–3.
  */
-function digitFromEvent(event: KeyboardEvent): number | null {
+function digitFromEvent(
+  // Structural, not `KeyboardEvent` — this is called with both the native
+  // event from the window listener and React's synthetic one from the
+  // composer, and it only ever reads these five fields.
+  event: Pick<KeyboardEvent, "key" | "code" | "metaKey" | "ctrlKey" | "altKey">,
+): number | null {
   if (event.metaKey || event.ctrlKey || event.altKey) return null;
   const byCode = /^Digit([1-9])$/.exec(event.code);
   if (byCode) return Number(byCode[1]);
@@ -211,10 +211,10 @@ type DraftRowProps = {
   draft: Draft;
   index: number;
   active: boolean;
+  /** Pointed at: the row opens in place to show the message in full. */
   expanded: boolean;
-  onHover: (index: number | null) => void;
+  onHover: (index: number, event: React.MouseEvent) => void;
   onStage: (draft: Draft) => void;
-  onToggleExpand: (id: string) => void;
   onFocusRow: (index: number) => void;
 };
 
@@ -225,20 +225,25 @@ function DraftRow({
   expanded,
   onHover,
   onStage,
-  onToggleExpand,
   onFocusRow,
 }: DraftRowProps) {
-  const expandable = Boolean(draft.body);
   const preview = previewFor(draft);
+  // Expanded, the row shows the message as it is written — line breaks kept,
+  // nothing clipped. Collapsed, the same text flattened to a scannable line.
+  const body = expanded && preview ? stageTextFor(draft) : preview;
 
   return (
     <div
-      className="flex flex-col rounded-[6px] transition-colors"
-      style={{ background: active ? BG_TERTIARY : "transparent" }}
-      onMouseEnter={() => onHover(index)}
-      onMouseLeave={() => onHover(null)}
+      className="flex rounded-[6px] transition-colors"
+      style={{ background: active ? ROW_ACTIVE : "transparent" }}
+      // Movement, not entry — see hoverRow. Leaving a row is not the end of
+      // hovering either; the surface as a whole decides when that is over.
+      onMouseMove={(event) => onHover(index, event)}
     >
-      <div className="flex h-10 w-full items-center gap-2.5 px-2.5">
+      {/* items-start, not items-center: a two-line row must keep its arrow and
+          badge aligned to the first line rather than floating to the middle of
+          the block. py matches the old h-10 on a single line. */}
+      <div className="flex w-full items-start gap-2.5 px-2.5 py-2.5">
         {/* Per the 19125 flow: the return arrow is a standing mark on every
             row — "this inserts into the composer" — not a selection
             indicator. The active row is carried by the background tint
@@ -247,7 +252,7 @@ function DraftRow({
           path={ICON_PATHS.arrowCornerDownLeft}
           flipX
           size={PANEL_ICON}
-          className="shrink-0"
+          className="mt-px shrink-0"
           style={{ color: FG_TERTIARY }}
         />
 
@@ -259,113 +264,71 @@ function DraftRow({
           type="button"
           onClick={() => onStage(draft)}
           onFocus={() => onFocusRow(index)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/30"
+          className="flex min-w-0 flex-1 items-start gap-2 rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/30"
           aria-label={`Stage draft: ${draft.title}`}
         >
           {draft.appIcon ? (
             <img
               src={draft.appIcon.src}
               alt=""
-              className="size-[18px] shrink-0 rounded-[4px] object-contain"
+              className="mt-px size-[18px] shrink-0 rounded-[4px] object-contain"
             />
           ) : null}
-          {/* With a preview alongside, the title holds and the preview eats
-              the truncation; alone, the title truncates itself — matching the
-              flow, where "Search my notion documents for hirin…" clips. */}
-          <span
-            className={`text-[14px] leading-5 ${
-              preview ? "shrink-0" : "min-w-0 truncate"
-            }`}
-            style={{ color: FG_PRIMARY }}
+          {/* Title and body share one wrapping block. Two `span`s inside a
+              single `p` rather than siblings in a flex row: only inline
+              content reflows, so the body can continue on the line the title
+              started, and the two-line clamp counts the pair together. */}
+          <p
+            className="min-w-0 flex-1 text-[14px] leading-5"
+            style={
+              expanded
+                ? { whiteSpace: "pre-wrap" }
+                : {
+                    display: "-webkit-box",
+                    WebkitBoxOrient: "vertical",
+                    WebkitLineClamp: 2,
+                    overflow: "hidden",
+                  }
+            }
           >
-            {draft.title}
-          </span>
-          {preview ? (
-            <span
-              className="min-w-0 truncate text-[14px] leading-5"
-              style={{ color: FG_TERTIARY }}
-            >
-              {preview}
-            </span>
-          ) : null}
+            <span style={{ color: FG_PRIMARY }}>{draft.title}</span>
+            {body ? (
+              <>
+                {/* Title and body are two different registers — what the draft
+                    is, then what it says. Inline so it wraps with the text
+                    rather than pinning a separator to a fixed spot. */}
+                <span
+                  aria-hidden
+                  className="mx-1.5 inline-block size-[2px] rounded-full align-middle"
+                  style={{ background: FG_TERTIARY }}
+                />
+                <span style={{ color: FG_TERTIARY }}>{body}</span>
+              </>
+            ) : null}
+            {/* Sits against the end of the message it takes. Outlined, not
+                filled — the keybind badge at the row's end is the filled one,
+                and this is a control rather than a label. */}
+            {expanded ? (
+              <span
+                aria-hidden
+                className="ml-1.5 inline-flex h-[18px] items-center justify-center rounded-[4px] border-[0.5px] px-1.5 align-middle text-[11px] leading-none"
+                style={{ borderColor: STROKE, color: FG_TERTIARY }}
+              >
+                tab
+              </span>
+            ) : null}
+          </p>
         </button>
 
-        {/* Trailing group: chevron, then the keybind badge at the very end.
-            The badge slot is what delete takes over on hover — the shortcut
-            is only useful while pointing elsewhere, so the pointer reclaiming
-            that slot costs nothing. The chevron keeps its own slot either way,
-            so expanding stays clickable. */}
-        <span className="flex size-6 shrink-0 items-center justify-center">
-          {expandable ? (
-            <button
-              type="button"
-              onClick={() => onToggleExpand(draft.id)}
-              className="flex size-6 items-center justify-center rounded-[4px] transition-colors hover:bg-black/5"
-              style={{ color: FG_TERTIARY }}
-              aria-label={`${expanded ? "Collapse" : "Expand"} draft: ${draft.title}`}
-              aria-expanded={expanded}
-              tabIndex={-1}
-            >
-              <Icon
-                path={ICON_PATHS.chevronRightSmall}
-                size={PANEL_ICON}
-                style={{
-                  transform: expanded ? "rotate(90deg)" : undefined,
-                  transition: "transform 150ms cubic-bezier(0.2,0,0,1)",
-                }}
-              />
-            </button>
-          ) : null}
-        </span>
-        {/* The keybind badge holds this slot permanently now — there is no
-            per-row dismiss, so nothing swaps in on hover. Dismissing is a
-            decision about the whole set, taken on the bar. */}
-        <span className="flex shrink-0 items-center justify-center">
-          <span
-            className="flex h-[18px] items-center justify-center rounded-[4px] px-1.5 text-[11px] leading-none"
-            style={{ background: BG_TERTIARY, color: FG_TERTIARY }}
-          >
-            {index + 1}
-          </span>
+        {/* Keybind badge, at the very end. mt-px lines it up with the first
+            line of a wrapped row. */}
+        <span
+          className="mt-px flex h-[18px] shrink-0 items-center justify-center rounded-[4px] px-1.5 text-[11px] leading-none"
+          style={{ background: BG_TERTIARY, color: FG_TERTIARY }}
+        >
+          {index + 1}
         </span>
       </div>
-
-      {/* Accordion body — the other drafts stay in the list above and below.
-          Plain markup, not a button: you expanded this to *read* it, so the
-          text has to be selectable and a stray click mid-read must not stage.
-          The affordance is the explicit control underneath. */}
-      {expanded && draft.body ? (
-        <div className="w-full px-2.5 pb-3 pl-[38px]">
-          {/* The panel spans the composer — but the expanded prose gets the
-              reading measure, or it runs the full width of a wide window.
-              `ch` resolves against this element, so the font-size here is
-              what makes COLUMN mean what it says. */}
-          <div
-            className="flex flex-col gap-1.5 leading-5"
-            style={{ color: FG_PRIMARY, maxWidth: COLUMN, fontSize: PANEL_TEXT }}
-          >
-            <p>{draft.body.lead}</p>
-            <ul className="flex flex-col">
-              {draft.body.bullets.map((b) => (
-                <li key={b} className="pl-3">
-                  • {b}
-                </li>
-              ))}
-            </ul>
-            <p>{draft.body.tail}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onStage(draft)}
-            aria-label={`Stage draft: ${draft.title}`}
-            className="mt-2.5 -ml-1 flex items-center gap-1.5 rounded-[4px] px-1 py-0.5 text-[12px] leading-4 transition-colors hover:bg-black/5"
-            style={{ color: FG_TERTIARY }}
-          >
-            <Icon path={ICON_PATHS.arrowCornerDownLeft} flipX size={14} />
-            stage in composer
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -376,12 +339,14 @@ type PanelProps = {
   drafts: Draft[];
   activeIndex: number;
   setActiveIndex: (i: number) => void;
-  expandedId: string | null;
   panelRef: React.RefObject<HTMLDivElement | null>;
   /** Which shape the surface takes; "closed" never reaches this component. */
   panel: "open" | "collapsed";
-  onToggleExpand: (id: string) => void;
   onStage: (draft: Draft) => void;
+  /** Which row the pointer moved onto; that row opens to its full message. */
+  hoverIndex: number | null;
+  onHoverRow: (index: number, event: React.MouseEvent) => void;
+  onLeave: (event: React.MouseEvent) => void;
   onCollapse: () => void;
   onOpen: () => void;
   onDismiss: () => void;
@@ -398,96 +363,53 @@ function FlyoutSurface({
   drafts,
   activeIndex,
   setActiveIndex,
-  expandedId,
   panelRef,
-  onToggleExpand,
   onStage,
+  hoverIndex,
+  onHoverRow,
+  onLeave,
   onCollapse,
   onOpen,
   onDismiss,
 }: PanelProps) {
   const open = panel === "open";
-  // The box's height is explicit at all times (auto cannot transition), so
-  // the open face's real height is tracked and fed back in. ResizeObserver
-  // rather than a one-shot measure: the accordion changes the content height
-  // while open, and this way that change rides the same transition.
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [contentH, setContentH] = useState<number | null>(null);
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setContentH(el.offsetHeight));
-    ro.observe(el);
-    setContentH(el.offsetHeight);
-    return () => ro.disconnect();
-  }, []);
-
-  // useSyncExternalStore rather than an effect: the media query IS external
-  // state, so subscribing to it directly avoids the setState-in-effect
-  // cascade, and the server snapshot keeps SSR from touching `window`.
-  const reduceMotion = useSyncExternalStore(
-    (notify) => {
-      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-      mq.addEventListener("change", notify);
-      return () => mq.removeEventListener("change", notify);
-    },
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => false,
-  );
-
-  const handleHover = useCallback(
-    (index: number | null) => {
-      if (index !== null) setActiveIndex(index);
-    },
-    [setActiveIndex],
-  );
-
-  const ease = "var(--ease-fast)"; // globals.css: cubic-bezier(0.2, 0, 0, 1) — leaves immediately, settles softly
-  const dur = reduceMotion ? "0ms" : "300ms";
-  const fade = reduceMotion ? "0ms" : "150ms";
-  // The incoming face waits half the morph before fading in, so the box is
-  // most of the way to its new shape before new content appears in it.
-  const lag = reduceMotion ? "0ms" : "140ms";
-  const boxTransition = ["width", "height", "left", "transform", "background-color", "box-shadow"]
-    .map((p) => `${p} ${dur} ${ease}`)
-    .join(", ");
 
   return (
+    // Absolute over the thread — opening must not push the conversation up.
+    // The 12px standoff from the composer is padding on this wrapper rather
+    // than a margin on the surface, which puts that strip inside the panel's
+    // subtree. It matters for hover: the panel rides up when a ghost grows the
+    // composer, and a margin would leave a band belonging to neither surface
+    // for the pointer to fall into — read as a mouseleave, that starts the
+    // grow/shrink oscillation over again.
     <div
-      ref={panelRef}
-      // Focusable but not tab-stopped: it exists so focus has somewhere to
-      // land when the bar re-expands, not as a stop in the tab order.
-      tabIndex={-1}
-      role="group"
-      aria-label="Suggested drafts"
-      // Absolute over the thread — opening must not push the conversation up.
-      // Open: full composer width, white, shadowed. Folded: a centred pill
-      // (typing indicator to the left of this strip, agent presence to the
-      // right, so the middle is the only clear lane), grey, flat.
-      className="absolute bottom-full z-20 mb-3 overflow-hidden rounded-[10px] outline-none"
-      style={{
-        left: open ? "0%" : "50%",
-        transform: open ? "translateX(0%)" : "translateX(-50%)",
-        width: open ? "100%" : "clamp(264px, 30%, 420px)",
-        height: open ? (contentH ?? undefined) : 40,
-        background: open ? "#ffffff" : BG_TERTIARY,
-        boxShadow: open ? PANEL_SHADOW : PANEL_SHADOW_OFF,
-        transition: boxTransition,
-      }}
+      className="absolute bottom-full left-0 z-20 w-full pb-3"
+      onMouseLeave={onLeave}
     >
-      {/* Open face — the panel. Stays mounted while folded so the morph has
-          real content to shrink over; inert + invisible so it cannot be
-          reached or clicked. */}
       <div
-        ref={contentRef}
-        inert={!open}
-        className="flex flex-col"
+        ref={panelRef}
+        // Focusable but not tab-stopped: it exists so focus has somewhere to
+        // land when the bar re-expands, not as a stop in the tab order.
+        tabIndex={-1}
+        role="group"
+        aria-label="Suggested drafts"
+        // Open: full composer width, white, shadowed. Folded: a centred pill
+        // (typing indicator to the left of this strip, agent presence to the
+        // right, so the middle is the only clear lane), grey, flat.
+        //
+        // The two shapes swap outright — no transition. Height is left to the
+        // content rather than measured and pinned, which the morph had needed.
+        className="overflow-hidden rounded-[10px] outline-none"
         style={{
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: `opacity ${fade} ${ease} ${open ? lag : "0ms"}`,
+          width: open ? "100%" : "clamp(264px, 30%, 420px)",
+          marginLeft: open ? 0 : "auto",
+          marginRight: open ? 0 : "auto",
+          background: open ? "#ffffff" : BG_TERTIARY,
+          boxShadow: open ? PANEL_SHADOW : "none",
         }}
       >
+      {open ? (
+      <div className="flex flex-col">
         <div className="flex h-10 items-center justify-between px-3.5">
           <span style={{ color: FG_TERTIARY, fontSize: PANEL_TEXT, lineHeight: "20px" }}>
             Suggested drafts
@@ -514,28 +436,16 @@ function FlyoutSurface({
               draft={draft}
               index={i}
               active={i === activeIndex}
-              expanded={expandedId === draft.id}
-              onHover={handleHover}
+              expanded={i === hoverIndex}
+              onHover={onHoverRow}
               onStage={onStage}
-              onToggleExpand={onToggleExpand}
               onFocusRow={setActiveIndex}
             />
           ))}
         </div>
       </div>
-
-      {/* Folded face — the bar. Top-aligned at the box's bar height, so
-          during the morph it occupies exactly the strip the box is shrinking
-          toward. */}
-      <div
-        inert={open}
-        className="absolute inset-x-0 top-0 flex h-10 items-center gap-1 py-1 pl-3.5 pr-1.5"
-        style={{
-          opacity: open ? 0 : 1,
-          pointerEvents: open ? "none" : "auto",
-          transition: `opacity ${fade} ${ease} ${open ? "0ms" : lag}`,
-        }}
-      >
+      ) : (
+      <div className="flex h-10 items-center gap-1 py-1 pl-3.5 pr-1.5">
         {/* The whole label region unfolds — a bigger target than the chevron
             alone, which is why the chevron lives inside it rather than
             beside. */}
@@ -566,6 +476,8 @@ function FlyoutSurface({
         >
           <Icon path={ICON_PATHS.crossSmall} size={PANEL_ICON} />
         </button>
+      </div>
+      )}
       </div>
     </div>
   );
@@ -764,7 +676,10 @@ export default function AndoDraftMessagesPage() {
   // is what says there is something worth opening.
   const [panel, setPanel] = useState<"open" | "collapsed" | "closed">("closed");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // The row the pointer is over. Separate from activeIndex, which hover also
+  // moves: the highlight is where you *are*, this is what you'd *get*, and
+  // only the pointer can put a draft into the composer as a ghost.
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [text, setText] = useState("");
   // True while the composer holds text the user has not touched — staged
   // rather than written. Rendered a shade lighter so it is obvious at a
@@ -808,34 +723,39 @@ export default function AndoDraftMessagesPage() {
       text: string;
       pristine: boolean;
       panel: "open" | "collapsed" | "closed";
-      expandedId: string | null;
       activeIndex: number;
     }[]
   >([]);
 
   const snapshot = useCallback(() => {
-    historyRef.current.push({ drafts, text, pristine, panel, expandedId, activeIndex });
+    historyRef.current.push({ drafts, text, pristine, panel, activeIndex });
     if (historyRef.current.length > 25) historyRef.current.shift();
-  }, [drafts, text, pristine, panel, expandedId, activeIndex]);
+  }, [drafts, text, pristine, panel, activeIndex]);
 
   const stage = useCallback(
-    (draft: Draft) => {
+    // `replace` overrides where the draft lands. The digit-pick path uses it
+    // to swallow the character it typed while waiting out the pause.
+    (draft: Draft, replace?: { from: number; to: number }) => {
       const insert = stageTextFor(draft);
       const el = textareaRef.current;
       // Insert at the caret, replacing any selection — a draft joins what you
       // are already writing rather than overwriting it. The textarea keeps its
       // selection across blur, so this still holds when the draft was clicked.
-      const start = el ? el.selectionStart : text.length;
-      const end = el ? el.selectionEnd : text.length;
-      const next = text.slice(0, start) + insert + text.slice(end);
+      const start = replace ? replace.from : el ? el.selectionStart : text.length;
+      const end = replace ? replace.to : el ? el.selectionEnd : text.length;
+      // Splice against the field's own value, not the state. The digit-pick
+      // path is armed from a keydown, so the character that triggered it has
+      // not reached state yet — offsets taken from the DOM have to be applied
+      // to the DOM's string or they cut in the wrong place.
+      const current = el ? el.value : text;
+      const next = current.slice(0, start) + insert + current.slice(end);
 
       snapshot();
       setText(next);
       // Only tint when the staged text is the whole message. Mixed with the
       // user's own writing, tinting all of it would misattribute their words.
       setPristine(next === insert);
-      setExpandedId(null);
-      // Drafts are consumable, not templates — a used suggestion leaves the
+        // Drafts are consumable, not templates — a used suggestion leaves the
       // list, so the bar's count stays honest and you cannot stage the same
       // one twice by accident. ⌘Z puts it back.
       setDrafts((prev) => {
@@ -860,6 +780,74 @@ export default function AndoDraftMessagesPage() {
     const caret = caretRef.current;
     if (caret !== null) el.setSelectionRange(caret, caret);
   }, [stageCount]);
+
+  // Pointing at a row opens it in place, to the whole message rather than the
+  // two clipped lines. The preview lives in the panel and not in the composer
+  // on purpose: a preview that resized the composer moved the panel, and the
+  // panel is the thing being pointed at — hover changing the geometry of its
+  // own target is a feedback loop, and no amount of damping makes it not one.
+  //
+  // Here the panel is anchored to its bottom edge, so an opening row grows
+  // upward: its bottom does not move, and the pointer stays inside the row it
+  // is pointing at. Stability is a property of the layout, not of a guard.
+  const hoverDraft =
+    panel === "open" && hoverIndex !== null ? (drafts[hoverIndex] ?? null) : null;
+
+  // Belt and braces on top of that: a row can still shift under a stationary
+  // pointer if the panel ever hits its ceiling and starts scrolling instead of
+  // growing. So a hover change has to be paid for with actual movement —
+  // identical coordinates to the last one mean the world moved, not the mouse.
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerMoved = useCallback(
+    (event: { clientX: number; clientY: number }) => {
+      const last = pointerRef.current;
+      const moved = !last || last.x !== event.clientX || last.y !== event.clientY;
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+      return moved;
+    },
+    [],
+  );
+
+  // On mousemove rather than mouseenter: if a row ever does slide under a
+  // still pointer, its enter has already fired and been refused, so a later
+  // real movement inside that same row would never produce a second one.
+  const hoverRow = useCallback(
+    (index: number, event: React.MouseEvent) => {
+      if (!pointerMoved(event)) return;
+      setActiveIndex(index);
+      setHoverIndex(index);
+    },
+    [pointerMoved],
+  );
+
+  const leaveSurface = useCallback(
+    (event: React.MouseEvent) => {
+      if (!pointerMoved(event)) return;
+      setHoverIndex(null);
+    },
+    [pointerMoved],
+  );
+
+  const acceptPreview = useCallback(() => {
+    if (!hoverDraft) return;
+    setHoverIndex(null);
+    stage(hoverDraft);
+  }, [hoverDraft, stage]);
+
+  // Bound only while a row is open, so Tab keeps its ordinary job of moving
+  // focus the rest of the time. On window rather than on the row: the pointer
+  // is what opened it, and focus could be anywhere.
+  useEffect(() => {
+    if (!hoverDraft) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      if (event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) return;
+      event.preventDefault();
+      acceptPreview();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hoverDraft, acceptPreview]);
 
   // Shine the bulb 1s after there are suggestions to offer and nothing on
   // screen offering them. The effect only arms a timer — the "off" side is
@@ -902,10 +890,6 @@ export default function AndoDraftMessagesPage() {
     setReopenCount((n) => n + 1);
   }, []);
 
-  const toggleExpand = useCallback((id: string) => {
-    setExpandedId((cur) => (cur === id ? null : id));
-  }, []);
-
 
   // ⌘Z / Ctrl+Z. Runs on window so it works whether focus is in the panel or
   // the composer — but it yields to the browser's native text undo whenever
@@ -928,7 +912,6 @@ export default function AndoDraftMessagesPage() {
       setText(prev.text);
       setPristine(prev.pristine);
       setPanel(prev.panel);
-      setExpandedId(prev.expandedId);
       setActiveIndex(prev.activeIndex);
     };
 
@@ -950,8 +933,7 @@ export default function AndoDraftMessagesPage() {
         // Escape dismisses the suggestion set outright — one press, gone,
         // whether it is expanded or folded. Folding down is what the
         // chevron is for; Escape is the "I'm not interested" key.
-        setExpandedId(null);
-        setPanel("closed");
+            setPanel("closed");
         return;
       }
 
@@ -982,15 +964,6 @@ export default function AndoDraftMessagesPage() {
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
         setActiveIndex((i) => (i - 1 + drafts.length) % drafts.length);
-      } else if (event.key === "ArrowRight") {
-        // Delete replaces the chevron on hover, so the mouse can never reach
-        // it — this is how an expandable draft actually gets opened.
-        event.preventDefault();
-        const target = drafts[activeIndex];
-        if (target?.body) setExpandedId(target.id);
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        setExpandedId(null);
       } else if (event.key === "Enter") {
         event.preventDefault();
         const target = drafts[activeIndex];
@@ -1000,7 +973,7 @@ export default function AndoDraftMessagesPage() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [panel, expandedId, drafts, activeIndex, stage]);
+  }, [panel, drafts, activeIndex, stage]);
 
   const canSend = text.trim().length > 0;
 
@@ -1054,6 +1027,41 @@ export default function AndoDraftMessagesPage() {
     const el = messagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, typingAgent, notionConnected]);
+
+  // Digits typed in the composer are ambiguous: "3" could be the number three
+  // or a pick of the third draft. Rather than choose a modifier, let the pause
+  // after decide — the digit types immediately, and only if nothing follows it
+  // for 500ms is it taken back out and read as a pick. Keep typing and it stays
+  // a character, which is the common case and the one that must not be wrong.
+  const pickTimerRef = useRef<number | null>(null);
+  const cancelPick = useCallback(() => {
+    if (pickTimerRef.current !== null) {
+      window.clearTimeout(pickTimerRef.current);
+      pickTimerRef.current = null;
+    }
+  }, []);
+  useEffect(() => cancelPick, [cancelPick]);
+
+  const armPick = useCallback(
+    (position: number) => {
+      cancelPick();
+      pickTimerRef.current = window.setTimeout(() => {
+        pickTimerRef.current = null;
+        const target = drafts[position - 1];
+        if (!target) return;
+        const el = textareaRef.current;
+        if (!el) return;
+        // Remove the digit that was typed while we waited, then stage in the
+        // gap it leaves — so the caret ends where the draft does, not one
+        // character further on.
+        const caret = el.selectionStart;
+        const typed = el.value.slice(caret - 1, caret);
+        if (typed !== String(position)) return;
+        stage(target, { from: caret - 1, to: caret });
+      }, PICK_IDLE_AFTER);
+    },
+    [cancelPick, drafts, stage],
+  );
 
   return (
     // The /channel shell, so the panel is judged where it will actually live:
@@ -1130,10 +1138,11 @@ export default function AndoDraftMessagesPage() {
                   drafts={drafts}
                   activeIndex={activeIndex}
                   setActiveIndex={setActiveIndex}
-                  expandedId={expandedId}
                   panelRef={panelRef}
-                  onToggleExpand={toggleExpand}
                   onStage={stage}
+                  hoverIndex={hoverIndex}
+                  onHoverRow={hoverRow}
+                  onLeave={leaveSurface}
                   onCollapse={() => setPanel("collapsed")}
                   onOpen={openPanel}
                   onDismiss={() => setPanel("closed")}
@@ -1146,6 +1155,8 @@ export default function AndoDraftMessagesPage() {
               className="flex w-full flex-col gap-2 overflow-hidden rounded-[10px] border-[0.5px] bg-white p-3"
               style={{ borderColor: STROKE }}
             >
+          {/* Relative so the field can be laid over its sizing mirror. */}
+          <div className="relative w-full">
           <textarea
             ref={textareaRef}
             value={text}
@@ -1158,14 +1169,43 @@ export default function AndoDraftMessagesPage() {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 send();
+                return;
               }
+              // Any keystroke cancels a pending pick — you kept typing, so
+              // the digit was a digit.
+              cancelPick();
+              if (panel === "closed" || drafts.length === 0) return;
+              const position = digitFromEvent(event);
+              if (position !== null && position <= drafts.length) armPick(position);
             }}
             rows={1}
             placeholder={`Send a message in ${CHANNEL}`}
             aria-label={`Message ${CHANNEL}`}
-            className="h-10 w-full resize-none bg-transparent px-1 text-[14px] leading-5 outline-none placeholder:text-[#a8a29e]"
+            // Always laid over the mirror below, which is what decides how
+            // tall the field is. A fixed h-10 was fine while nothing longer
+            // than a line ever arrived, but a staged draft is a paragraph —
+            // it would land in a two-line box and scroll out of sight.
+            className="absolute inset-0 h-full w-full resize-none bg-transparent px-1 text-[14px] leading-5 outline-none placeholder:text-[#a8a29e]"
             style={{ color: pristine ? FG_SECONDARY : FG_PRIMARY }}
           />
+
+          {/* The mirror. An invisible copy of the text, in flow purely to take
+              up space, so the composer is exactly as tall as what it holds and
+              the textarea stretches to match. A staged draft is a paragraph;
+              at a fixed h-10 it would land in a two-line box and scroll out of
+              sight. Nothing here is drawn — the real text is the textarea's,
+              on top. */}
+          <div
+            aria-hidden
+            className="pointer-events-none invisible min-h-10 w-full px-1 text-[14px] leading-5 break-words whitespace-pre-wrap"
+          >
+            {text}
+            {/* A trailing newline has no line of its own without something on
+                it, so the mirror would come up one line short of the field. */}
+            {"​"}
+          </div>
+          </div>
+
           <div className="flex w-full items-center justify-between">
             {/* Icon row per the flow: attach, text, emoji, gif, then the
                 suggestion bulb. All inert except the bulb — they are the
@@ -1192,14 +1232,16 @@ export default function AndoDraftMessagesPage() {
               <button
                 type="button"
                 onClick={() => {
+                  // Using the control is the clearest possible signal that
+                  // its explanation has landed.
+                  setCoachDismissed(true);
                   // Once every suggestion has been used or dismissed, the
                   // bolt is the way to ask for a fresh set — which is what a
                   // real "suggest again" would do, and what the removed demo
                   // reset button was standing in for.
                   if (drafts.length === 0) {
                     setDrafts(INITIAL_DRAFTS);
-                    setExpandedId(null);
-                    openPanel();
+                                    openPanel();
                     return;
                   }
                   if (panel === "open") setPanel("closed");

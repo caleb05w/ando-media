@@ -24,6 +24,14 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/agent-inline-trace",
+    week: "2026-08-10",
+    title: "Sticky inline agent presence",
+    tag: "(Prototype)",
+    brief:
+      "A tiny live agent face rides the sentence that invoked it — hover for labeled Stop / Restart / Clear, click to summon it in the Active agents panel — and docks onto the corner rail whenever its message scrolls away. Unseen completions stay railed until you view the answer, stopped agents park in place, Esc cancels your latest send, and the Agents panel sets response time.",
+  },
+  {
     href: "/ando-draft-messages",
     week: "2026-08-03",
     title: "Suggested drafts",

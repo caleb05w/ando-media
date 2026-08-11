@@ -14,8 +14,9 @@
 //     · working — blue comet orbits the face; hover raises a labeled
 //       popover [⬜ Stop]; Esc from an empty composer also stops YOUR
 //       latest send ("esc to stop {agent}" hint shows in the composer).
-//     · done — the answer posts as its own message ("Worked for Xs ›"
-//       footer → trace modal) and the face mists out.
+//     · done — the answer posts as its own message and the face mists
+//       out; a hover-only "· Worked for Xs" receipt rides the answer's
+//       header next to the time (→ trace modal).
 //     · failed — the ring seals red; "Failed after Xs" (→ trace) +
 //       [Rerun] sit beside it on the line.
 //     · stopped — the ring seals red and the face PARKS, dimmed, no
@@ -1081,13 +1082,26 @@ function MessageRow({
       ) : null}
       <MessageAvatar avatar={message.avatar} authorName={message.authorName} />
       <div className="relative z-[2] flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex h-[22px] items-baseline gap-2.5 whitespace-nowrap">
+        <div className="flex h-[22px] items-baseline gap-1 whitespace-nowrap">
           <span className="text-[14px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
             {message.authorName}
           </span>
           <span className="text-[12px] leading-4" style={{ color: FG_TERTIARY }}>
             {message.time}
           </span>
+          {/* The run receipt rides the header (time-metadata register,
+              like an edited mark) and only surfaces on row hover —
+              still the doorway to the trace. */}
+          {message.workedForMs != null ? (
+            <button
+              type="button"
+              onClick={() => onOpenTrace(message)}
+              className="flex items-baseline gap-1 text-[12px] leading-4 text-[#78716c] opacity-0 transition-opacity duration-150 hover:text-[#58524e] group-hover/row:opacity-100"
+            >
+              <span className="self-center text-[8px] leading-none text-[#d3d1ce]">•</span>
+              {`Worked for ${formatDuration(message.workedForMs)}`}
+            </button>
+          ) : null}
         </div>
         {/* Seeded transcript rows carry rich blocks — lists and the
             image attachment from the August shell. Live messages (and
@@ -1187,32 +1201,6 @@ function MessageRow({
             />
           </span>
         ))}
-        {/* Agent answers: "Worked for Xm Ys ›" footer opens the trace. */}
-        {message.workedForMs != null ? (
-          <button
-            type="button"
-            onClick={() => onOpenTrace(message)}
-            className="group flex w-fit items-center gap-1 rounded-[4px] text-[12px] leading-4 text-[#78716c] transition-colors duration-300 ease-in-out hover:text-[#58524e]"
-          >
-            {`Worked for ${formatDuration(message.workedForMs)}`}
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              aria-hidden
-              className="opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100"
-            >
-              <path
-                d="M4.5 2.5L8 6l-3.5 3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        ) : null}
         {/* The inline-request slot: approval gates (benched) anchor to
             the ask. Failure/stop states live ON the line now, with the
             face; answers post as their own messages. */}

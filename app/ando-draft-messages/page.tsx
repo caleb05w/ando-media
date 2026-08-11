@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import "../multi-select/multi-select.css";
 import "../channel/channel.css";
 import { MESSAGES, type DemoMessage } from "../multi-select/data";
@@ -62,6 +62,10 @@ const PANEL_SHADOW =
 
 // Quiet after a digit for it to count as a keybind rather than a character.
 const PICK_IDLE_AFTER = 500;
+
+// The draft previewed in the composer on hover. Grey enough to read as
+// not-yet-yours against FG_PRIMARY.
+const GHOST = "#a8a29e";
 
 /* --------------------------------------------------------------- icons ---- */
 
@@ -211,7 +215,7 @@ type DraftRowProps = {
   draft: Draft;
   index: number;
   active: boolean;
-  /** Pointed at: the row opens in place to show the message in full. */
+  /** Pointed at: a truncated row opens in place to the full message. */
   expanded: boolean;
   onHover: (index: number, event: React.MouseEvent) => void;
   onStage: (draft: Draft) => void;
@@ -228,9 +232,25 @@ function DraftRow({
   onFocusRow,
 }: DraftRowProps) {
   const preview = previewFor(draft);
-  // Expanded, the row shows the message as it is written — line breaks kept,
-  // nothing clipped. Collapsed, the same text flattened to a scannable line.
+  // Expanded, the body is the message as written — line breaks kept, nothing
+  // clipped. Collapsed, the same text flattened to a clamped summary. Rows
+  // without a preview render identically in both states, so only genuinely
+  // truncated rows visibly open.
   const body = expanded && preview ? stageTextFor(draft) : preview;
+
+  // The open/close is animated by hand: measure the text at its new size and
+  // ease the box to it. Imperative (style on the node, not state) so nothing
+  // re-renders mid-motion, and CSS owns the interpolation. The panel hangs
+  // from its bottom edge, so the row grows upward — its bottom edge, and the
+  // pointer inside it, never move.
+  const clipRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    const clip = clipRef.current;
+    const p = textRef.current;
+    if (!clip || !p) return;
+    clip.style.height = `${p.offsetHeight}px`;
+  }, [expanded, body]);
 
   return (
     <div
@@ -274,50 +294,48 @@ function DraftRow({
               className="mt-px size-[18px] shrink-0 rounded-[4px] object-contain"
             />
           ) : null}
-          {/* Title and body share one wrapping block. Two `span`s inside a
-              single `p` rather than siblings in a flex row: only inline
-              content reflows, so the body can continue on the line the title
-              started, and the two-line clamp counts the pair together. */}
-          <p
-            className="min-w-0 flex-1 text-[14px] leading-5"
-            style={
-              expanded
-                ? { whiteSpace: "pre-wrap" }
-                : {
-                    display: "-webkit-box",
-                    WebkitBoxOrient: "vertical",
-                    WebkitLineClamp: 2,
-                    overflow: "hidden",
-                  }
-            }
+          {/* The clip: what actually eases open and shut. Its height is set
+              imperatively from the text's measured size, so the same box
+              animates between the clamped summary and the full message. */}
+          <div
+            ref={clipRef}
+            className="min-w-0 flex-1 overflow-hidden"
+            style={{ transition: "height 200ms cubic-bezier(0.2, 0, 0, 1)" }}
           >
-            <span style={{ color: FG_PRIMARY }}>{draft.title}</span>
-            {body ? (
-              <>
-                {/* Title and body are two different registers — what the draft
-                    is, then what it says. Inline so it wraps with the text
-                    rather than pinning a separator to a fixed spot. */}
-                <span
-                  aria-hidden
-                  className="mx-1.5 inline-block size-[2px] rounded-full align-middle"
-                  style={{ background: FG_TERTIARY }}
-                />
-                <span style={{ color: FG_TERTIARY }}>{body}</span>
-              </>
-            ) : null}
-            {/* Sits against the end of the message it takes. Outlined, not
-                filled — the keybind badge at the row's end is the filled one,
-                and this is a control rather than a label. */}
-            {expanded ? (
-              <span
-                aria-hidden
-                className="ml-1.5 inline-flex h-[18px] items-center justify-center rounded-[4px] border-[0.5px] px-1.5 align-middle text-[11px] leading-none"
-                style={{ borderColor: STROKE, color: FG_TERTIARY }}
-              >
-                tab
-              </span>
-            ) : null}
-          </p>
+            {/* Title and body share one wrapping block. Two `span`s inside a
+                single `p` rather than siblings in a flex row: only inline
+                content reflows, so the body can continue on the line the
+                title started and the clamp counts the pair together. */}
+            <p
+              ref={textRef}
+              className="text-[14px] leading-5"
+              style={
+                expanded
+                  ? { whiteSpace: "pre-wrap" }
+                  : {
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2,
+                      overflow: "hidden",
+                    }
+              }
+            >
+              <span style={{ color: FG_PRIMARY }}>{draft.title}</span>
+              {body ? (
+                <>
+                  {/* Title and body are two different registers — what the
+                      draft is, then what it says. Inline so it wraps with the
+                      text rather than pinning a separator to a fixed spot. */}
+                  <span
+                    aria-hidden
+                    className="mx-1.5 inline-block size-[2px] rounded-full align-middle"
+                    style={{ background: FG_TERTIARY }}
+                  />
+                  <span style={{ color: FG_TERTIARY }}>{body}</span>
+                </>
+              ) : null}
+            </p>
+          </div>
         </button>
 
         {/* Keybind badge, at the very end. mt-px lines it up with the first
@@ -343,10 +361,10 @@ type PanelProps = {
   /** Which shape the surface takes; "closed" never reaches this component. */
   panel: "open" | "collapsed";
   onStage: (draft: Draft) => void;
-  /** Which row the pointer moved onto; that row opens to its full message. */
+  /** Which row the pointer moved onto: it opens in place, and the composer
+   *  previews it as a ghost. */
   hoverIndex: number | null;
   onHoverRow: (index: number, event: React.MouseEvent) => void;
-  onLeave: (event: React.MouseEvent) => void;
   onCollapse: () => void;
   onOpen: () => void;
   onDismiss: () => void;
@@ -367,7 +385,6 @@ function FlyoutSurface({
   onStage,
   hoverIndex,
   onHoverRow,
-  onLeave,
   onCollapse,
   onOpen,
   onDismiss,
@@ -382,10 +399,7 @@ function FlyoutSurface({
     // composer, and a margin would leave a band belonging to neither surface
     // for the pointer to fall into — read as a mouseleave, that starts the
     // grow/shrink oscillation over again.
-    <div
-      className="absolute bottom-full left-0 z-20 w-full pb-3"
-      onMouseLeave={onLeave}
-    >
+    <div className="absolute bottom-full left-0 z-20 w-full pb-3">
       <div
         ref={panelRef}
         // Focusable but not tab-stopped: it exists so focus has somewhere to
@@ -781,22 +795,28 @@ export default function AndoDraftMessagesPage() {
     if (caret !== null) el.setSelectionRange(caret, caret);
   }, [stageCount]);
 
-  // Pointing at a row opens it in place, to the whole message rather than the
-  // two clipped lines. The preview lives in the panel and not in the composer
-  // on purpose: a preview that resized the composer moved the panel, and the
-  // panel is the thing being pointed at — hover changing the geometry of its
-  // own target is a feedback loop, and no amount of damping makes it not one.
+  // Pointing at a row writes its message into the composer as a ghost — shown
+  // where it would land, at the size it would have, rather than described in
+  // the list. Nothing is committed until Tab (or the chip).
   //
-  // Here the panel is anchored to its bottom edge, so an opening row grows
-  // upward: its bottom does not move, and the pointer stays inside the row it
-  // is pointing at. Stability is a property of the layout, not of a guard.
+  // An earlier version let the ghost resize the composer live, which moved the
+  // panel — and the panel is the thing being pointed at. Hover changing the
+  // geometry of its own target is a feedback loop, and no damping made it not
+  // one. So the composer's height is *reserved* while the panel is open: held
+  // at the tallest draft from the start, so hovering swaps text inside a box
+  // that never moves. Stability is a property of the layout, not of a guard.
   const hoverDraft =
     panel === "open" && hoverIndex !== null ? (drafts[hoverIndex] ?? null) : null;
+  const ghost = hoverDraft ? stageTextFor(hoverDraft) : null;
+  // The ghost continues the typed text, so a space joins them unless one is
+  // already there. Shared by the ghost itself and the reserve cells below,
+  // which must wrap identically to it.
+  const ghostJoin = text && !/\s$/.test(text) ? " " : "";
 
-  // Belt and braces on top of that: a row can still shift under a stationary
-  // pointer if the panel ever hits its ceiling and starts scrolling instead of
-  // growing. So a hover change has to be paid for with actual movement —
-  // identical coordinates to the last one mean the world moved, not the mouse.
+  // Belt and braces on top of that: the reserve only holds hover-time geometry
+  // still — opening the panel and typing still move it. So a hover change has
+  // to be paid for with actual movement; identical coordinates to the last one
+  // mean the world moved, not the mouse.
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const pointerMoved = useCallback(
     (event: { clientX: number; clientY: number }) => {
@@ -1124,7 +1144,12 @@ export default function AndoDraftMessagesPage() {
                 composer's edge rather than inheriting the strip's padding on
                 top of it. Absolute, so opening the flyout overlays the thread
                 instead of shortening it; the conversation stays put. */}
-            <div className="relative w-full">
+            {/* The panel, its 12px standoff, and the composer are one hover
+                surface — the ghost's tab chip lives in the composer, so the
+                pointer has to be able to travel from a row down to it without
+                that reading as leaving. Hover ends here, at the outer edge,
+                and nowhere inside. */}
+            <div className="relative w-full" onMouseLeave={leaveSurface}>
               {coachSeen && !coachDismissed ? (
                 <Coachmark onDismiss={() => setCoachDismissed(true)} />
               ) : null}
@@ -1142,7 +1167,6 @@ export default function AndoDraftMessagesPage() {
                   onStage={stage}
                   hoverIndex={hoverIndex}
                   onHoverRow={hoverRow}
-                  onLeave={leaveSurface}
                   onCollapse={() => setPanel("collapsed")}
                   onOpen={openPanel}
                   onDismiss={() => setPanel("closed")}
@@ -1179,7 +1203,9 @@ export default function AndoDraftMessagesPage() {
               if (position !== null && position <= drafts.length) armPick(position);
             }}
             rows={1}
-            placeholder={`Send a message in ${CHANNEL}`}
+            // The ghost occupies the line the placeholder would; two greys
+            // saying different things is one too many.
+            placeholder={ghost ? "" : `Send a message in ${CHANNEL}`}
             aria-label={`Message ${CHANNEL}`}
             // Always laid over the mirror below, which is what decides how
             // tall the field is. A fixed h-10 was fine while nothing longer
@@ -1189,12 +1215,10 @@ export default function AndoDraftMessagesPage() {
             style={{ color: pristine ? FG_SECONDARY : FG_PRIMARY }}
           />
 
-          {/* The mirror. An invisible copy of the text, in flow purely to take
-              up space, so the composer is exactly as tall as what it holds and
-              the textarea stretches to match. A staged draft is a paragraph;
-              at a fixed h-10 it would land in a two-line box and scroll out of
-              sight. Nothing here is drawn — the real text is the textarea's,
-              on top. */}
+          {/* The mirror. An invisible copy of the typed text, in flow purely
+              to take up space, so the composer is exactly as tall as what it
+              actually holds and the textarea stretches to match. Only real
+              content sizes the box — the ghost never does; see below. */}
           <div
             aria-hidden
             className="pointer-events-none invisible min-h-10 w-full px-1 text-[14px] leading-5 break-words whitespace-pre-wrap"
@@ -1204,6 +1228,44 @@ export default function AndoDraftMessagesPage() {
                 it, so the mirror would come up one line short of the field. */}
             {"​"}
           </div>
+
+          {/* The ghost: the hovered draft, whole, continuing the typed text —
+              laid over the field in a box the composer already has, scrolling
+              inside it rather than growing it. That containment is what makes
+              hover-preview stable: the composer never changes size on hover,
+              so the panel above never moves, and the feedback loop that
+              plagued every resizing version of this cannot form. The layer
+              repeats the typed text in real ink (opaque over the field, so
+              the pair scroll as one message); keyed by draft so a swap starts
+              back at the top. onMouseDown prevented so reading or scrolling
+              never pulls focus from the field the text would land in. */}
+          {ghost && hoverDraft ? (
+            <div
+              key={hoverDraft.id}
+              className="absolute inset-0 overflow-y-auto overscroll-contain bg-white px-1 text-[14px] leading-5 break-words whitespace-pre-wrap"
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <span style={{ color: pristine ? FG_SECONDARY : FG_PRIMARY }}>
+                {text}
+              </span>
+              <span aria-hidden style={{ color: GHOST }}>
+                {ghostJoin}
+                {ghost}
+              </span>
+              {/* Against the last word of the message it takes. Outlined, not
+                  filled — the keybind badges in the panel are the filled
+                  ones, and this is a control, not a label. */}
+              <button
+                type="button"
+                onClick={acceptPreview}
+                aria-label={`Insert draft: ${hoverDraft.title}`}
+                className="ml-1.5 inline-flex h-[18px] items-center justify-center rounded-[4px] border-[0.5px] px-1.5 align-middle text-[11px] leading-none transition-colors hover:bg-black/5"
+                style={{ borderColor: STROKE, color: FG_TERTIARY }}
+              >
+                tab
+              </button>
+            </div>
+          ) : null}
           </div>
 
           <div className="flex w-full items-center justify-between">

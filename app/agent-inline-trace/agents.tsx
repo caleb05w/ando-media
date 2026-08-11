@@ -108,7 +108,7 @@ export const AGENTS: AgentDef[] = [
     ],
     loopFrom: 3,
     answer: [
-      "Summary for standup: multi-select prototype review moved to 10:30 tomorrow — Jordan wants drag-threshold notes (3 vs 4, leaning 3). Sara flagged the selection wash should match the brand tint. Peter is pulling token values tonight.",
+      "Summary for standup: bridges review moved to 10:30 tomorrow — AJ wants the Ando Bridge settings page reworked into a collaborators view, Oli's two notes on the folder placement are logged, and Graeme is shipping the bridges folder with the workspace template.",
     ],
     traceSteps: [
       { verb: "Ran", desc: "message fetch over #design history" },
@@ -168,11 +168,11 @@ export const AGENTS: AgentDef[] = [
     ],
     loopFrom: 3,
     answer: [
-      "Booked: design review Thursday 10:30–11:00 in Koto (6 seats). Everyone's free — Jordan had a soft hold I bumped past. Invite is out with the Figma link attached.",
+      "Booked: design review Thursday 10:30–11:00 in Koto (6 seats). Everyone's free — Graeme had a soft hold I bumped past. Invite is out with the Figma link attached.",
     ],
     traceSteps: [
       { verb: "Ran", desc: "availability sweep across 5 calendars" },
-      { verb: "Read", desc: "Jordan's soft hold on Thursday" },
+      { verb: "Read", desc: "Graeme's soft hold on Thursday" },
       { verb: "Searched", desc: "rooms with 6 seats free at 10:30" },
       { verb: "Wrote", desc: "the invite draft" },
     ],
@@ -1300,10 +1300,11 @@ export function CornerStack({
 
   return (
     // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
-    // offsets compensate so the rings still sit at right-16 / bottom-132.
+    // offsets compensate so the rings still sit at right-16 / bottom-154
+    // (tracks the Aug composer: 70px input row + p-3 toolbar = 123px box).
     <div
       ref={stackRef}
-      className={`absolute bottom-[124px] right-2 z-40 flex items-center p-2 ${
+      className={`absolute bottom-[146px] right-2 z-40 flex items-center p-2 ${
         resting ? "aw-stack-rest" : ""
       }`}
       onMouseEnter={() => onHoverChange(true)}
@@ -1398,7 +1399,7 @@ export function JumpToLatestPill({
   return (
     // Positioning wrapper stays static — the animated element must not own
     // the centering translate, or the keyframe transforms would evict it.
-    <div className="pointer-events-none absolute inset-x-0 bottom-[148px] z-30 flex justify-center">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[170px] z-30 flex justify-center">
       <button
         type="button"
         onClick={onJump}
@@ -1591,7 +1592,7 @@ export function AgentFlyout({
       onAnimationEnd={(event) => {
         if (event.animationName === "aw-pop-out") onExited();
       }}
-      className={`absolute bottom-[182px] right-4 z-40 w-[360px] overflow-hidden rounded-[10px] bg-[#1b1b1b] shadow-[0px_16px_32px_-8px_rgba(16,16,16,0.4),0px_0px_0.5px_0.75px_rgba(16,16,16,0.2)] ${
+      className={`absolute bottom-[204px] right-4 z-40 w-[360px] overflow-hidden rounded-[10px] bg-[#1b1b1b] shadow-[0px_16px_32px_-8px_rgba(16,16,16,0.4),0px_0px_0.5px_0.75px_rgba(16,16,16,0.2)] ${
         closing ? "aw-pop-exit" : "aw-pop-enter"
       }`}
     >

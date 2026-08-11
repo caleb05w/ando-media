@@ -49,7 +49,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./agent-inline-trace.css";
-import { MESSAGES, SIDEBAR, SIDEBAR_FLAT, type SidebarEntry } from "../multi-select/data";
+import {
+  SHELL_MESSAGES,
+  SHELL_PIN,
+  SHELL_SIDEBAR,
+  type ShellBlock,
+  type ShellSidebarRow,
+} from "./data";
 import {
   AGENTS,
   AgentFace,
@@ -69,8 +75,10 @@ import {
   type TraceView,
 } from "./agents";
 
-// Assets live in the shared /multi-select public folder.
+// Legacy assets from the /multi-select mock (a few still in use) plus
+// the August shell's own exports in /public/agent-inline-trace.
 const A = "/multi-select";
+const AA = "/agent-inline-trace";
 
 const FG_PRIMARY = "#1a1817";
 const FG_SECONDARY = "#58524e";
@@ -86,12 +94,15 @@ type AwSegment = { text: string; link?: boolean; mention?: boolean };
 type AwMessage = {
   id: string;
   authorName: string;
-  // Avatar treatment: seed transcript keeps the mock's silhouettes; live
-  // authors (Oli, the agents) render real faces per the spec frames.
-  avatar: "silhouette" | { photo: string } | { agent: AgentDef };
+  // "disc" resolves a seeded portrait by authorName (Face); agents keep
+  // their own faces.
+  avatar: "disc" | { agent: AgentDef };
   time: string;
+  // Live messages (sends, answers) are plain segment paragraphs; seeded
+  // transcript rows carry rich BLOCKS (lists, image) instead.
   paragraphs: AwSegment[][];
-  threadFooter?: (typeof MESSAGES)[number]["threadFooter"];
+  blocks?: ShellBlock[];
+  threadFooter?: { faces: number; count: string; lastReply: string };
   // Agent answers post as their own messages (nesting shelved for now);
   // the "Worked for Xm Ys ›" footer opens the trace modal.
   workedForMs?: number;
@@ -114,28 +125,25 @@ const PROACTIVITY_LEVELS = ["high", "medium", "low", "mention only"] as const;
 type ProactivityLevel = (typeof PROACTIVITY_LEVELS)[number];
 
 const TADAO = AGENTS[0];
-const ANDO = AGENTS.find((agent) => agent.id === "ando")!;
-const YUMI = AGENTS.find((agent) => agent.id === "yumi")!;
-// avatar-oliver.png exported blank from Figma (the mock rows used
-// silhouettes) — sb-photo-4 is the real face that matches the spec's Oli.
-const OLI_PHOTO = `${A}/sb-photo-4.png`;
 
-// Seeded per the spec's opening frames: Oli's past ask and Tadao's finished
-// answer. A long-done run — footer opens a canned trace, no live presence.
+// The August transcript (data.tsx) plus one finished agent exchange —
+// Caleb's past ask and Tadao's answer. A long-done run: the footer
+// opens a canned trace, no live presence.
 const SEED_MESSAGES: AwMessage[] = [
-  ...MESSAGES.map((message) => ({
+  ...SHELL_MESSAGES.map((message) => ({
     id: message.id,
-    authorName: message.author.name,
-    avatar: "silhouette" as const,
+    authorName: message.authorName,
+    avatar: "disc" as const,
     time: message.time,
-    paragraphs: message.body,
+    paragraphs: [],
+    blocks: message.blocks,
     threadFooter: message.threadFooter,
   })),
   {
     id: "aw-seed-ask",
-    authorName: "Oli",
-    avatar: { photo: OLI_PHOTO },
-    time: "5:35 pm",
+    authorName: "Caleb",
+    avatar: "disc",
+    time: "2:02 PM",
     paragraphs: [
       [
         { text: "@Tadao", mention: true },
@@ -147,7 +155,7 @@ const SEED_MESSAGES: AwMessage[] = [
     id: "aw-seed-answer",
     authorName: TADAO.name,
     avatar: { agent: TADAO },
-    time: "5:36 pm",
+    time: "2:04 PM",
     paragraphs: TADAO.answer.map((paragraph) => [{ text: paragraph }]),
     workedForMs: 624000,
     runId: "seed",
@@ -195,303 +203,253 @@ function promptOf(text: string): string {
 function nowLabel(): string {
   const date = new Date();
   let hours = date.getHours();
-  const suffix = hours >= 12 ? "pm" : "am";
+  const suffix = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
   return `${hours}:${String(date.getMinutes()).padStart(2, "0")} ${suffix}`;
 }
 
 /* ------------------------------- shell chrome ------------------------------ */
 
-// The mock's message avatars are generic silhouette placeholders — drawn
-// inline so they render identically everywhere.
-function Silhouette({ size }: { size: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      className="shrink-0 rounded-full"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="12" fill="#e7e5e4" />
-      <circle cx="12" cy="9.5" r="4" fill="#a8a29e" />
-      <path d="M4 21.5c1.4-4 4.4-6 8-6s6.6 2 8 6a12 12 0 01-16 0z" fill="#a8a29e" />
-    </svg>
-  );
-}
-
-function Titlebar() {
-  return (
-    <div className="relative flex h-7 shrink-0 items-center justify-center">
-      <div className="absolute left-2 top-2 flex items-center gap-2">
-        <span className="size-3 rounded-full bg-[#ff5f57]" />
-        <span className="size-3 rounded-full bg-[#febc2e]" />
-        <span className="size-3 rounded-full bg-[#28c840]" />
-      </div>
-      <span className="text-[13px] font-medium leading-4" style={{ color: FG_PRIMARY }}>
-        Ando
-      </span>
-    </div>
-  );
-}
-
-function RailTile({
-  children,
-  size = 32,
-  card = false,
-}: {
-  children?: React.ReactNode;
-  size?: number;
-  card?: boolean;
-}) {
+// The disc is the FALLBACK now — humans resolve seeded portraits below.
+function Disc({ size }: { size: number }) {
   return (
     <span
-      className={`flex items-center justify-center rounded-[6px] ${
-        card
-          ? "bg-white shadow-[0px_1px_4px_0px_rgba(16,16,16,0.06),0px_0px_0.5px_0.75px_#f0efee]"
-          : ""
-      }`}
+      className="inline-block shrink-0 rounded-full bg-[#f5f5f4]"
       style={{ width: size, height: size }}
-    >
-      {children}
+      aria-hidden
+    />
+  );
+}
+
+// Portraits from the figma-seed avatar set (/public/avatars). Humans
+// resolve by name; agent names resolve to their AgentFace; anyone
+// unmatched (e.g. Graeme — no seed portrait) keeps the quiet gray disc.
+const AVATARS: Record<string, string> = {
+  Caleb: "caleb",
+  AJ: "aj",
+  Oli: "oli",
+  "Sara Du": "sara",
+  Alex: "alex",
+  Andrew: "andrew",
+  Felipe: "felipe",
+  Jordan: "jordan",
+  Ryan: "ryan",
+};
+
+// Thread-footer facepiles have no participant data — a fixed cast order
+// stands in, sliced to each footer's count.
+const THREAD_FACES = ["Oli", "Sara Du", "Ryan"];
+
+function Face({ name, size }: { name: string; size: number }) {
+  const file = AVATARS[name];
+  if (file)
+    return (
+      <img
+        src={`/avatars/${file}.png`}
+        alt=""
+        aria-hidden
+        className="inline-block shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  const agent = AGENTS.find((candidate) => candidate.name === name);
+  if (agent) return <AgentFace agent={agent} size={size} />;
+  return <Disc size={size} />;
+}
+
+// 16px avatar + 5px presence dot, the sidebar/rail person unit.
+function PresenceDisc({ name, presence }: { name: string; presence: "green" | "away" }) {
+  return (
+    <span className="relative size-4 shrink-0">
+      <Face name={name} size={16} />
+      <span
+        className="absolute size-[5px] rounded-full"
+        style={{
+          left: 11,
+          top: 12,
+          background: presence === "green" ? "#22c55e" : "#d3d1ce",
+          boxShadow: "0 0 0 1.5px white",
+        }}
+      />
     </span>
   );
 }
 
+// Global rail, August shell (Figma 394:8749): #f5f5f4 strip, white
+// workspace tile with the Ando mark + chevron badge, white chat tile,
+// then flat 16px tools; help / settings / account presence at the foot.
 function GlobalNav() {
   return (
-    <div className="flex w-12 shrink-0 flex-col items-center justify-between px-2 py-2.5">
-      <div className="relative flex w-8 flex-col items-center gap-2.5">
-        <span
-          className="flex size-7 items-center justify-center rounded-[6px] border-[0.5px] border-[rgba(16,16,16,0.08)]"
-          style={{ background: BG_TERTIARY }}
-        >
-          <img src={`${A}/rail-logo.svg`} alt="" className="size-5" />
-        </span>
-        <span className="absolute left-[21px] top-[19px] flex size-3 items-center justify-center rounded-[6px] bg-white shadow-[0px_1px_4px_0px_rgba(16,16,16,0.06),0px_0px_0.5px_0.75px_#f0efee]">
-          <img src={`${A}/icon-chevron-down-small.svg`} alt="" className="size-3" />
-        </span>
-        <span className="h-px w-4" style={{ background: STROKE_WEAK }} />
-        <div className="flex w-full flex-col items-center gap-2">
-          <RailTile size={28} card>
-            <img src={`${A}/icon-bubble.svg`} alt="" className="size-4" />
-          </RailTile>
-          <RailTile>
-            <img src={`${A}/icon-bookmark.svg`} alt="" className="size-4" />
-          </RailTile>
-          <RailTile>
-            <img src={`${A}/icon-search.svg`} alt="" className="size-4" />
-          </RailTile>
-        </div>
-        <span className="h-px w-4" style={{ background: STROKE_WEAK }} />
-        <RailTile>
-          <img src={`${A}/icon-cmd.svg`} alt="" className="size-4" />
-        </RailTile>
-      </div>
-      <div className="flex flex-col items-center gap-2">
-        <RailTile>
-          <img src={`${A}/icon-user-add.svg`} alt="" className="size-4" />
-        </RailTile>
-        <RailTile>
-          <span className="relative size-4">
-            <img
-              src={`${A}/rail-avatar-photo.png`}
-              alt=""
-              className="size-4 rounded-full object-cover"
-            />
-            <img
-              src={`${A}/rail-presence.svg`}
-              alt=""
-              className="absolute -bottom-px -right-px size-[7px]"
-            />
+    <div
+      className="relative flex w-12 shrink-0 flex-col justify-between border-r-[0.5px] px-2 py-2"
+      style={{ borderColor: STROKE_WEAK, background: BG_TERTIARY }}
+    >
+      <div className="flex w-8 flex-col items-center">
+        <span className="relative mb-2 flex size-8 items-center justify-center">
+          <span className="flex size-7 items-center justify-center overflow-clip rounded-[6px] bg-white shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+            <img src={`${AA}/rail-workspace.png`} alt="" className="size-7 object-contain" />
           </span>
-        </RailTile>
+          <span className="absolute left-[22px] top-[20px] flex size-3 items-center justify-center rounded-full bg-white shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+            <img src={`${AA}/rail-chevron.svg`} alt="" className="h-[2.5px] w-[5px]" />
+          </span>
+        </span>
+        <span className="mb-2 h-px w-4" style={{ background: STROKE_WEAK }} />
+        <span className="mb-2 flex size-8 items-center justify-center">
+          <span className="flex size-7 items-center justify-center rounded-[6px] bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
+            <img src={`${AA}/rail-chat.svg`} alt="" className="size-[13px]" />
+          </span>
+        </span>
+        <span className="mb-2 flex size-8 items-center justify-center">
+          <img src={`${AA}/rail-inbox.svg`} alt="" className="h-[11px] w-[15px]" />
+        </span>
+        <span className="mb-2 flex size-8 items-center justify-center">
+          <img src={`${AA}/rail-search.svg`} alt="" className="size-[12px]" />
+        </span>
+        <span className="flex size-8 items-center justify-center">
+          <img src={`${AA}/rail-studio.svg`} alt="" className="h-[12px] w-[13px]" />
+        </span>
+        <span className="mt-2 mb-2 h-px w-4" style={{ background: STROKE_WEAK }} />
+        <span className="mb-2 flex size-8 items-center justify-center">
+          <img src={`${AA}/rail-actions.svg`} alt="" className="size-[12px]" />
+        </span>
+        <span className="flex size-8 items-center justify-center">
+          <img src={`${AA}/rail-invite.svg`} alt="" className="h-[13px] w-[12px]" />
+        </span>
+      </div>
+      <div className="flex w-8 flex-col items-center">
+        <span className="flex h-10 w-8 items-center justify-center pb-2">
+          <span className="text-[14px] leading-5" style={{ color: FG_SECONDARY }}>
+            ?
+          </span>
+        </span>
+        <span className="mb-2 flex size-8 items-center justify-center">
+          <img src={`${AA}/rail-settings.svg`} alt="" className="h-[12px] w-[13px]" />
+        </span>
+        <span className="flex size-8 items-center justify-center">
+          <PresenceDisc name="Caleb" presence="green" />
+        </span>
       </div>
     </div>
   );
 }
 
-function SidebarRowView({ entry, thinking }: { entry: SidebarEntry; thinking?: boolean }) {
-  if (entry.kind === "folder") {
+// One sidebar row, August grammar (Figma 394:8846): section headings
+// with the folder mark, an add-row, people with presence dots, channels
+// (active = #f5f5f4 pill, muted = opacity-50), and plain dividers.
+function SidebarRowView({ row, thinking }: { row: ShellSidebarRow; thinking?: boolean }) {
+  if (row.kind === "section") {
     return (
-      <div className="flex h-6 w-full items-center gap-2 px-2">
-        <span className="flex h-3.5 w-4 items-center">
-          <img src={entry.icon} alt="" className="size-3.5" />
+      <div className="mt-3 flex h-7 w-full items-center gap-2 px-2 first:mt-0">
+        <span className="flex w-6 justify-center">
+          <img src={`${AA}/sb-folder.svg`} alt="" className="h-[9px] w-[13px]" />
         </span>
         <span
           className="text-[11px] font-medium uppercase leading-[14px] tracking-[1.1px]"
           style={{ color: FG_SECONDARY }}
         >
-          {entry.label}
+          {row.label}
         </span>
       </div>
     );
   }
-  if (entry.kind === "create") {
+  if (row.kind === "add") {
     return (
-      <div className="flex h-8 w-full items-center gap-2 rounded-xl px-2 py-1.5">
-        <img src={`${A}/icon-plus-small.svg`} alt="" className="size-4" />
+      <div className="flex h-8 w-full items-center gap-2 rounded-[6px] py-1.5 pl-[22px] pr-2">
+        <span className="flex size-4 items-center justify-center">
+          <img src={`${AA}/sb-plus.svg`} alt="" className="size-2" />
+        </span>
         <span className="text-[14px] leading-5" style={{ color: FG_SECONDARY }}>
-          Create channel
+          {row.label}
         </span>
       </div>
     );
   }
-  const indentClass = "indent" in entry && entry.indent ? "pl-6 pr-2" : "px-2";
-  if (entry.kind === "channel") {
+  if (row.kind === "divider") {
+    return <span className="mx-2 my-2 h-px shrink-0" style={{ background: STROKE_WEAK }} />;
+  }
+  if (row.kind === "person") {
     return (
-      <div
-        className={`relative flex h-8 w-full items-center gap-3 rounded-[6px] py-1.5 ${indentClass}`}
-        // While thinking, the wash IS the row's fill — the flat active
-        // gray would just mud it.
-        style={entry.active && !thinking ? { background: "rgba(16,16,16,0.04)" } : undefined}
-      >
-        {thinking ? <span aria-hidden className="aw-thinking-wash absolute inset-0" /> : null}
-        <span className="relative flex flex-1 items-center gap-2 overflow-hidden">
-          <img
-            src={
-              entry.unread
-                ? `${A}/icon-hashtag-strong.svg`
-                : entry.active
-                  ? `${A}/icon-hashtag-weak.svg`
-                  : `${A}/icon-hashtag-boxed.svg`
-            }
-            alt=""
-            className="size-4 shrink-0"
-          />
-          <span
-            className="truncate text-[14px] leading-5"
-            style={{
-              color: entry.unread || entry.active ? FG_PRIMARY : FG_SECONDARY,
-              fontWeight: entry.unread ? 530 : 400,
-            }}
-          >
-            {entry.label}
-          </span>
+      <div className="flex h-8 w-full items-center gap-2 rounded-[6px] py-1.5 pl-[22px] pr-2">
+        <PresenceDisc name={row.name} presence={row.presence} />
+        <span className="truncate text-[14px] leading-5" style={{ color: FG_SECONDARY }}>
+          {row.name}
         </span>
-        {entry.badge != null ? (
-          <span
-            className="relative flex size-4 items-center justify-center rounded-xl text-center text-[10px] font-medium leading-[10px] text-white"
-            style={{ background: BRAND }}
-          >
-            {entry.badge}
-          </span>
-        ) : null}
       </div>
     );
   }
-  if (entry.kind === "group") {
-    return (
-      <div className="flex h-8 w-full items-center gap-1.5 rounded-xl px-2 py-1.5">
-        <span className="flex flex-1 items-center gap-2 overflow-hidden">
-          <img src={`${A}/icon-group.svg`} alt="" className="size-4 shrink-0" />
-          <span className="truncate text-[14px] leading-5" style={{ color: FG_SECONDARY }}>
-            {entry.label}
-          </span>
-        </span>
-        {entry.muted ? (
-          <img src={`${A}/icon-mute.svg`} alt="" className="size-4" />
-        ) : null}
-      </div>
-    );
-  }
-  // person
+  // channel — flat-list rows sit at the narrow indent, sectioned rows
+  // at the 22px one (matching the Figma's w-319 vs w-305 rows).
   return (
-    <div className={`flex h-8 w-full items-center gap-1.5 rounded-xl py-1.5 ${indentClass}`}>
-      <span className="flex flex-1 items-center gap-2 overflow-hidden">
-        <span className="relative size-4 shrink-0">
-          <img src={entry.photo} alt="" className="size-4 rounded-full object-cover" />
-          <span
-            className="absolute size-[5px] rounded-full"
-            style={{
-              left: "calc(50% + 4px)",
-              top: "calc(50% + 4px)",
-              background: entry.presence === "green" ? "#16a34a" : "#d6d3d1",
-              boxShadow: "0 0 0 1.5px white",
-            }}
-          />
-        </span>
-        <span
-          className="truncate text-[14px] leading-5"
-          style={{
-            color: entry.medium ? FG_PRIMARY : FG_SECONDARY,
-            fontWeight: entry.medium ? 500 : 400,
-          }}
-        >
-          {entry.label}
-        </span>
+    <div
+      className={`relative flex h-8 w-full items-center gap-2 rounded-[8px] py-1.5 pr-2 ${
+        row.muted ? "opacity-50" : ""
+      } ${row.flat ? "pl-2" : "pl-[22px]"}`}
+      style={row.active && !thinking ? { background: BG_TERTIARY } : undefined}
+    >
+      {thinking ? <span aria-hidden className="aw-thinking-wash absolute inset-0" /> : null}
+      <img
+        src={`${AA}/${
+          row.active ? "sb-hash-active" : row.label === "sf-team" ? "sb-hash-lock" : "sb-hash"
+        }.svg`}
+        alt=""
+        className="relative size-4 shrink-0"
+      />
+      <span
+        className="relative truncate text-[14px] leading-5"
+        style={{ color: row.active ? FG_PRIMARY : FG_SECONDARY }}
+      >
+        {row.label}
       </span>
     </div>
   );
 }
 
-// thinkingChannel: label of the channel an agent is working in (pulse
-// mode) — its sidebar row carries the thinking wash, the ambient
-// cross-channel tell.
+// thinkingChannel: label of the channel an agent is working in — its
+// sidebar row carries the thinking wash, the ambient cross-channel
+// tell. (Benched: fed null.)
 function LocalNav({ thinkingChannel }: { thinkingChannel: string | null }) {
-  const rowThinking = (entry: SidebarEntry) =>
-    thinkingChannel != null && entry.kind === "channel" && entry.label === thinkingChannel;
   return (
-    <div className="flex w-[350px] shrink-0 flex-col overflow-hidden rounded-tl-[10px] rounded-tr-[6px] bg-white shadow-[0px_0px_0.5px_0.5px_rgba(15,13,13,0.08),0px_1px_2px_0px_rgba(15,13,13,0.05)]">
+    <div
+      className="flex w-[354px] shrink-0 flex-col overflow-hidden border-r-[0.5px] bg-white"
+      style={{ borderColor: STROKE_WEAK }}
+    >
       <div
-        className="flex h-12 shrink-0 items-center gap-4 border-b-[0.5px] py-3 pl-2.5 pr-3"
+        className="flex h-12 shrink-0 items-end gap-4 border-b-[0.5px] pl-[10px] pr-3"
         style={{ borderColor: STROKE_WEAK }}
       >
-        <div className="flex flex-1 items-center">
+        <div className="flex flex-1 items-end gap-4">
+          {/* Tabs with the active underline, not pills. */}
           <span
-            className="flex h-7 items-center justify-center rounded-full px-2.5"
-            style={{ background: BG_TERTIARY }}
+            className="border-b pb-3 text-[14px] font-medium leading-5"
+            style={{ color: FG_PRIMARY, borderColor: FG_PRIMARY }}
           >
-            <span className="px-0.5 text-[12px] font-medium leading-4" style={{ color: FG_PRIMARY }}>
-              Conversations
-            </span>
+            Conversations
           </span>
-          <span className="flex h-7 items-center justify-center px-2.5">
-            <span className="px-0.5 text-[12px] leading-4" style={{ color: FG_SECONDARY }}>
-              Threads
-            </span>
+          <span
+            className="border-b border-transparent pb-3 text-[14px] leading-5"
+            style={{ color: FG_SECONDARY }}
+          >
+            Threads
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center rounded-[4px] p-1">
-            <img src={`${A}/icon-dotgrid.svg`} alt="" className="size-4" />
-          </span>
-          <span className="flex items-center rounded-[4px] p-1">
-            <img src={`${A}/icon-edit.svg`} alt="" className="size-4" />
+        <div className="flex items-center gap-2 pb-2">
+          <img src={`${AA}/sb-dots.svg`} alt="" className="h-[2.5px] w-[13px]" />
+          <span className="flex items-center gap-1 rounded-[6px] bg-white px-1.5 py-1 shadow-[0px_0px_0.5px_0.75px_#ebe9e8]">
+            <img src={`${AA}/sb-share.svg`} alt="" className="size-[13px]" />
+            <img src={`${AA}/sb-caret.svg`} alt="" className="h-[3px] w-[5px]" />
           </span>
         </div>
       </div>
-      <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto px-2 pb-2 pt-3">
-        <div className="flex w-full flex-col gap-3">
-          <div className="flex w-full flex-col">
-            <SidebarRowView entry={SIDEBAR[0]} thinking={rowThinking(SIDEBAR[0])} />
-          </div>
-          <div className="flex w-full flex-col gap-0.5">
-            {SIDEBAR.slice(1, 4).map((entry, index) => (
-              <SidebarRowView key={index} entry={entry} thinking={rowThinking(entry)} />
-            ))}
-          </div>
-          <div className="flex w-full flex-col gap-0.5">
-            {SIDEBAR.slice(4).map((entry, index) => (
-              <SidebarRowView key={index} entry={entry} thinking={rowThinking(entry)} />
-            ))}
-          </div>
-        </div>
-        <span className="h-px w-[268px] shrink-0" style={{ background: STROKE_WEAK }} />
-        <div className="flex w-full flex-col gap-0.5">
-          {SIDEBAR_FLAT.map((entry, index) => (
-            <SidebarRowView key={index} entry={entry} thinking={rowThinking(entry)} />
-          ))}
-        </div>
-        <span
-          className="flex h-7 items-center justify-center gap-0.5 rounded-full border-[0.5px] px-2.5"
-          style={{ borderColor: STROKE_WEAK }}
-        >
-          <span className="px-1 text-[12px] leading-4" style={{ color: FG_SECONDARY }}>
-            Show 4 inactive conversations
-          </span>
-          <img src={`${A}/icon-chevron-down-medium.svg`} alt="" className="size-4" />
-        </span>
+      <div className="flex flex-1 flex-col gap-[2px] overflow-y-auto px-[10px] pb-4 pt-2">
+        {SHELL_SIDEBAR.map((row, index) => (
+          <SidebarRowView
+            key={index}
+            row={row}
+            thinking={
+              thinkingChannel != null && row.kind === "channel" && row.label === thinkingChannel
+            }
+          />
+        ))}
       </div>
     </div>
   );
@@ -513,16 +471,14 @@ function PageHeader({
 }) {
   return (
     <div
-      className="flex shrink-0 items-center gap-10 border-b-[0.5px] bg-white px-4 py-1"
+      className="flex h-12 shrink-0 items-center gap-10 border-b-[0.5px] bg-white px-4"
       style={{ borderColor: STROKE_WEAK }}
     >
-      <div className="flex flex-1 items-center gap-2 py-0.5">
+      <div className="flex flex-1 items-center gap-2">
         <div className="flex flex-1 items-center">
-          <span className="flex h-7 items-center gap-1">
-            <span className="flex size-6 items-center justify-center rounded-[4px]">
-              <img src={`${A}/icon-hashtag-header.svg`} alt="" className="size-4" />
-            </span>
-            <span className="text-[14px] leading-5" style={{ color: FG_PRIMARY }}>
+          <span className="flex h-8 items-center gap-2 px-0.5">
+            <img src={`${AA}/hdr-hashtag.svg`} alt="" className="size-[12px]" />
+            <span className="text-[14px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
               design
             </span>
           </span>
@@ -558,21 +514,23 @@ function PageHeader({
         >
           Agents
         </button>
-        <span className="flex items-center justify-center gap-1.5 rounded-[6px] bg-white px-2 py-1 shadow-[0px_0px_0.5px_0.75px_#ebe9e8]">
-          <img src={`${A}/icon-people-header.svg`} alt="" className="size-4" />
-          <span className="text-center text-[12px] leading-4" style={{ color: FG_SECONDARY }}>
-            13
+        {/* Jam split-button (Figma 394:7721): 28+16 halves on a 1px
+            seam, radii 6 outside / 1 inside. */}
+        <span className="flex items-start gap-px">
+          <span className="flex h-6 w-7 items-center justify-center rounded-l-[6px] rounded-r-[1px] bg-[#f5f5f4]">
+            <img src={`${AA}/hdr-headphones.svg`} alt="" className="size-[12px]" />
+          </span>
+          <span className="flex h-6 w-4 items-center justify-center rounded-l-[1px] rounded-r-[6px] bg-[#f5f5f4]">
+            <img src={`${AA}/hdr-chevron.svg`} alt="" className="h-[3px] w-[5px]" />
           </span>
         </span>
         <span
-          className="flex items-center justify-center rounded-[6px] shadow-[0px_1px_6px_0px_rgba(16,16,16,0.04),0px_0px_0.5px_0.75px_rgba(16,16,16,0.06)]"
-          style={{ background: BG_TERTIARY }}
+          className="flex items-center justify-center gap-1.5 rounded-[8px] border-[0.5px] px-2 py-1"
+          style={{ borderColor: STROKE_WEAK }}
         >
-          <span className="flex items-center justify-center px-1.5 py-1">
-            <img src={`${A}/icon-headphones.svg`} alt="" className="size-4" />
-          </span>
-          <span className="flex h-full w-5 items-center justify-center">
-            <img src={`${A}/icon-chevron-header.svg`} alt="" className="size-4" />
+          <img src={`${AA}/hdr-people.svg`} alt="" className="h-[11px] w-4" />
+          <span className="text-center text-[12px] leading-4" style={{ color: FG_PRIMARY }}>
+            12
           </span>
         </span>
       </div>
@@ -580,16 +538,47 @@ function PageHeader({
   );
 }
 
+// Pinned strip under the header (August shell): pin glyph, author, the
+// pinned link, count + chevron at the right edge.
+function PinnedBar() {
+  return (
+    <div
+      className="flex h-10 shrink-0 items-center gap-[10px] border-b-[0.5px] px-4"
+      style={{ borderColor: STROKE_WEAK }}
+    >
+      <img src={`${AA}/pin-glyph.svg`} alt="" className="size-[11px]" />
+      <Face name={SHELL_PIN.author} size={20} />
+      <span className="text-[13px] font-medium leading-[18px]" style={{ color: FG_SECONDARY }}>
+        {SHELL_PIN.author}
+      </span>
+      <span
+        className="min-w-0 flex-1 truncate text-[13px] leading-[18px]"
+        style={{ color: FG_TERTIARY }}
+      >
+        {SHELL_PIN.url}
+      </span>
+      <span
+        className="rounded-full bg-[#fafaf9] px-1.5 py-[2px] text-[11px] leading-[14px]"
+        style={{ color: FG_TERTIARY }}
+      >
+        {SHELL_PIN.count}
+      </span>
+      <img src={`${AA}/pin-chevron.svg`} alt="" className="h-[9px] w-[4.5px]" />
+    </div>
+  );
+}
+
 /* -------------------------------- transcript ------------------------------- */
 
-function MessageAvatar({ avatar }: { avatar: AwMessage["avatar"] }) {
-  if (avatar === "silhouette") return <Silhouette size={24} />;
-  if ("photo" in avatar) {
-    return (
-      <img src={avatar.photo} alt="" className="size-6 shrink-0 rounded-full object-cover" />
-    );
-  }
-  return <AgentFace agent={avatar.agent} size={24} />;
+function MessageAvatar({
+  avatar,
+  authorName,
+}: {
+  avatar: AwMessage["avatar"];
+  authorName: string;
+}) {
+  if (avatar === "disc") return <Face name={authorName} size={32} />;
+  return <AgentFace agent={avatar.agent} size={32} />;
 }
 
 // Demo pace presets: multipliers over each agent's scripted duration,
@@ -1081,7 +1070,7 @@ function MessageRow({
   return (
     <div
       data-aw-msg-id={message.id}
-      className="group/row relative flex w-full items-start gap-2.5 px-4 pb-1.5 pt-2"
+      className="group/row relative flex w-full items-start gap-2 px-4 py-1.5"
     >
       {/* Cream wash flash when a flyout row jumps back to this message. */}
       {flashing ? (
@@ -1090,16 +1079,9 @@ function MessageRow({
           className="aw-flash pointer-events-none absolute inset-x-2 inset-y-0.5 z-[1] rounded-md bg-[#FBF0C9]/60"
         />
       ) : null}
-      {message.threadFooter ? (
-        <img
-          src={`${A}/thread-spine.svg`}
-          alt=""
-          className="absolute bottom-[-14px] left-7 h-[60px] w-3"
-        />
-      ) : null}
-      <MessageAvatar avatar={message.avatar} />
+      <MessageAvatar avatar={message.avatar} authorName={message.authorName} />
       <div className="relative z-[2] flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex h-3 items-center gap-1.5 whitespace-nowrap">
+        <div className="flex h-[22px] items-baseline gap-2.5 whitespace-nowrap">
           <span className="text-[14px] font-medium leading-5" style={{ color: FG_PRIMARY }}>
             {message.authorName}
           </span>
@@ -1107,6 +1089,53 @@ function MessageRow({
             {message.time}
           </span>
         </div>
+        {/* Seeded transcript rows carry rich blocks — lists and the
+            image attachment from the August shell. Live messages (and
+            everything the agent machinery hangs off) stay on the
+            paragraphs path below. */}
+        {message.blocks != null ? (
+          <div
+            className="flex flex-col gap-2 break-words text-[14px] leading-5"
+            style={{ color: FG_PRIMARY }}
+          >
+            {message.blocks.map((block, bIndex) => {
+              if (block.kind === "text")
+                return (
+                  <p key={bIndex}>
+                    {block.segments.map((segment, sIndex) => (
+                      <span key={sIndex}>{segment.text}</span>
+                    ))}
+                  </p>
+                );
+              if (block.kind === "bullets" || block.kind === "numbered") {
+                const ordered = block.kind === "numbered";
+                const List = ordered ? "ol" : "ul";
+                return (
+                  <List
+                    key={bIndex}
+                    className={`flex flex-col gap-1 pl-6 ${
+                      ordered ? "list-decimal" : "list-disc"
+                    }`}
+                  >
+                    {block.items.map((item, iIndex) => (
+                      <li key={iIndex} className="pl-1">
+                        {item}
+                      </li>
+                    ))}
+                  </List>
+                );
+              }
+              // image attachment placeholder (Figma 394:7795): 360x162,
+              // #fafaf9, borderless.
+              return (
+                <span
+                  key={bIndex}
+                  className="mt-1.5 block h-[162px] w-[360px] rounded-[6px] bg-[#fafaf9]"
+                />
+              );
+            })}
+          </div>
+        ) : null}
         <div className="break-words text-[14px] leading-5" style={{ color: FG_PRIMARY }}>
           {message.paragraphs.map((paragraph, pIndex) => {
             const segments = paragraph.map((segment, sIndex) =>
@@ -1210,26 +1239,27 @@ function MessageRow({
 
 function ThreadFooter({ footer }: { footer: NonNullable<AwMessage["threadFooter"]> }) {
   return (
-    <div className="relative flex w-full items-center gap-2.5 px-4 py-1.5">
-      <span className="h-3 w-6 shrink-0" />
-      <span className="flex items-center gap-2 rounded-[4px]">
-        <span className="flex h-4 items-center">
-          {footer.avatars.map((_, index) => (
+    <div className="relative flex w-full items-center px-4 pb-1 pl-[56px]">
+      <span className="-ml-1.5 flex h-7 items-center gap-2 rounded-[6px] px-1.5">
+        <span className="flex items-center">
+          {THREAD_FACES.slice(0, footer.faces).map((name, index) => (
             <span
-              key={index}
-              className="rounded-full border-[1.5px] border-white"
-              style={{ marginRight: index < footer.avatars.length - 1 ? -6 : 0 }}
+              key={name}
+              className="rounded-full"
+              style={{
+                marginLeft: index > 0 ? -2 : 0,
+                boxShadow: "0 0 0 1.5px white",
+              }}
             >
-              <Silhouette size={13} />
+              <Face name={name} size={16} />
             </span>
           ))}
         </span>
-        <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-          <span className="text-[12px] font-medium leading-4">
-            <span style={{ color: FG_PRIMARY }}>{footer.countLabel}</span>
-            <span style={{ color: BRAND }}>{footer.newLabel}</span>
+        <span className="flex items-baseline gap-2 whitespace-nowrap">
+          <span className="text-[12px] font-medium leading-4" style={{ color: FG_PRIMARY }}>
+            {footer.count}
           </span>
-          <span className="text-[11px] leading-[14px]" style={{ color: FG_TERTIARY }}>
+          <span className="text-[12px] leading-4" style={{ color: FG_TERTIARY }}>
             {footer.lastReply}
           </span>
         </span>
@@ -1282,7 +1312,11 @@ function Composer({
   };
 
   return (
-    <div className="relative flex w-full shrink-0 flex-col items-center justify-center p-4">
+    // pt-3: constant clearance between the last row (and its thread
+    // footer) and the composer — the transcript used to run flush into
+    // the box. Bottom-anchored overlays are unaffected: the composer's
+    // distance from the container bottom doesn't change.
+    <div className="relative flex w-full shrink-0 flex-col px-4 pb-4 pt-3">
       {menuOpen ? (
         <div className="aw-pop-enter absolute bottom-[calc(100%-8px)] left-4 z-30 w-56 overflow-hidden rounded-[10px] bg-white p-1 shadow-[0px_2px_12px_0px_rgba(16,16,16,0.06),0px_16px_24px_-12px_rgba(16,16,16,0.08),0px_0px_0.5px_0.75px_rgba(16,16,16,0.06)]">
           {candidates.map((agent, index) => (
@@ -1307,15 +1341,15 @@ function Composer({
         </div>
       ) : null}
       <div
-        className="flex w-full flex-col gap-2 overflow-hidden rounded-[10px] border-[0.5px] bg-white p-3"
+        className="flex w-full flex-col overflow-clip rounded-[10px] border-[0.5px] bg-white"
         style={{ borderColor: STROKE_WEAK }}
       >
-        <div className="relative flex h-10 w-full items-start px-1">
+        <div className="relative flex h-[70px] w-full items-start px-5 py-4">
           {/* The affordance appears only while Esc would do something —
               no hint, no surprise kill. */}
           {escHint != null && value.length === 0 ? (
             <span
-              className="aw-attr-in pointer-events-none absolute right-1 top-0 flex h-5 items-center gap-1.5 text-[11px] leading-4"
+              className="aw-attr-in pointer-events-none absolute right-5 top-4 flex h-5 items-center gap-1.5 text-[11px] leading-4"
               style={{ color: "#a8a29e" }}
             >
               <span className="flex h-4 items-center rounded-[4px] border-[0.5px] border-[#e7e5e4] bg-[#fafaf9] px-1 text-[10px] font-medium text-[#78716c]">
@@ -1328,7 +1362,7 @@ function Composer({
             ref={inputRef}
             type="text"
             value={value}
-            placeholder="Send a message in #design"
+            placeholder="Enter your message"
             onChange={(event) => {
               setValue(event.target.value);
               setMenuDismissed(false);
@@ -1368,11 +1402,46 @@ function Composer({
             style={{ color: FG_PRIMARY }}
           />
         </div>
-        <div className="flex w-full items-center justify-between">
-          <span className="flex size-7 items-center justify-center rounded-[6px]">
-            <img src={`${A}/icon-paperclip.svg`} alt="" className="size-4" />
-          </span>
-          <span className="size-7 rounded-[6px]" />
+        <div className="flex w-full items-center justify-between p-3">
+          <div className="flex items-center">
+            <span className="flex size-7 items-center justify-center rounded-[6px]">
+              <img src={`${AA}/comp-paperclip.svg`} alt="" className="h-[13px] w-[9px]" />
+            </span>
+            <span className="flex size-7 items-center justify-center rounded-[6px]">
+              <span
+                className="text-[14px] font-medium leading-5"
+                style={{ color: FG_SECONDARY }}
+              >
+                Aa
+              </span>
+            </span>
+            <span className="flex size-7 items-center justify-center rounded-[6px]">
+              <img src={`${AA}/comp-emoji.svg`} alt="" className="size-[13px]" />
+            </span>
+            <span className="flex size-7 items-center justify-center rounded-[6px]">
+              <img src={`${AA}/comp-gif.svg`} alt="" className="h-[9px] w-[12px]" />
+            </span>
+          </div>
+          {/* Send split (Figma 394:8735): 28+16 halves, radii 6/1, 1px
+              seam — 45% ink until there's a draft. */}
+          <div
+            className={`flex items-start transition-opacity ${
+              value.trim().length > 0 ? "opacity-100" : "opacity-45"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={send}
+              aria-label="Send"
+              className="flex size-7 items-center justify-center rounded-l-[6px] rounded-r-[1px] bg-[#f5f5f4] px-2"
+            >
+              <img src={`${AA}/comp-send.svg`} alt="" className="size-[12px]" />
+            </button>
+            <span className="h-7 w-px" style={{ background: STROKE_WEAK }} />
+            <span className="flex h-7 w-4 items-center justify-center rounded-l-[1px] rounded-r-[6px] bg-[#f5f5f4]">
+              <img src={`${AA}/comp-chevron.svg`} alt="" className="h-[3px] w-[5px]" />
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -1641,8 +1710,8 @@ export default function AgentInlineTracePage() {
       ...prev,
       {
         id,
-        authorName: "Oli",
-        avatar: { photo: OLI_PHOTO },
+        authorName: "Caleb",
+        avatar: "disc",
         time: nowLabel(),
         paragraphs: [segments],
       },
@@ -1709,11 +1778,11 @@ export default function AgentInlineTracePage() {
       {
         id: nextMessageId(),
         authorName: agentName,
-        avatar: "silhouette" as const,
+        avatar: "disc" as const,
         time: nowLabel(),
         paragraphs: [],
         system: true,
-        proactivity: { actor: "Oli", agentName, level },
+        proactivity: { actor: "Caleb", agentName, level },
       },
     ]);
   };
@@ -1744,22 +1813,22 @@ export default function AgentInlineTracePage() {
 
   return (
     <div
-      className="aw-page flex h-dvh w-screen flex-col overflow-hidden"
-      style={{ background: BG_TERTIARY, color: FG_PRIMARY }}
+      className="aw-page flex h-dvh w-screen flex-col overflow-hidden bg-white"
+      style={{ color: FG_PRIMARY }}
     >
-      <Titlebar />
       <div className="relative flex min-h-0 flex-1">
         <GlobalNav />
         {/* Sidebar channel wash benched — pass the working channel's
             label to revive the cross-channel tell. */}
         <LocalNav thinkingChannel={null} />
         {/* 6px gutter between the two cards — the page bg reads as the divider. */}
-        <main className="relative ml-1.5 flex min-w-0 flex-1 flex-col overflow-clip rounded-tl-[6px] bg-white shadow-[0px_0px_0.5px_0.5px_rgba(15,13,13,0.08),0px_1px_2px_0px_rgba(15,13,13,0.05)]">
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-white">
           <PageHeader
             clusterSide={clusterSide}
             onClusterSideChange={setClusterSide}
             onOpenAgentSettings={() => setAgentSettingsOpen(true)}
           />
+          <PinnedBar />
           {/* mt-auto spacer (not justify-end) pins messages to the bottom:
               justify-end makes top overflow unscrollable in flex containers. */}
           <div

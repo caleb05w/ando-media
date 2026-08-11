@@ -15,7 +15,7 @@
     {
       "name": "ando-storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["-C", "/Users/calebwu/Documents/Github/ando/packages/ui", "storybook"],
+      "runtimeArgs": ["-C", "/Users/wu/Documents/Github/ando/packages/ui", "storybook"],
       "port": 6006
     },
     {

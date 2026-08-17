@@ -24,6 +24,30 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/app-empty-state",
+    week: "2026-08-10",
+    title: "App empty state",
+    tag: "(Motion)",
+    brief:
+      "The “No apps connected yet” card with a live icon carousel — five apps take turns popping up through the slot on a shared tilt, hanging mid-air, then rotating back level and sinking behind the fade. Storyboarded in August Sprints.",
+  },
+  {
+    href: "/loading-state-ideation",
+    week: "2026-08-10",
+    title: "Loading state ideation",
+    tag: "(Motion)",
+    brief:
+      "The baseline board for rethinking how Ando says “working” — the shipped spinner ported exactly from packages/ui at every size and in context, the skeleton alternative, and the spec any replacement has to beat.",
+  },
+  {
+    href: "/trace-test",
+    week: "2026-08-10",
+    title: "Trace test",
+    tag: "(Sandbox)",
+    brief:
+      "A working copy of Sticky inline agent presence — same shell and agent layer, kept separate so ideas can be tried without disturbing the shipped route.",
+  },
+  {
     href: "/agent-inline-trace",
     week: "2026-08-10",
     title: "Sticky inline agent presence",

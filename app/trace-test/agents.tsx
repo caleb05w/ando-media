@@ -1,0 +1,2024 @@
+"use client";
+
+// Agent engine + presence surfaces for /trace-test (sandbox copy of
+// /agent-inline-trace) — originally forked from
+// /agent-working (July Sprints spec, Figma 17658-1346 / 17700-19103 /
+// 17789-27302) for the Aug 10 "sticky inline presence" direction. See
+// page.tsx's header for the full interaction model. Engine diffs from
+// the baseplate:
+//
+//  - No timed done-departure: a completed run leaves the rail by being
+//    SEEN (the page conceals it when its answer is measured in view),
+//    not by a clock.
+//  - SpawnOverride.paceMultiplier: the Agents panel's response-time
+//    setting, scaling each agent's scripted duration (reruns keep it).
+//  - Approval gates (BENCHED, machinery kept): SpawnOverride.approval
+//    freezes a run mid-flight for Allow/Deny; approve() shifts the
+//    clock past the pause, deny() seals to stopped.
+//  - AgentFlyout.focusRunId: a run summoned by clicking its line face
+//    leads the panel's list.
+//  - CornerStack dock motion: bubbles that appear because their row
+//    scrolled away slide in from the transcript's direction (fresh
+//    spawns keep the condensation bloom).
+//
+// Corner presence: one ringed avatar per live agent, bottom-right above
+// the composer (orbiting comet = working, green = done, red =
+// failed/stopped); the dark "Active agents" flyout lists railed runs
+// with status line, "↳ invoking message" sub-line, and hover controls.
+// The trace modal shows a summary line and a step timeline.
+
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+
+/* ---------------------------------- data ---------------------------------- */
+
+export type TraceStep = { verb: string; desc: string };
+
+// One believable "thought" beat: what the agent narrates and for how long.
+// Uneven dwell times keep the cycling from feeling metronomic.
+export type Thought = { text: string; ms: number };
+
+export type AgentDef = {
+  id: string;
+  name: string;
+  photo?: string; // photo avatar; omitted = sparkle mark
+  tint?: string; // sparkle disc color (default near-black)
+  // Portrait color (dominant tone, lightness clamped for the white card).
+  // Used by the comet when the page is in portrait-hue mode.
+  hue?: string;
+  // Scripted working narration; index 0 is the spawn state. Long runs cycle
+  // the beats from `loopFrom` onward once the script is exhausted.
+  thoughts: Thought[];
+  loopFrom?: number;
+  // Canned answer paragraphs posted to the channel on completion.
+  answer: string[];
+  traceSteps: TraceStep[];
+  // Outcome script per attempt — lets the demo show the failure branch
+  // deterministically (Yumi fails her first run, succeeds on rerun).
+  script: (attempt: number) => { durationMs: number; outcome: "done" | "failed" };
+  toolCalls: (attempt: number) => number;
+};
+
+// Avatar assets live in /public/agent-working.
+const P = "/agent-working";
+
+export const AGENTS: AgentDef[] = [
+  {
+    id: "tadao",
+    name: "Tadao",
+    photo: `${P}/agent-2.png`,
+    hue: "#3b3b3b", // the mark's charcoal
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Reading the ask", ms: 1800 },
+      { text: "Web search: “LA weekend forecast NWS”", ms: 3200 },
+      { text: "Reading weather.gov/forecast/LAX", ms: 2800 },
+      { text: "Completed web search: LA weather this weekend", ms: 2400 },
+      { text: "Cross-checking hourly models", ms: 3000 },
+      { text: "Checking the high surf advisory", ms: 2800 },
+      { text: "Reconciling Saturday vs Sunday highs", ms: 3200 },
+      { text: "Writing up the answer", ms: 2600 },
+    ],
+    loopFrom: 4,
+    answer: [
+      "Assuming you're in LA, it's partly sunny and warm today with a high of 88°F and a low of 68°F. Currently 72°F. Heads up there's a high surf advisory in effect through Tuesday night, with 4-7 foot breaking waves and dangerous rip currents along LA county beaches.",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "hourly forecast query for Los Angeles" },
+      { verb: "Wrote", desc: "scratch summary of today's conditions" },
+      { verb: "Searched", desc: "NWS advisories for LA county" },
+      { verb: "Read", desc: "high surf advisory bulletin" },
+    ],
+    script: () => ({ durationMs: 9000, outcome: "done" }),
+    toolCalls: () => 49,
+  },
+  {
+    id: "ando",
+    name: "Ando",
+    photo: `${P}/agent-1.png`,
+    hue: "#8d9188", // the disc's warm silver, deepened for the white card
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Skimming the last 200 messages", ms: 2600 },
+      { text: "Clustering topics by owner", ms: 3000 },
+      { text: "Read yesterday's standup notes", ms: 2400 },
+      { text: "Pulling open questions into a list", ms: 2800 },
+      { text: "Cross-referencing the drag-threshold thread", ms: 3200 },
+      { text: "Checking who owns the token pull", ms: 2600 },
+      { text: "Drafting the summary", ms: 2800 },
+      { text: "Trimming to standup length", ms: 2600 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "Summary for standup: bridges review moved to 10:30 tomorrow — AJ wants the Ando Bridge settings page reworked into a collaborators view, Oli's two notes on the folder placement are logged, and Graeme is shipping the bridges folder with the workspace template.",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "message fetch over #design history" },
+      { verb: "Wrote", desc: "topic clusters by owner" },
+      { verb: "Searched", desc: "standup notes for open questions" },
+      { verb: "Read", desc: "yesterday's decisions" },
+    ],
+    script: () => ({ durationMs: 12000, outcome: "done" }),
+    toolCalls: () => 34,
+  },
+  {
+    id: "yumi",
+    name: "Yumi",
+    photo: `${P}/yumi.png`,
+    hue: "#72716d", // cat-and-blanket taupe
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Opening the design file", ms: 2000 },
+      { text: "Running token export", ms: 2800 },
+      { text: "Read 128 color styles", ms: 2400 },
+      { text: "Diffing brand/500 against staging", ms: 3000 },
+      { text: "Flagging radius/md drift (10 → 8)", ms: 3000 },
+      { text: "Diffing shadow/card y-offset", ms: 2800 },
+      { text: "Writing up the changes", ms: 2600 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "Token pull complete: brand/500 is #2563EB, selection wash is rgba(37,99,235,0.14), stroke/weak is #F0EFEE. Two drifted from staging: radius/md (10 → 8) and shadow/card (y-offset 2 → 1).",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "token export from the design file" },
+      { verb: "Searched", desc: "staging theme for drift" },
+      { verb: "Read", desc: "component-level overrides" },
+      { verb: "Wrote", desc: "token diff summary" },
+    ],
+    // First attempt dies mid-run; rerun succeeds.
+    script: (attempt) =>
+      attempt <= 1
+        ? { durationMs: 8000, outcome: "failed" }
+        : { durationMs: 9000, outcome: "done" },
+    toolCalls: (attempt) => (attempt <= 1 ? 18 : 27),
+  },
+  {
+    id: "juno",
+    name: "Juno",
+    photo: `${P}/agent-3.png`,
+    hue: "#2c76c5", // snow-globe blue
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Reading the ask", ms: 1800 },
+      { text: "Pulling five calendars", ms: 2600 },
+      { text: "Checking Thursday's conflicts", ms: 2800 },
+      { text: "Holding the 10:30 slot", ms: 2400 },
+      { text: "Cross-checking timezones", ms: 2800 },
+      { text: "Finding a 6-seat room", ms: 2600 },
+      { text: "Drafting the invite", ms: 2600 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "Booked: design review Thursday 10:30–11:00 in Koto (6 seats). Everyone's free — Graeme had a soft hold I bumped past. Invite is out with the Figma link attached.",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "availability sweep across 5 calendars" },
+      { verb: "Read", desc: "Graeme's soft hold on Thursday" },
+      { verb: "Searched", desc: "rooms with 6 seats free at 10:30" },
+      { verb: "Wrote", desc: "the invite draft" },
+    ],
+    script: () => ({ durationMs: 10000, outcome: "done" }),
+    toolCalls: () => 21,
+  },
+  {
+    id: "trey",
+    name: "Trey",
+    photo: `${P}/agent-4.png`,
+    hue: "#86463c", // portrait's warm brick
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Reading the diff on #482", ms: 2400 },
+      { text: "Tracing the drag-threshold change", ms: 3000 },
+      { text: "Running the unit suite", ms: 3200 },
+      { text: "Checking bundle size delta", ms: 2600 },
+      { text: "Leaving inline notes", ms: 2800 },
+      { text: "Summarizing the review", ms: 2400 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "Reviewed #482: logic's sound, two nits inline (dead import, magic 3 → constant). Tests green — 212 passing — and bundle is +0.4kb. Approving with comments.",
+    ],
+    traceSteps: [
+      { verb: "Read", desc: "the diff on #482" },
+      { verb: "Ran", desc: "unit suite — 212 passing" },
+      { verb: "Searched", desc: "usages of DRAG_THRESHOLD" },
+      { verb: "Wrote", desc: "2 inline review comments" },
+    ],
+    script: () => ({ durationMs: 13000, outcome: "done" }),
+    toolCalls: () => 41,
+  },
+  {
+    id: "moss",
+    name: "Moss",
+    photo: `${P}/agent-5.png`,
+    hue: "#a2ac52", // that green
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Opening the RFC", ms: 2000 },
+      { text: "Reading 34 comments", ms: 3000 },
+      { text: "Grouping objections by theme", ms: 3000 },
+      { text: "Checking which threads resolved", ms: 2800 },
+      { text: "Pulling decision owners", ms: 2600 },
+      { text: "Writing the digest", ms: 2600 },
+    ],
+    loopFrom: 3,
+    answer: [
+      "RFC digest: 34 comments, 3 threads still open. Consensus on collapse-by-default; naming is split into two camps; the perf question closed after Sara's benchmark. Full digest is in the doc.",
+    ],
+    traceSteps: [
+      { verb: "Read", desc: "the RFC comment thread" },
+      { verb: "Wrote", desc: "theme clusters with owners" },
+      { verb: "Searched", desc: "linked benchmarks" },
+      { verb: "Ran", desc: "a stale-thread check" },
+    ],
+    script: () => ({ durationMs: 11000, outcome: "done" }),
+    toolCalls: () => 27,
+  },
+  {
+    id: "kelvin",
+    name: "Kelvin",
+    photo: `${P}/agent-6.png`,
+    hue: "#1c6d7d", // deep teal
+    thoughts: [
+      { text: "Starting agent session", ms: 1500 },
+      { text: "Booting the preview build", ms: 2600 },
+      { text: "Running visual diff on 24 screens", ms: 3400 },
+      { text: "Checking the corner-stack overlap", ms: 2800 },
+      { text: "Re-running the flaky spec", ms: 3000 },
+      { text: "Filing the diff report", ms: 2600 },
+    ],
+    loopFrom: 2,
+    answer: [
+      "Visual sweep done: 24 screens, 1 real diff (corner-stack gap 4 → 2px — expected from the padding change), 1 flake that re-ran clean. Report linked.",
+    ],
+    traceSteps: [
+      { verb: "Ran", desc: "visual regression on 24 screens" },
+      { verb: "Read", desc: "the corner-stack diff" },
+      { verb: "Ran", desc: "the flaky spec a second time" },
+      { verb: "Wrote", desc: "the sweep report" },
+    ],
+    script: () => ({ durationMs: 14000, outcome: "done" }),
+    toolCalls: () => 56,
+  },
+];
+
+/* --------------------------------- engine --------------------------------- */
+
+export type RunStatus = "working" | "done" | "failed" | "stopped";
+
+// Per-spawn override of the agent's outcome script — used by the page's
+// load-time simulation to seed long, already-underway runs. `startedAgoMs`
+// backdates startedAt so elapsed readouts are accurate to how long the
+// agent has actually been working, and keep ticking from there.
+export type SpawnOverride = {
+  durationMs?: number;
+  outcome?: "done" | "failed";
+  startedAgoMs?: number;
+  // Demo pace: scales the agent's scripted duration (each agent keeps
+  // its own variance) — the Agents panel's response-time setting.
+  paceMultiplier?: number;
+  // Scripted tool gate: at `atMs` of working time the run freezes and
+  // asks — an approval card in the invoking message's nested slot.
+  approval?: { atMs: number; toolLabel: string };
+};
+
+// idle → the gate hasn't been reached; pending → frozen, card showing;
+// allowed → resumed (timer shifted so the pause never counts as work);
+// denied → sealed to stopped, the note explains which tool was refused.
+export type ApprovalState = "idle" | "pending" | "allowed" | "denied";
+
+export type AgentRun = {
+  id: string;
+  agent: AgentDef;
+  attempt: number;
+  // The message that invoked the agent, and its text (mentions stripped —
+  // the flyout sub-line shows the ask, not the address).
+  messageId: string;
+  prompt: string;
+  startedAt: number;
+  endedAt?: number;
+  status: RunStatus;
+  doneAt?: number;
+  // removed = leaving (plays the exit animation); concealed = exit finished
+  // (dropped from presence surfaces, kept in `runs` so message footers can
+  // still resolve their trace). dismissed marks a user-initiated removal —
+  // the corner skips its condensation farewell and leaves with the same
+  // quick fade the flyout row uses. removedAt powers the conceal backstop:
+  // a run folded into the +N disc has no corner bubble, so no animationend
+  // can conceal it — the heartbeat does instead, after the exit window.
+  removed: boolean;
+  removedAt?: number;
+  dismissed?: boolean;
+  concealed: boolean;
+  answerMessageId?: string;
+  override?: SpawnOverride;
+  // Attribution for stopped runs ("stopped by you") — per the stop flow,
+  // stops are never silent.
+  stoppedBy?: string;
+  // Live approval gate — pausedAt freezes every elapsed readout while the
+  // card waits, so a human's thinking time never bills as agent work.
+  approval?: { atMs: number; toolLabel: string; state: ApprovalState; pausedAt?: number };
+};
+
+// Token-scoped ids: fast refresh re-evaluates the module (resetting the
+// counter) while React state survives, so bare sequential ids would
+// collide with runs already in state.
+const RUN_ID_TOKEN = Math.random().toString(36).slice(2, 7);
+let runCounter = 0;
+
+export function useAgentEngine(
+  onAgentAnswer: (run: AgentRun) => string
+): {
+  runs: AgentRun[];
+  // Presence surfaces render visibleRuns: live rows plus removed-but-still-
+  // animating-out ones (run.removed = leaving).
+  visibleRuns: AgentRun[];
+  spawn: (
+    messageId: string,
+    prompt: string,
+    agents: AgentDef[],
+    override?: SpawnOverride
+  ) => void;
+  stop: (runId: string) => void;
+  approve: (runId: string) => void;
+  deny: (runId: string) => void;
+  rerun: (runId: string) => void;
+  remove: (runId: string) => void;
+  conceal: (runId: string) => void;
+} {
+  const [runs, setRuns] = useState<AgentRun[]>([]);
+  // Ticks every second so elapsed readouts and thought lines advance in
+  // real time even when no run is transitioning — setRuns alone bails out
+  // of re-rendering on quiet seconds.
+  const [, setTick] = useState(0);
+  const answerRef = useRef(onAgentAnswer);
+  // Stagger timers for consecutive spawns; cleared on unmount.
+  const spawnTimersRef = useRef<number[]>([]);
+  useEffect(() => {
+    answerRef.current = onAgentAnswer;
+  });
+  useEffect(() => {
+    const timers = spawnTimersRef.current;
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, []);
+
+  // 500ms heartbeat: advances elapsed displays, resolves finished runs,
+  // and fades done runs out after 5s — the catch/pop/ping choreography
+  // (~1.15s) lands whole, then the green holds a beat before the
+  // depart. The posted answer is the durable record.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+      setRuns((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next = prev.map((run) => {
+          if (run.status === "working") {
+            // Approval gate: reaching atMs freezes the run — no
+            // completion, no elapsed ticks — until approve() shifts the
+            // clock or deny() seals it.
+            if (run.approval?.state === "idle" && now - run.startedAt >= run.approval.atMs) {
+              changed = true;
+              return {
+                ...run,
+                approval: { ...run.approval, state: "pending" as const, pausedAt: now },
+              };
+            }
+            if (run.approval?.state === "pending") return run;
+            const script = run.agent.script(run.attempt);
+            const durationMs =
+              run.override?.durationMs ??
+              Math.round(script.durationMs * (run.override?.paceMultiplier ?? 1));
+            const outcome = run.override?.outcome ?? script.outcome;
+            if (now - run.startedAt >= durationMs) {
+              changed = true;
+              return {
+                ...run,
+                status: outcome,
+                endedAt: now,
+                doneAt: outcome === "done" ? now : undefined,
+              };
+            }
+          } else if (
+            run.removed &&
+            !run.concealed &&
+            run.removedAt != null &&
+            // Conceal backstop: a run with no corner bubble (folded into
+            // the +N disc) has no exit animation to fire animationend —
+            // without this it would haunt the flyout as a zero-height
+            // ghost row forever. The threshold must OUTLAST the exit it
+            // covers or it amputates visible departures mid-flight (at
+            // 1.5s it once cut the mist before its close finished —
+            // survivors snapped instead of gliding down the track).
+            // Natural exits: the mist (1600ms) + heartbeat slack.
+            // Dismissals: the 150ms cut + slack — swept fast so a
+            // disc-hidden × never haunts the pagination.
+            now - run.removedAt >= (run.dismissed ? 400 : 2200)
+          ) {
+            changed = true;
+            return { ...run, concealed: true };
+          }
+          return run;
+        });
+
+        // No timed done-departure: under sticky presence a green bubble
+        // leaves the rail by being SEEN (the page conceals a done run
+        // once its answer is in view), not by a clock. Unseen
+        // completions stay stacked however old they are.
+        return changed ? next : prev;
+      });
+    }, 500);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Post the answer message once per completed run. Runs post-render so the
+  // message append never happens inside a state updater.
+  useEffect(() => {
+    runs.forEach((run) => {
+      if (run.status === "done" && run.answerMessageId == null) {
+        const messageId = answerRef.current(run);
+        setRuns((prev) =>
+          prev.map((r) => (r.id === run.id ? { ...r, answerMessageId: messageId } : r))
+        );
+      }
+    });
+  }, [runs]);
+
+  const spawn = useCallback(
+    (messageId: string, prompt: string, agents: AgentDef[], override?: SpawnOverride) => {
+      // Agents spawn consecutively (~half a beat apart), not all at once —
+      // each bubble/chip gets its own arrival.
+      agents.forEach((agent, index) => {
+        const create = () =>
+          setRuns((prev) => [
+            ...prev,
+            {
+              id: `run-${RUN_ID_TOKEN}-${++runCounter}`,
+              agent,
+              attempt: 1,
+              messageId,
+              prompt,
+              // Backdated for seeded runs — elapsed stays accurate to how
+              // long the agent has actually been working.
+              startedAt: Date.now() - (override?.startedAgoMs ?? 0),
+              status: "working" as const,
+              removed: false,
+              concealed: false,
+              override,
+              approval:
+                override?.approval != null
+                  ? { ...override.approval, state: "idle" as const }
+                  : undefined,
+            },
+          ]);
+        if (index === 0) create();
+        else spawnTimersRef.current.push(window.setTimeout(create, index * 500));
+      });
+    },
+    []
+  );
+
+  const stop = useCallback((runId: string) => {
+    setRuns((prev) =>
+      prev.map((r) =>
+        r.id === runId && r.status === "working"
+          ? { ...r, status: "stopped", endedAt: Date.now(), stoppedBy: "you" }
+          : r
+      )
+    );
+  }, []);
+
+  // Allow resumes the frozen clock: startedAt shifts forward by the pause
+  // so elapsed picks up exactly where the card interrupted it.
+  const approve = useCallback((runId: string) => {
+    setRuns((prev) =>
+      prev.map((r) => {
+        if (r.id !== runId || r.approval?.state !== "pending") return r;
+        const pausedFor = Date.now() - (r.approval.pausedAt ?? Date.now());
+        return {
+          ...r,
+          startedAt: r.startedAt + pausedFor,
+          approval: { ...r.approval, state: "allowed", pausedAt: undefined },
+        };
+      })
+    );
+  }, []);
+
+  // Deny seals the run to stopped at the moment it froze — the refusal
+  // note reads the tool label off the approval record.
+  const deny = useCallback((runId: string) => {
+    setRuns((prev) =>
+      prev.map((r) =>
+        r.id === runId && r.approval?.state === "pending"
+          ? {
+              ...r,
+              status: "stopped",
+              endedAt: r.approval.pausedAt ?? Date.now(),
+              stoppedBy: "you",
+              approval: { ...r.approval, state: "denied" },
+            }
+          : r
+      )
+    );
+  }, []);
+
+  // Rerun keeps the run's identity (same prompt, same chip) but starts a
+  // fresh attempt — per the spec: "rerun the agent on the prompt it failed
+  // on". Seed overrides don't carry over; attempt 2 runs the agent's own
+  // script, so a seeded failure can succeed on rerun.
+  const rerun = useCallback((runId: string) => {
+    setRuns((prev) =>
+      prev.map((r) =>
+        r.id === runId
+          ? {
+              ...r,
+              attempt: r.attempt + 1,
+              status: "working",
+              startedAt: Date.now(),
+              endedAt: undefined,
+              doneAt: undefined,
+              // Attempt 2 runs the agent's own script (no scripted gate,
+              // no seeded outcome) — but keeps the demo pace setting.
+              override:
+                r.override?.paceMultiplier != null
+                  ? { paceMultiplier: r.override.paceMultiplier }
+                  : undefined,
+              approval: undefined,
+            }
+          : r
+      )
+    );
+  }, []);
+
+  const remove = useCallback((runId: string) => {
+    // User delete gets one quick breath — 150ms, fade and slot in
+    // parallel — instead of the old same-frame vanish (too sudden) or
+    // the older staggered choreography (read as lag when bulk-clearing).
+    // Non-blocking: each dismissal runs independently, and conceal fires
+    // from the chip's animationend (400ms backstop for disc-hidden
+    // runs), so rapid ×-clicks never queue behind each other.
+    setRuns((prev) =>
+      prev.map((r) =>
+        r.id === runId
+          ? { ...r, removed: true, dismissed: true, removedAt: Date.now() }
+          : r,
+      ),
+    );
+  }, []);
+
+  // Called from the leaving element's animationend — after the exit motion
+  // the run drops out of the presence surfaces for good.
+  const conceal = useCallback((runId: string) => {
+    setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, concealed: true } : r)));
+  }, []);
+
+  return {
+    runs,
+    visibleRuns: runs.filter((r) => !r.concealed),
+    spawn,
+    stop,
+    approve,
+    deny,
+    rerun,
+    remove,
+    conceal,
+  };
+}
+
+/* -------------------------------- helpers --------------------------------- */
+
+export function formatDuration(ms: number): string {
+  const total = Math.max(1, Math.round(ms / 1000));
+  if (total < 60) return `${total}s`;
+  return `${Math.floor(total / 60)}m ${total % 60}s`;
+}
+
+function elapsedMs(run: AgentRun): number {
+  // A pending approval freezes the clock — the wait is the human's, not
+  // the agent's, so no surface should show it as working time.
+  return (run.approval?.pausedAt ?? run.endedAt ?? Date.now()) - run.startedAt;
+}
+
+// Fresh-spawn test: the arrival bloom belongs to runs entering the room,
+// not to veterans surfacing from the +N disc or standby shuffles.
+function isFreshSpawn(run: AgentRun): boolean {
+  return Date.now() - run.startedAt < 1500;
+}
+
+// Load choreography: for the first moments after the module boots in the
+// browser, every mounting chip is part of the PAGE's entrance — seeded
+// runs are backdated (accurate elapsed readouts), so without this window
+// a reload would drop the corner in cold. Surfacing is still not
+// arriving; but on load, the room itself is arriving.
+const PAGE_EPOCH = Date.now();
+function pageIsYoung(): boolean {
+  // 4s: the demo script staggers its seeds across ~3s of load — the
+  // window must outlast the last seed's first render.
+  return Date.now() - PAGE_EPOCH < 4000;
+}
+
+// The orbit's live angle on the shared phase clock — where the catch's
+// racing laps launch from.
+function catchLaunchAngle(): string {
+  return `${Math.round(((Date.now() % 1600) / 1600) * 360)}deg`;
+}
+
+// Phase-lock helper: a negative delay against the shared epoch, so every
+// instance of a looping animation lands on the same global phase — the
+// stack breathes as one organism instead of a desynced swarm. MUST be
+// computed exactly once per element (lazy state at mount): recomputing
+// on re-renders re-phases the running animation against its original
+// start time and drifts everything apart.
+function syncDelay(periodMs: number): string {
+  return `-${Date.now() % periodMs}ms`;
+}
+
+// Live status line: walks the agent's scripted thought beats (uneven dwell
+// times), then cycles the working tail from `loopFrom` so long runs stay
+// visibly alive; settles on the outcome (answer preview / failed / stopped).
+export function statusLine(run: AgentRun): string {
+  if (run.status === "working") {
+    // The corner carries the gate too: the line flips while the card
+    // waits in the transcript, so both surfaces tell the same story.
+    if (run.approval?.state === "pending")
+      return `Waiting for approval — ${run.approval.toolLabel}`;
+    const beats = run.agent.thoughts;
+    let t = elapsedMs(run);
+    for (const beat of beats) {
+      if (t < beat.ms) return beat.text;
+      t -= beat.ms;
+    }
+    const loop = beats.slice(Math.min(run.agent.loopFrom ?? 1, beats.length - 1));
+    let r = t % loop.reduce((sum, beat) => sum + beat.ms, 0);
+    for (const beat of loop) {
+      if (r < beat.ms) return beat.text;
+      r -= beat.ms;
+    }
+    return loop[loop.length - 1].text;
+  }
+  if (run.status === "done") return run.agent.answer[0];
+  if (run.status === "stopped") return "Agent stopped";
+  return "Agent failed";
+}
+
+/* -------------------------------- avatars --------------------------------- */
+
+// Sparkle mark for agents without a photo — tinted disc, white spark.
+function SparkleAvatar({ size, tint }: { size: number; tint?: string }) {
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full"
+      style={{ width: size, height: size, background: tint ?? "#1c1917" }}
+    >
+      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 16 16" aria-hidden>
+        <path
+          d="M8 1.5l1.55 4.1a1 1 0 00.58.58L14.5 8l-4.37 1.82a1 1 0 00-.58.58L8 14.5l-1.55-4.1a1 1 0 00-.58-.58L1.5 8l4.37-1.82a1 1 0 00.58-.58L8 1.5z"
+          fill="#fff"
+        />
+      </svg>
+    </span>
+  );
+}
+
+export function AgentFace({ agent, size }: { agent: AgentDef; size: number }) {
+  if (agent.photo == null) return <SparkleAvatar size={size} tint={agent.tint} />;
+  return (
+    <img
+      src={agent.photo}
+      alt=""
+      className="shrink-0 rounded-full object-cover"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+const RING_COLOR: Record<RunStatus, string> = {
+  working: "#8aa48d",
+  done: "#16A34A",
+  failed: "#DC2626",
+  stopped: "#DC2626",
+};
+
+// Status ring drawn around a face. Working = amber dashed orbit; done =
+// sealed green; failed/stopped = solid red. `disc` fills the ring interior
+// (white for the corner bubbles per Figma 17690-16754; omit on dark rows).
+//
+// State changes get staged transitions: resolving draws the outcome ring
+// closed over the fading dashes (seal), success/rerun pops, failure shakes.
+export function RingedFace({
+  agent,
+  status,
+  size = 28,
+  strokeWidth = 1.5,
+  inset = 6,
+  disc = false,
+  failPulse = false,
+  promoteDelayMs,
+  quiet = false,
+}: {
+  agent: AgentDef;
+  status: RunStatus;
+  size?: number;
+  strokeWidth?: number;
+  /** Air between portrait edge and ring, in px across both sides —
+      default 6 (corner bubbles); the in-text 20px body runs 4. */
+  inset?: number;
+  disc?: boolean;
+  /** Corner attention grammar: the red verdict ring breathes while failed. */
+  failPulse?: boolean;
+  /** Failure staging: hold the working face for this long after the
+      status flips (the promotion travel), so the red verdict lands at
+      the destination — cause first, then effect. */
+  promoteDelayMs?: number;
+  /** Crowded-corner completions: seal only, no celebration pop — one
+      agent finishing is a moment; the fourth of seven is weather. */
+  quiet?: boolean;
+}) {
+  // "Adjust state during render" pattern — detect the status flip without
+  // an effect, so the seal overlay mounts on the exact transition frame.
+  const [prevStatus, setPrevStatus] = useState(status);
+  const [seal, setSeal] = useState<RunStatus | null>(null);
+  // A freshly-failed bubble travels first: pendingFail keeps the working
+  // face through the journey; a timer then runs the seal at arrival.
+  const [pendingFail, setPendingFail] = useState(false);
+  // The orbit angle at the moment completion strikes — frozen once so
+  // the catch's fast laps launch exactly where the comet's head was.
+  // Deterministic from the shared phase clock (no DOM read needed).
+  const [catchTheta, setCatchTheta] = useState("0deg");
+  // Phase-lock delays, computed once per element — but only on the
+  // client. The board SSRs these faces, and a server Date.now() is a
+  // different clock: server-rendered delays hydrate as a mismatch. SSR
+  // emits no delay; the first client frame runs unphased (imperceptible)
+  // and the effect locks every element to the shared epoch.
+  const [sync, setSync] = useState<{ breathe: string; comet: string } | null>(null);
+  useEffect(() => {
+    // Deferred a tick (not set synchronously in the effect) so hydration
+    // commits clean before the phase-lock render.
+    const id = window.setTimeout(() => {
+      setSync({ breathe: syncDelay(4000), comet: syncDelay(1600) });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+  // Success pop is sequenced after the seal (aw-after-seal), so it outlives
+  // the seal state and clears on its own animation end.
+  const [celebrate, setCelebrate] = useState(false);
+  const [restarted, setRestarted] = useState(false);
+  if (prevStatus !== status) {
+    setPrevStatus(status);
+    if (prevStatus === "working") {
+      if (status === "failed" && promoteDelayMs != null) {
+        setPendingFail(true);
+      } else {
+        // Wave finishes don't perform — no racing spin, no pop, no
+        // ping (the spin is applause too, and once three dones share
+        // the corner, applause has stopped) — but quiet is not a
+        // teleport: the tail fills to green in place over 400ms while
+        // the orbit keeps turning (see aw-comet-catching-quiet). Solo
+        // completions keep the full ceremony.
+        setSeal(status);
+        if (status === "done") {
+          setCatchTheta(catchLaunchAngle());
+          if (!quiet) setCelebrate(true);
+        }
+      }
+    } else if (status === "working") {
+      // Rerun kicking back in — clear any leftover seal, pop the ring.
+      setSeal(null);
+      setCelebrate(false);
+      setRestarted(true);
+    }
+  }
+  // If the run leaves failed while still traveling (rerun), abandon the
+  // staged verdict.
+  if (pendingFail && status !== "failed") setPendingFail(false);
+  useEffect(() => {
+    if (!pendingFail) return;
+    const timer = window.setTimeout(() => {
+      setPendingFail(false);
+      setSeal("failed");
+    }, promoteDelayMs ?? 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingFail, promoteDelayMs]);
+
+  const center = size / 2;
+  // While the verdict is staged, the bubble still wears its working face.
+  const effStatus: RunStatus = pendingFail ? "working" : status;
+  const working = effStatus === "working";
+  // Failed and stopped share one ring: same weight, same geometry —
+  // the throb is the only thing that separates them.
+  const radius = center - strokeWidth / 2;
+  const circumference = 2 * Math.PI * radius;
+  // Failure jolts immediately; success celebrates after the seal closes.
+  const wrapperFx =
+    seal != null && seal !== "done"
+      ? "aw-shake"
+      : celebrate
+        ? "aw-scale-pop aw-after-seal"
+        : restarted
+          ? "aw-scale-pop"
+          : "";
+  // Stopped rest: once the red seal has drawn, the bubble goes even
+  // lighter — portrait to half ink, ring to 0.7 — while the white disc
+  // underneath stays fully opaque (no stack bleed). A stop was your own
+  // act, parked by you: identity recedes hardest, the verdict stays
+  // legible. Recede at the settle's tempo (400ms); waking lifts in
+  // 150ms under the restart pop. Failed dims nothing.
+  const parked = effStatus === "stopped" && seal == null;
+  const parkedFade = (dim: number): React.CSSProperties => ({
+    opacity: parked ? dim : 1,
+    transition: `opacity ${parked ? 400 : 150}ms cubic-bezier(0.2, 0, 0.2, 1)`,
+  });
+
+  return (
+    <span
+      // aw-breathe: the working bubble inhales/exhales. Transition
+      // classes (pop, shake) are defined later in the CSS, so they take
+      // the animation shorthand for their moment and hand it back.
+      // Stopped rest lives on the LAYERS, not this root: the root keeps
+      // the white disc fully opaque so stacked neighbors never bleed
+      // through a parked bubble — the portrait and ring dim instead.
+      className={`relative shrink-0 rounded-full ${disc ? "bg-white" : ""} ${wrapperFx}`}
+      style={{ width: size, height: size }}
+      onAnimationEnd={(event) => {
+        if (
+          event.animationName === "aw-seal-draw" ||
+          event.animationName.startsWith("aw-catch-close")
+        )
+          setSeal(null);
+        if (event.animationName === "aw-scale-pop") {
+          setCelebrate(false);
+          setRestarted(false);
+        }
+      }}
+    >
+      {/* Synchronized breathing: every working bubble computes its
+          animation delay against the same epoch, so the whole stack
+          inhales as one organism — same motion, none of the swarm
+          texture desync creates. Breathe lives on its own wrapper so
+          the inline delay can never poison the root's pop/shake. */}
+      <span
+        // Small bodies breathe deeper: 1.035 is sub-pixel at 20px, so
+        // the in-text face takes the -sm amplitude to stay visibly
+        // alive. Same tempo, same shared phase clock.
+        className={`absolute inset-0 ${
+          working ? (size <= 20 ? "aw-breathe-sm" : "aw-breathe") : ""
+        }`}
+        style={working && sync ? { animationDelay: sync.breathe } : undefined}
+      >
+      {/* Working comet — the Kinetic set's W2: one bright head, fading
+          tail, on a 1.6s orbit, brand blue (the page's activity color).
+          Kept mounted while sealing so it
+          fades under the outcome ring instead of vanishing; the sync
+          delay applies only while working so the seal's aw-ring-fade
+          keeps its own clock. */}
+      {/* The comet span carries working AND completion — same element,
+          same texture. On done the aw-comet animation entry stays first
+          in the list (phase preserved, no restart) while aw-catch-close
+          animates the registered gradient stops: the tail catches the
+          head and the body sets into the solid green ring, which then
+          holds through the linger. Failed/stopped seals keep the span
+          only for its fade under the red draw. */}
+      {working || effStatus === "done" || seal != null ? (
+        <span
+          className={`aw-comet ${
+            seal === "done"
+              ? quiet
+                ? "aw-comet-catching-quiet"
+                : "aw-comet-catching"
+              : effStatus === "done"
+                ? "aw-comet-done"
+                : seal != null
+                  ? "aw-ring-fade"
+                  : ""
+          }`}
+          style={{
+            ...(agent.hue ? { "--aw-tint": agent.hue } : null),
+            ...(working && sync ? { animationDelay: sync.comet } : null),
+            ...(seal === "done"
+              ? quiet
+                ? { ...(sync ? { animationDelay: `${sync.comet}, 0ms` } : null) }
+                : {
+                    ...(sync ? { animationDelay: `${sync.comet}, 0ms, 0ms` } : null),
+                    "--aw-theta": catchTheta,
+                  }
+              : null),
+          } as React.CSSProperties}
+          aria-hidden
+        />
+      ) : null}
+      {/* Red verdicts stay imposed: failure/stop draw the ring from
+          twelve over the fading comet — a different arrival from
+          completion's grown ring, on purpose. Corner failures throb
+          (class on the svg, so it never fights the circle's animation
+          shorthand). */}
+      {!working && effStatus !== "done" ? (
+        <svg
+          width={size}
+          height={size}
+          className={`absolute inset-0 ${failPulse && effStatus === "failed" ? "aw-fail-throb" : ""}`}
+          style={parkedFade(0.7)}
+          aria-hidden
+        >
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            strokeWidth={strokeWidth}
+            stroke={RING_COLOR[seal ?? effStatus]}
+            strokeLinecap="round"
+            className={seal != null ? "aw-seal-draw" : ""}
+            strokeDasharray={seal != null ? circumference : undefined}
+            strokeDashoffset={seal != null ? circumference : undefined}
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+        </svg>
+      ) : null}
+      <span
+        className="absolute inset-0 flex items-center justify-center"
+        style={parkedFade(0.5)}
+      >
+        {/* Tight geometry: the ring hugs the portrait — ~1px of air
+            between face edge and stroke, not a moat. No glow: working
+            carries only continuous flow (comet + breathe), so failure's
+            beat is the sole rhythm in the corner. `inset` narrows the
+            air further for the in-text 20px body. */}
+        <AgentFace agent={agent} size={size - inset} />
+      </span>
+      </span>
+    </span>
+  );
+}
+
+/* ------------------------------ corner stack ------------------------------- */
+
+// "+N" disc occupying the fourth slot when the stack overflows — Vercel
+// Toolbar's collapsed-count pattern. A full solid circle, no status ring:
+// a count is not an alarm, and status belongs to the agents themselves
+// (failures persist in the flyout until addressed).
+export function OverflowDisc({ count }: { count: number }) {
+  // The dial: a count that changes silently is a rerender; a count that
+  // rolls is an instrument reading the room. Odometer semantics — the
+  // crowd grows, digits climb (old label out the top, new in from the
+  // bottom); the crowd thins, they descend. Mount never rolls: the roll
+  // is for CHANGES witnessed, not for the disc appearing.
+  const [shown, setShown] = useState(count);
+  const [roll, setRoll] = useState<{ from: number; up: boolean } | null>(null);
+  if (count !== shown) {
+    setRoll({ from: shown, up: count > shown });
+    setShown(count);
+  }
+  return (
+    // Chrome register, not agent register: the count is the least
+    // important thing in the corner, so it carries the least ink —
+    // the same quiet gray as the header's member-count pill. The old
+    // near-black disc outweighed the verdicts beside it. overflow-hidden
+    // is the dial's window: labels travel 9px and the disc clips them.
+    <span className="relative flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#f5f5f4] text-[11px] font-medium leading-none text-[#58524e]">
+      <span
+        key={shown}
+        className={roll ? (roll.up ? "aw-dial-in-up" : "aw-dial-in-down") : ""}
+      >{`+${shown}`}</span>
+      {roll ? (
+        <span
+          key={`out-${roll.from}`}
+          aria-hidden
+          className={`absolute inset-0 flex items-center justify-center ${
+            roll.up ? "aw-dial-out-up" : "aw-dial-out-down"
+          }`}
+          onAnimationEnd={() => setRoll(null)}
+        >{`+${roll.from}`}</span>
+      ) : null}
+    </span>
+  );
+}
+
+// The +N end-cap with its corner chrome — extracted like CornerBubble so
+// the board renders the production disc, not a lookalike wrapper. Blooms
+// on mount: the disc only ever mounts when overflow begins, which IS its
+// arrival.
+export function CornerOverflow({
+  count,
+  marginLeft,
+  ariaLabel,
+  onClick,
+}: {
+  count: number;
+  marginLeft: number;
+  ariaLabel?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      tabIndex={onClick ? undefined : -1}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className="aw-chip-in relative flex rounded-full"
+      style={{
+        marginLeft,
+        boxShadow: "0 0 0 2px white",
+        // End-cap: above every bubble's urgency band, so the count is
+        // never tucked behind its neighbor.
+        zIndex: 100,
+      }}
+    >
+      <OverflowDisc count={count} />
+    </button>
+  );
+}
+
+// The corner's per-bubble markup, extracted whole so the board's shipped
+// harness renders THIS component — not a hand-kept mirror. CornerStack
+// owns policy (windowing, entering, urgency z, conceal bookkeeping);
+// CornerBubble owns every pixel of one bubble. There is no second copy
+// to fall behind: if a state drifts on the board, it drifted here.
+export function CornerBubble({
+  agent,
+  status,
+  entering = false,
+  removed = false,
+  dismissed = false,
+  overlapped = false,
+  marginLeft = 0,
+  z,
+  quiet = false,
+  ping = false,
+  promoteDelayMs,
+  runId,
+  ariaLabel,
+  onClick,
+  onBloomEnd,
+  onExitEnd,
+}: {
+  agent: AgentDef;
+  status: RunStatus;
+  entering?: boolean;
+  removed?: boolean;
+  dismissed?: boolean;
+  /** Shares a shelf with its left neighbor — the exit must pin the margin. */
+  overlapped?: boolean;
+  /** The stack's density decision: −8 within a shelf, 6 across the gap, 0 leader. */
+  marginLeft?: number;
+  z?: number;
+  quiet?: boolean;
+  ping?: boolean;
+  promoteDelayMs?: number;
+  runId?: string;
+  ariaLabel?: string;
+  onClick?: () => void;
+  onBloomEnd?: () => void;
+  onExitEnd?: () => void;
+}) {
+  return (
+    <button
+      data-run-id={runId}
+      type="button"
+      tabIndex={onClick ? undefined : -1}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      // Condense in when a run spawns (once — the class drops after
+      // the bloom so reorders can't replay it). Natural departures
+      // dissolve out with the condensation farewell; a user delete
+      // leaves with the flyout row's quick fade. The exit variant must
+      // match the actual margin: overlap keyframes pin −8 mid-flight,
+      // so gap-leaders take the base.
+      className={`relative flex rounded-full ${
+        removed
+          ? dismissed
+            ? overlapped
+              ? "aw-chip-dismiss-overlap"
+              : "aw-chip-dismiss"
+            : overlapped
+              ? "aw-chip-out-overlap"
+              : "aw-chip-out"
+          : entering
+            ? "aw-chip-in"
+            : ""
+      }`}
+      onAnimationEnd={(event) => {
+        if (event.animationName === "aw-chip-in") onBloomEnd?.();
+        if (
+          event.animationName.startsWith("aw-chip-out") ||
+          event.animationName.startsWith("aw-chip-dismiss")
+        )
+          onExitEnd?.();
+      }}
+      // Overlap lives on each bubble's own left margin so appending a
+      // newcomer never touches an existing bubble's styles (no snap).
+      // --aw-overlap feeds the exit keyframes' margin pin.
+      style={
+        {
+          marginLeft,
+          boxShadow: "0 0 0 2px white",
+          zIndex: z,
+          ...(overlapped ? { "--aw-overlap": `${marginLeft}px` } : null),
+        } as React.CSSProperties
+      }
+    >
+      {/* failPulse: the red verdict ring breathes in place until the
+          failure is addressed. Failed only — a stop was the user's
+          own act, so it rests. */}
+      <RingedFace
+        agent={agent}
+        status={status}
+        size={30}
+        strokeWidth={2}
+        disc
+        failPulse
+        promoteDelayMs={promoteDelayMs}
+        quiet={quiet}
+      />
+      {/* Completion ping — the stack mounts it exactly when the run
+          turns green, unless a completion wave is in progress. */}
+      {ping ? <span aria-hidden className="aw-ping absolute inset-0 rounded-full" /> : null}
+    </button>
+  );
+}
+
+// Bottom-right presence, per Figma 17690-16754: 34px ringed bubbles on a
+// white disc, 4px white gap-ring, stacked with an 8px overlap (later bubble
+// on top). At 5+ agents the fourth slot becomes a "+N" disc. Hovering the
+// stack opens the flyout; clicking an individual bubble jumps to the
+// message that invoked that agent.
+// Urgency rank — orders both presence surfaces. The requires-action
+// shelf (failed, then stopped — runs parked until you decide) outranks
+// staging (working, then done), so nothing needing a decision can fold
+// into the +N disc.
+function urgency(run: AgentRun): number {
+  switch (run.status) {
+    case "failed":
+      return 3;
+    case "stopped":
+      return 2;
+    case "working":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+// The two corner shelves: requires-action vs staging.
+function needsAction(run: AgentRun): boolean {
+  return run.status === "failed" || run.status === "stopped";
+}
+
+// Display rank — what the sort and z-banding actually use. A lingering
+// (or departing) green keeps the WORKING band: a finish changes ink,
+// never geometry. Demoting done to its own band made every seal a
+// stacking pop and a possible teleport into the done band — three of
+// them during a wave, right when the corner has promised quiet. The
+// green holds its seat until the one universal shift carries it out.
+function displayRank(run: AgentRun): number {
+  return run.status === "done" ? 1 : urgency(run);
+}
+
+export function CornerStack({
+  runs,
+  resting = false,
+  onHoverChange,
+  onJumpRun,
+  onConceal,
+}: {
+  runs: AgentRun[];
+  /** Spotlight discipline: true while the flyout is open — loops pause
+      and comets dim so the panel is the only live surface. */
+  resting?: boolean;
+  onHoverChange: (hovering: boolean) => void;
+  onJumpRun: (run: AgentRun) => void;
+  onConceal: (runId: string) => void;
+}) {
+  // Window by urgency (failures always make the cut), then display with
+  // the most urgent at the LEFT — first thing the eye meets reading the
+  // stack. Within a band, newest first: an arrival claims a visible
+  // slot and blooms — the eldest worker folds into the +N disc instead
+  // (bookkeeping: instant, like every non-failure reorder). Without the
+  // recency key, a full corner ate arrivals whole: the newcomer ranked
+  // last, bloomed in slot four, and was yanked mid-bloom into the disc
+  // the moment the roster crossed the cap. Sort keys are fixed per run
+  // (status + spawn time), so bubbles never move mid-orbit.
+  //
+  // Four slots, mirroring the flyout's four-row window — one mental
+  // model across both surfaces. At five or more the fourth slot becomes
+  // the +N disc (three bubbles + disc). Overlap stays a constant −8;
+  // both halves of elastic density were tried and walked back.
+  const count = runs.length;
+  const overlap = -8;
+  const overflowing = count > 4;
+  const visibleCount = overflowing ? 3 : count;
+  // Completion-wave detection: with three or more done bubbles
+  // lingering together, individual applause stops — each finish seals
+  // quietly, and the engine departs the wave as one. The first couple
+  // of completions still celebrate; the corner never claps N times.
+  // Removed dones count too: they render until concealed, and if the
+  // wave un-flagged at the departure update, every leaving chip would
+  // mount the pop and ping it was denied — a group encore of the exact
+  // applause the wave exists to hush. Quiet must hold to the door.
+  const doneCount = runs.filter((run) => run.status === "done").length;
+  const wave = doneCount >= 3;
+  const ranked = [...runs].sort(
+    (a, b) => displayRank(b) - displayRank(a) || b.startedAt - a.startedAt,
+  );
+  const visible = ranked.slice(0, visibleCount);
+  const hidden = ranked.slice(visibleCount);
+
+  // Entry plays once: after aw-chip-in finishes the class comes off, so
+  // a reorder (React moving the keyed node) can't replay the bloom.
+  const [enteredIds, setEnteredIds] = useState<Set<string>>(() => new Set());
+
+  // Reorders are NOT animated — with one exception. Housekeeping
+  // (completions stepping aside, density shifts, stops you initiated)
+  // lands instantly, between glances: no motion tax. But a run FAILING
+  // is a signal, not housekeeping — the bubble travels to the
+  // requires-action shelf in the Dynamic Island grammar: picked up
+  // (slight lift), carried over the stack (it already owns the top
+  // z), and set down at the front, while displaced neighbors slide
+  // plainly. (enteredIds keeps any reorder from replaying the arrival
+  // bloom when React moves a keyed bubble.)
+  const stackRef = useRef<HTMLDivElement>(null);
+  const chipLefts = useRef(new Map<string, number>());
+  const prevStatusRef = useRef(new Map<string, RunStatus>());
+  useLayoutEffect(() => {
+    const stack = stackRef.current;
+    if (!stack) return;
+    const freshFailed = new Set<string>();
+    for (const run of visible) {
+      const prev = prevStatusRef.current.get(run.id);
+      if (run.status === "failed" && prev != null && prev !== "failed") {
+        freshFailed.add(run.id);
+      }
+    }
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const els = [...stack.querySelectorAll<HTMLElement>("[data-run-id]")];
+    for (const el of els) {
+      const id = el.dataset.runId;
+      if (!id) continue;
+      const left = el.offsetLeft;
+      const prevLeft = chipLefts.current.get(id);
+      if (prevLeft == null) {
+        // First frame on the rail. Fresh spawns bloom via aw-chip-in;
+        // everything else is a DOCK — a bubble arriving because its row
+        // scrolled away — and slides in from the transcript's direction
+        // with a soft settle, instead of just appearing.
+        if (!reduceMotion && !el.classList.contains("aw-chip-in")) {
+          el.animate(
+            [
+              { transform: "translateY(-16px) scale(0.88)", opacity: 0 },
+              { transform: "translateY(2px) scale(1.03)", opacity: 1, offset: 0.72 },
+              { transform: "translateY(0) scale(1)", opacity: 1 },
+            ],
+            { duration: 420, easing: "cubic-bezier(0.22, 0.68, 0.28, 1)" },
+          );
+        }
+      } else if (!reduceMotion && freshFailed.size > 0 && prevLeft !== left) {
+        const dx = prevLeft - left;
+        if (freshFailed.has(id)) {
+          // The promotion itself: spring travel with a mid-flight lift.
+          el.animate(
+            [
+              { transform: `translateX(${dx}px) scale(1)` },
+              { transform: `translateX(${dx * 0.35}px) scale(1.07)`, offset: 0.55 },
+              { transform: "translateX(0) scale(1)" },
+            ],
+            { duration: 560, easing: "cubic-bezier(0.3, 0, 0.2, 1)" },
+          );
+        } else {
+          // Displaced neighbors step aside without ceremony.
+          el.animate(
+            [{ transform: `translateX(${dx}px)` }, { transform: "translateX(0)" }],
+            { duration: 300, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+          );
+        }
+      }
+      chipLefts.current.set(id, left);
+    }
+    const ids = new Set(els.map((el) => el.dataset.runId));
+    for (const id of [...chipLefts.current.keys()]) {
+      if (!ids.has(id)) chipLefts.current.delete(id);
+    }
+    prevStatusRef.current = new Map(visible.map((run) => [run.id, run.status]));
+  });
+
+  return (
+    // Padded hover halo (mock wraps the bubbles in a 16px hover zone) —
+    // offsets compensate so the rings still sit at right-16 / bottom-154
+    // (tracks the Aug composer: 70px input row + p-3 toolbar = 123px box).
+    <div
+      ref={stackRef}
+      className={`absolute bottom-[146px] right-2 z-40 flex items-center p-2 ${
+        resting ? "aw-stack-rest" : ""
+      }`}
+      onMouseEnter={() => onHoverChange(true)}
+      onMouseLeave={() => onHoverChange(false)}
+    >
+      {visible.map((run, index) => {
+        // Overlap only within a shelf; a shelf boundary opens a gap
+        // instead, so requires-action sits visibly apart from staging.
+        // The exit variants must match the actual margin: overlap
+        // keyframes pin −8 mid-flight, so gap-leaders take the base.
+        const overlapped = index > 0 && needsAction(visible[index - 1]) === needsAction(run);
+        // The arrival bloom is for agents ENTERING THE ROOM — a run
+        // surfacing from the +N disc (or reshuffled from standby) was
+        // already here, just uncounted, so it lands instantly like any
+        // reorder. Age is the tell: only genuinely fresh spawns bloom —
+        // except during load choreography, when everyone condenses in
+        // with the page.
+        const entering =
+          !enteredIds.has(run.id) &&
+          !run.removed &&
+          (isFreshSpawn(run) || pageIsYoung());
+        return (
+          // z-order: urgency bands (failed above working above done),
+          // and WITHIN a band the leftmost — newest — bubble overlays
+          // its followers, so a pile of failures reads left-to-right
+          // with whole rings, never chomped from the right. The verdict
+          // (promoteDelayMs) waits out the promotion travel and lands
+          // at the front — red appears where you're already looking.
+          <CornerBubble
+            key={run.id}
+            runId={run.id}
+            agent={run.agent}
+            status={run.status}
+            entering={entering}
+            removed={run.removed}
+            dismissed={run.dismissed}
+            overlapped={overlapped}
+            marginLeft={index === 0 ? 0 : overlapped ? overlap : 6}
+            z={(displayRank(run) + 1) * 10 - index}
+            quiet={wave}
+            ping={run.status === "done" && !wave}
+            promoteDelayMs={560}
+            ariaLabel={`Jump to ${run.agent.name}'s invoking message`}
+            onClick={() => onJumpRun(run)}
+            onBloomEnd={() =>
+              setEnteredIds((prev) => {
+                const next = new Set(prev);
+                next.add(run.id);
+                return next;
+              })
+            }
+            onExitEnd={() => onConceal(run.id)}
+          />
+        );
+      })}
+      {overflowing ? (
+        // No single message to jump to — opening the roster is the answer
+        // (and gives touch a path to it). Sits on the staging shelf: a
+        // gap if the last visible bubble is requires-action.
+        <CornerOverflow
+          count={hidden.length}
+          marginLeft={
+            visible.length > 0 && needsAction(visible[visible.length - 1]) ? 6 : overlap
+          }
+          ariaLabel={`${hidden.length} more agents`}
+          onClick={() => onHoverChange(true)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* ---------------------------- jump-to-latest ------------------------------- */
+
+// Dynamic-island pill (Figma 17840-6080): appears when answers land while
+// you're scrolled away, carrying the faces of who posted. Springs up from
+// the transcript's bottom edge, bumps on retarget, retracts on click or
+// when you reach the bottom yourself.
+export function JumpToLatestPill({
+  leaving,
+  bumpKey,
+  faces,
+  onJump,
+  onExited,
+}: {
+  leaving: boolean;
+  bumpKey: number;
+  faces: AgentDef[];
+  onJump: () => void;
+  onExited: () => void;
+}) {
+  return (
+    // Positioning wrapper stays static — the animated element must not own
+    // the centering translate, or the keyframe transforms would evict it.
+    <div className="pointer-events-none absolute inset-x-0 bottom-[170px] z-30 flex justify-center">
+      <button
+        type="button"
+        onClick={onJump}
+        onAnimationEnd={(event) => {
+          if (event.animationName === "aw-pill-out") onExited();
+        }}
+        className={`pointer-events-auto flex h-8 items-center gap-1.5 rounded-full bg-[#1b1b1b] pl-2.5 pr-3 shadow-[0px_8px_24px_-6px_rgba(16,16,16,0.4),0px_0px_0.5px_0.75px_rgba(16,16,16,0.2)] ${
+          leaving ? "aw-pill-out" : "aw-pill-in"
+        }`}
+      >
+        {/* Retarget: new arrivals bump the content, not the container. */}
+        <span key={bumpKey} className="aw-pill-bump flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="text-white">
+            <path
+              d="M6 2v8M2.8 6.8L6 10l3.2-3.2"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span className="text-[12px] leading-4 text-white">Jump to latest</span>
+          {faces.length > 0 ? (
+            <span className="flex items-center">
+              {faces.slice(0, 2).map((agent, index) => (
+                <span
+                  key={agent.id}
+                  className="rounded-full"
+                  style={{
+                    marginLeft: index > 0 ? -4 : 2,
+                    boxShadow: "0 0 0 2px #1b1b1b",
+                  }}
+                >
+                  <AgentFace agent={agent} size={16} />
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------ small icons -------------------------------- */
+
+// Exported for the page's ring-presence hover control.
+export function StopGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <rect x="2.5" y="2.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+export function RerunGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path
+        d="M9.8 6a3.8 3.8 0 11-1.1-2.7M9.8 1.6v2.2H7.6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function CloseGlyph({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden>
+      <path
+        d="M3 3l6 6M9 3l-6 6"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path
+        d="M4.5 2.5L8 6l-3.5 3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/* --------------------------------- flyout ---------------------------------- */
+
+const WINDOW = 4;
+
+export function AgentFlyout({
+  runs,
+  focusRunId,
+  closing = false,
+  onClose,
+  onExited,
+  onHoverChange,
+  onStop,
+  onRerun,
+  onRemove,
+  onJump,
+  onTrace,
+}: {
+  runs: AgentRun[];
+  /** A run summoned by clicking its line face — it leads the list. */
+  focusRunId?: string;
+  closing?: boolean;
+  onClose: () => void;
+  onExited: () => void;
+  onHoverChange: (hovering: boolean) => void;
+  onStop: (runId: string) => void;
+  onRerun: (runId: string) => void;
+  onRemove: (runId: string) => void;
+  onJump: (run: AgentRun) => void;
+  onTrace: (run: AgentRun) => void;
+}) {
+  const [page, setPage] = useState(0);
+  // Rows present when the panel opened render settled (the panel pop is
+  // their entrance); only runs that spawn while the panel is up play the
+  // short row-in. Lazy state snapshots the opening roster exactly once.
+  const [openingIds] = useState(() => new Set(runs.map((run) => run.id)));
+
+  // Same shelf order as the corner: requires-action (failed, stopped)
+  // first, then staging, newest first within a band — the panel's first
+  // page mirrors the corner's visible set exactly.
+  const rows = [...runs].sort(
+    (a, b) =>
+      // A summoned run outranks everything — it's what you clicked for.
+      Number(b.id === focusRunId) - Number(a.id === focusRunId) ||
+      displayRank(b) - displayRank(a) ||
+      b.startedAt - a.startedAt,
+  );
+
+  // FLIP on reorder: when the urgency sort moves a row (a status just
+  // changed), ease it from its old slot instead of teleporting. Rows
+  // are found by data-run-id at commit time; baselines live in a ref.
+  // Skipped while any row is playing its in/out — those choreograph
+  // their own space.
+  const listRef = useRef<HTMLDivElement>(null);
+  const rowTops = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const busy = list.querySelector(".aw-row-in, .aw-row-out, .aw-row-cut") != null;
+    const seen = new Set<string>();
+    for (const el of list.querySelectorAll<HTMLElement>("[data-run-id]")) {
+      const id = el.dataset.runId;
+      if (!id) continue;
+      seen.add(id);
+      const top = el.offsetTop;
+      const prev = rowTops.current.get(id);
+      if (!busy && prev != null && prev !== top) {
+        el.animate(
+          [{ transform: `translateY(${prev - top}px)` }, { transform: "translateY(0)" }],
+          { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+        );
+      }
+      rowTops.current.set(id, top);
+    }
+    for (const id of [...rowTops.current.keys()]) {
+      if (!seen.has(id)) rowTops.current.delete(id);
+    }
+  });
+  // Clamp the window when rows shrink under the current page.
+  const pageCount = Math.max(1, Math.ceil(rows.length / WINDOW));
+  const safePage = Math.min(page, pageCount - 1);
+  const windowRows = rows.slice(safePage * WINDOW, safePage * WINDOW + WINDOW);
+
+  return (
+    // 16px above the corner bubbles (ring top = 166 from the main-card
+    // bottom in the reference frame), right-aligned with them. Closing
+    // plays the pop-out, then onExited unmounts (checked by name — row
+    // animations bubble up here too).
+    <div
+      onMouseEnter={() => onHoverChange(true)}
+      onMouseLeave={() => onHoverChange(false)}
+      onAnimationEnd={(event) => {
+        if (event.animationName === "aw-pop-out") onExited();
+      }}
+      className={`absolute bottom-[204px] right-4 z-40 w-[360px] overflow-hidden rounded-[10px] bg-[#1b1b1b] shadow-[0px_16px_32px_-8px_rgba(16,16,16,0.4),0px_0px_0.5px_0.75px_rgba(16,16,16,0.2)] ${
+        closing ? "aw-pop-exit" : "aw-pop-enter"
+      }`}
+    >
+      <div className="flex h-9 items-center justify-between border-b border-white/10 pl-3 pr-2">
+        <span className="text-[13px] font-medium leading-4 text-white">Active agents</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="flex size-6 items-center justify-center rounded-[5px] text-[#8a8a8a] transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <CloseGlyph />
+        </button>
+      </div>
+
+      {windowRows.length === 0 ? (
+        <div className="flex h-16 items-center justify-center text-[12px] text-[#8a8a8a]">
+          No active agents
+        </div>
+      ) : (
+        // Keyed by page: a pager flip remounts the list through a brief
+        // settle (aw-list-swap) — a turn, not a teleport.
+        <div key={safePage} ref={listRef} className="aw-list-swap flex flex-col p-1">
+          {windowRows.map((run) => (
+            <div key={run.id} data-run-id={run.id}>
+              <FlyoutRow
+                run={run}
+                entering={!openingIds.has(run.id) && isFreshSpawn(run)}
+                onStop={onStop}
+                onRerun={onRerun}
+                onRemove={onRemove}
+                onJump={onJump}
+                onTrace={onTrace}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Pager — the spec only renders this section at 5+ agents. */}
+      {rows.length > WINDOW ? (
+        <div className="flex h-9 items-center justify-between border-t border-white/10 pl-3 pr-2">
+          <span className="text-[12px] text-[#8a8a8a]">
+            {`Showing ${windowRows.length} of ${rows.length} agents`}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={safePage === 0}
+              onClick={() => setPage(safePage - 1)}
+              aria-label="Previous agents"
+              className="flex size-6 rotate-180 items-center justify-center rounded-[5px] text-[#8a8a8a] transition-colors enabled:hover:bg-white/10 enabled:hover:text-white disabled:opacity-30"
+            >
+              <ChevronGlyph />
+            </button>
+            <button
+              type="button"
+              disabled={safePage >= pageCount - 1}
+              onClick={() => setPage(safePage + 1)}
+              aria-label="Next agents"
+              className="flex size-6 items-center justify-center rounded-[5px] text-[#8a8a8a] transition-colors enabled:hover:bg-white/10 enabled:hover:text-white disabled:opacity-30"
+            >
+              <ChevronGlyph />
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FlyoutRow({
+  run,
+  onStop,
+  onRerun,
+  onRemove,
+  onJump,
+  onTrace,
+  entering = false,
+}: {
+  run: AgentRun;
+  onStop: (runId: string) => void;
+  onRerun: (runId: string) => void;
+  onRemove: (runId: string) => void;
+  onJump: (run: AgentRun) => void;
+  onTrace: (run: AgentRun) => void;
+  entering?: boolean;
+}) {
+  const working = run.status === "working";
+  const failed = run.status === "failed" || run.status === "stopped";
+  // Mount-time shimmer phase (see syncDelay).
+  const [rowShimmerDelay] = useState(() => syncDelay(2200));
+  return (
+    // Row click returns to the invoked message; inner controls stop the
+    // bubble so stop/rerun/remove/trace never double as navigation. In
+    // and out share one short gesture: a quick fade while the row's
+    // space opens or closes; conceal drops the run when the out ends.
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onJump(run)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") onJump(run);
+      }}
+      // No conceal here — the corner bubble is the single conceal source
+      // (it is always mounted; this panel may not be). The row just holds
+      // its finished exit frame until the run is concealed.
+      className={`group flex cursor-pointer items-center gap-2.5 rounded-[8px] p-2 text-left transition-colors hover:bg-white/5 ${
+        run.removed
+          ? run.dismissed
+            ? "aw-row-cut"
+            : "aw-row-out"
+          : entering
+            ? "aw-row-in"
+            : ""
+      }`}
+    >
+      <RingedFace agent={run.agent} status={run.status} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onTrace(run);
+            }}
+            className="flex min-w-0 items-center gap-1 text-left"
+          >
+            {/* Thought beats swap in place — the shimmer alone signals live
+                work; no roll on text changes. Phase-locked to the global
+                clock like every working motion. */}
+            <span
+              className={`truncate text-[13px] leading-4 ${
+                working ? "aw-shimmer-dark" : "text-white"
+              }`}
+              style={working ? { animationDelay: rowShimmerDelay } : undefined}
+            >
+              {statusLine(run)}
+            </span>
+            <span className="shrink-0 text-[#8a8a8a] transition-colors group-hover:text-white/80">
+              <ChevronGlyph />
+            </span>
+          </button>
+        </span>
+        <span className="truncate text-[12px] leading-4 text-[#8a8a8a]">
+          {/* Stops carry attribution instead of the prompt — never silent. */}
+          {run.status === "stopped" && run.stoppedBy != null
+            ? `↳ Stopped by ${run.stoppedBy}`
+            : `↳ ${run.prompt}`}
+        </span>
+      </span>
+
+      {/* Elapsed crossfades to controls on hover — the right slot
+          reserves exactly its own row's control width (one button for
+          working/stopped, two for failed) so the swap never reflows,
+          while min-width lets a long elapsed widen the slot instead of
+          spilling over the text. */}
+      <span
+        className="relative flex shrink-0 items-center justify-end"
+        style={{ minWidth: run.status === "failed" ? 52 : 28 }}
+      >
+        <span className="pointer-events-none text-[12px] leading-4 tabular-nums text-[#8a8a8a] transition-opacity duration-150 group-hover:opacity-0">
+          {formatDuration(elapsedMs(run))}
+        </span>
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+        {working ? (
+          <button
+            type="button"
+            aria-label="Stop agent"
+            onClick={(event) => {
+              event.stopPropagation();
+              onStop(run.id);
+            }}
+            className="flex size-6 items-center justify-center rounded-[5px] text-[#8a8a8a] transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <StopGlyph />
+          </button>
+        ) : (
+          <>
+            {failed ? (
+              <button
+                type="button"
+                aria-label="Rerun agent"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRerun(run.id);
+                }}
+                className="flex size-6 items-center justify-center rounded-[5px] text-[#8a8a8a] transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <RerunGlyph />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              aria-label="Remove agent"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemove(run.id);
+              }}
+              className="flex size-6 items-center justify-center rounded-[5px] text-[#8a8a8a] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <CloseGlyph />
+            </button>
+          </>
+        )}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/* ------------------------------- trace modal -------------------------------- */
+
+export type TraceView = {
+  outcome: RunStatus;
+  toolCalls: number;
+  workedForMs: number;
+  steps: TraceStep[];
+  visibleSteps: number;
+  stoppedBy?: string;
+};
+
+export function traceViewFromRun(run: AgentRun): TraceView {
+  const elapsed = elapsedMs(run);
+  const resolved = run.status !== "working";
+  return {
+    outcome: run.status,
+    toolCalls: run.agent.toolCalls(run.attempt),
+    workedForMs: elapsed,
+    stoppedBy: run.stoppedBy,
+    steps: run.agent.traceSteps,
+    // While working, steps reveal progressively so the modal feels live.
+    visibleSteps: resolved
+      ? run.agent.traceSteps.length
+      : Math.min(run.agent.traceSteps.length, 1 + Math.floor(elapsed / 2200)),
+  };
+}
+
+const TRACE_VERB_GLYPHS: Record<string, React.ReactNode> = {
+  Ran: (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+      <rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#78716c" strokeWidth="1.1" />
+      <path d="M6 5l3 2-3 2z" fill="#78716c" />
+    </svg>
+  ),
+  Wrote: (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+      <path
+        d="M9.5 2.5l2 2L5 11l-2.5.5L3 9l6.5-6.5z"
+        fill="none"
+        stroke="#78716c"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+  Searched: (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+      <circle cx="6" cy="6" r="3.5" fill="none" stroke="#78716c" strokeWidth="1.1" />
+      <path d="M8.8 8.8l2.7 2.7" stroke="#78716c" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  ),
+  Read: (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+      <rect x="3" y="1.8" width="8" height="10.4" rx="1.5" fill="none" stroke="#78716c" strokeWidth="1.1" />
+      <path d="M5 5h4M5 7h4M5 9h2.5" stroke="#78716c" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  ),
+};
+
+export function TraceModal({
+  trace,
+  onClose,
+}: {
+  trace: TraceView;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const summary =
+    trace.outcome === "working"
+      ? `Working · ${formatDuration(trace.workedForMs)} elapsed`
+      : `${
+          trace.outcome === "done"
+            ? "Completed"
+            : trace.outcome === "failed"
+              ? "Failed"
+              : trace.stoppedBy != null
+                ? `Stopped by ${trace.stoppedBy}`
+                : "Stopped"
+        } · ${trace.toolCalls} tool calls · Worked for ${formatDuration(trace.workedForMs)}`;
+
+  return (
+    // Dimmed backdrop (black/20) — also the click-away layer.
+    <div className="fixed inset-0 z-50 bg-black/20" onClick={onClose}>
+      <div className="flex h-full items-center justify-center">
+        <div
+          role="dialog"
+          aria-label="Agent trace"
+          onClick={(event) => event.stopPropagation()}
+          className="aw-modal-enter w-[520px] max-w-[calc(100vw-48px)] rounded-[12px] bg-white shadow-[0px_24px_48px_-12px_rgba(16,16,16,0.28),0px_0px_0.5px_0.75px_rgba(16,16,16,0.08)]"
+        >
+          <div className="border-b border-[#f0efee] px-5 pb-3 pt-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] font-medium leading-5 text-[#1a1817]">
+                Agent trace
+              </span>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close trace"
+                className="flex size-6 items-center justify-center rounded-[5px] text-[#78716c] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1817]"
+              >
+                <CloseGlyph size={14} />
+              </button>
+            </div>
+            <div className="mt-1 text-[13px] leading-4 text-[#78716c]">{summary}</div>
+          </div>
+
+          <div className="flex flex-col px-5 py-4">
+            <TraceNode
+              icon={
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+                  <circle
+                    cx="7"
+                    cy="7"
+                    r="5.5"
+                    fill="none"
+                    stroke="#a8a29e"
+                    strokeWidth="1.1"
+                    strokeDasharray="2 2.4"
+                  />
+                </svg>
+              }
+              label="Task started"
+            />
+            {trace.steps.slice(0, trace.visibleSteps).map((step, index) => (
+              <div key={index} className="flex items-center gap-2 py-[3px] pl-7">
+                <span className="flex size-4 items-center justify-center">
+                  {TRACE_VERB_GLYPHS[step.verb] ?? TRACE_VERB_GLYPHS.Ran}
+                </span>
+                <span className="text-[13px] leading-5">
+                  <span className="font-medium text-[#1a1817]">{step.verb}</span>
+                  <span className="text-[#78716c]">{`  ${step.desc}`}</span>
+                </span>
+              </div>
+            ))}
+            <TraceNode
+              icon={
+                <span
+                  className={`size-[5px] rounded-full bg-[#a8a29e] ${
+                    trace.outcome === "working" ? "aw-pulse" : ""
+                  }`}
+                />
+              }
+              label="Thinking"
+            />
+            {trace.outcome !== "working" ? (
+              <>
+                <span aria-hidden className="ml-[7px] h-3 w-px bg-[#e7e5e4]" />
+                <TraceNode
+                  icon={
+                    trace.outcome === "done" ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+                        <circle cx="7" cy="7" r="6" fill="#16A34A" />
+                        <path
+                          d="M4.5 7l1.8 1.8L9.7 5.4"
+                          fill="none"
+                          stroke="#fff"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+                        <circle
+                          cx="7"
+                          cy="7"
+                          r="6"
+                          fill={trace.outcome === "failed" ? "#DC2626" : "#a8a29e"}
+                        />
+                        {trace.outcome === "failed" ? (
+                          <path
+                            d="M5 5l4 4M9 5l-4 4"
+                            stroke="#fff"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+                        ) : (
+                          <rect x="4.6" y="4.6" width="4.8" height="4.8" rx="1" fill="#fff" />
+                        )}
+                      </svg>
+                    )
+                  }
+                  label={
+                    trace.outcome === "done"
+                      ? "Task complete"
+                      : trace.outcome === "failed"
+                        ? "Task failed"
+                        : trace.stoppedBy != null
+                          ? `Task stopped by ${trace.stoppedBy}`
+                          : "Task stopped"
+                  }
+                />
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TraceNode({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 py-[3px]">
+      <span className="flex size-4 items-center justify-center">{icon}</span>
+      <span className="text-[13px] font-medium leading-5 text-[#1a1817]">{label}</span>
+    </div>
+  );
+}

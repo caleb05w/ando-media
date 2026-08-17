@@ -1,0 +1,60 @@
+/* /app-empty-state — structural styles for the "no apps connected" card's
+   icon carousel. The motion itself lives in page.tsx as a DialKit
+   Timeline (arc / tip clips bound to the tile's inline
+   transform) — only the stage geometry and tile chrome live here.
+
+   Storyboard (Figma 539-9880): one tile at a time pops up through the
+   slot on a shared tilt, hangs, tips over the other way, then falls
+   behind the fade. */
+
+.aes-stage {
+  position: relative;
+  width: 102px;
+  height: 68px;
+  overflow: hidden;
+}
+
+.aes-app {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -17.5px 0 0 -17.5px; /* center the 35px tile in the stage */
+  /* transform driven per-frame by the DialKit timeline in page.tsx */
+}
+
+/* The tile itself — 35px rounded square off the Figma spec (r≈6, hairline
+   border). The logos are full-bleed app-icon tiles (bg baked into the
+   asset), so the image covers the whole tile and the corner radius here
+   just re-clips the scaled-down baked corners. */
+.aes-tile {
+  width: 35px;
+  height: 35px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+}
+
+.aes-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Bottom fog the tiles sink into — white from the bottom edge fading out,
+   same geometry as the Figma rectangle (bottom 20px of the stage). */
+.aes-fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 20px;
+  background: linear-gradient(to top, white 18%, rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+/* Reduced motion: no carousel — park the current app centered.
+   !important so it beats the timeline-driven inline transform. */
+@media (prefers-reduced-motion: reduce) {
+  .aes-app {
+    transform: none !important;
+  }
+}

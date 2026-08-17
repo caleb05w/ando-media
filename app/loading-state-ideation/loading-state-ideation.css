@@ -1,0 +1,186 @@
+/* The shipped Ando spinner's styles, copied VERBATIM from
+   ando/packages/ui/src/components/spinner/styles.css so the baseline on
+   this page is the real thing, not a lookalike. Anything new belongs
+   below the divider, not in these rules. */
+.ando-spinner {
+  animation: ando-spinner-spin 1s linear infinite;
+  color: currentColor;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ando-spinner {
+    animation-duration: 8s;
+  }
+}
+
+@keyframes ando-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------ ideation space ----------------------------- */
+/* Room for experiments — add keyframes here and mount them in page.tsx. */
+
+/* Blend burst — replicated from the reference capture
+   (~/Desktop/:animation-test/CleanShot 2026-08-11 at 12.18.49.mp4),
+   measured with the keyframe-extraction tool rather than eyeballed.
+
+   The glyph: six identical rounded dashes on an even 60° fan around an
+   EMPTY centre. Measured off a rest frame: dash length 0.27× the field,
+   width 0.08×, spanning radius 0.23 → 0.50 — the centre hole is almost
+   half the mark's diameter, which is what keeps it a sparkle rather
+   than an asterisk.
+
+   The motion is a two-part motif, repeating every 3426ms: PULSE, then
+   SPIN.
+
+   Pulse — a travelling inhale. Per-ray radius tracking shows the rays
+   do NOT breathe together: each dash dives toward the centre ~70ms
+   after its neighbour, sequentially around the circle — 400ms in to
+   0.72× radius, ~330ms back out, dash size and ink constant
+   throughout. The wave takes ~1.1s to pass through all six.
+
+   Spin — one eased ~240° turn (both spins in the capture are the same
+   move; congruent for the 60° fan, so every cycle lands identically).
+   Slow creep in, fast middle, long decelerating tail: ~1.5s active,
+   fitted per-sample to cubic-bezier(0.55, 0.5, 0.04, 0.6). It fires a
+   short beat after the last ray resurfaces, then the mark rests
+   genuinely still until the next breath.
+
+   Each ray's radius rides its own registered custom property — one
+   keyframe set staggered with per-ray delays, leaving the rays' static
+   rotations untouched. Sized by font-size (1em = the field), colored by
+   currentColor — the shipped spinner's contract. */
+/* NB: initial-value must be computationally independent — an em here
+   would invalidate the whole rule and silently demote the animation to
+   discrete flips. The real resting value is set on the rays. */
+@property --jburst-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.jburst {
+  position: relative;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  animation: jburst-spin 3426ms infinite;
+}
+
+.jburst i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* A floor under the width: at small sizes 0.08em lands between device
+     pixels and different rotations alias to visibly different
+     thicknesses. will-change promotes each ray to its own layer, so all
+     six get the same GPU antialiasing. */
+  width: max(0.08em, 1.5px);
+  height: 0.27em;
+  margin: -0.135em 0 0 -0.04em;
+  border-radius: 0.04em;
+  background: currentColor;
+  will-change: transform;
+  --jburst-r: 0.365em;
+  animation: jburst-pulse 3426ms infinite;
+}
+
+/* The stagger IS the wave: same dip, 70ms later per ray, clockwise —
+   the measured cadence. */
+.jburst i:nth-child(2) {
+  animation-delay: 70ms;
+}
+.jburst i:nth-child(3) {
+  animation-delay: 140ms;
+}
+.jburst i:nth-child(4) {
+  animation-delay: 210ms;
+}
+.jburst i:nth-child(5) {
+  animation-delay: 280ms;
+}
+.jburst i:nth-child(6) {
+  animation-delay: 350ms;
+}
+
+/* Even 60° fan; translate follows each ray's own rotation, so the dash
+   sits radially with its centre at the animated radius (0.365em — the
+   measured mid-radius — at rest). */
+.jburst i:nth-child(1) {
+  transform: rotate(0deg) translateY(calc(-1 * var(--jburst-r)));
+}
+.jburst i:nth-child(2) {
+  transform: rotate(60deg) translateY(calc(-1 * var(--jburst-r)));
+}
+.jburst i:nth-child(3) {
+  transform: rotate(120deg) translateY(calc(-1 * var(--jburst-r)));
+}
+.jburst i:nth-child(4) {
+  transform: rotate(180deg) translateY(calc(-1 * var(--jburst-r)));
+}
+.jburst i:nth-child(5) {
+  transform: rotate(240deg) translateY(calc(-1 * var(--jburst-r)));
+}
+.jburst i:nth-child(6) {
+  transform: rotate(300deg) translateY(calc(-1 * var(--jburst-r)));
+}
+
+/* Audited frame-by-frame against the capture at its native 240fps —
+   every number below is measured, none tuned. */
+
+/* The pop: a 400ms EASE-OUT dive to 0.72× radius — ~2/3 of the travel
+   lands in the first third, then a soft touch at the bottom — and the
+   spoke releases straight back out over ~330ms on an S-curve. No hold.
+   The 70ms per-ray delays above turn six copies into the travelling
+   wave; the whole breath takes ~930ms. */
+@keyframes jburst-pulse {
+  0% {
+    --jburst-r: 0.365em;
+    animation-timing-function: cubic-bezier(0.55, 0.77, 0, 0.44);
+  }
+  11.67% {
+    --jburst-r: 0.263em;
+    animation-timing-function: cubic-bezier(0.64, 0.31, 0.01, 0.59);
+  }
+  21.31% {
+    --jburst-r: 0.365em;
+  }
+  100% {
+    --jburst-r: 0.365em;
+  }
+}
+
+/* The spin: a short beat after the last spoke resurfaces, then the
+   FULLY-EXTENDED mark turns 240° in ~1.5s — fast middle, long settling
+   tail, and no overshoot at all (peak equals final in both captured
+   spins). 240° lands congruent on the 60° fan, so the loop closes
+   without a seam. */
+@keyframes jburst-spin {
+  0%,
+  31.81% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.55, 0.5, 0.04, 0.6);
+  }
+  75.31% {
+    transform: rotate(240deg);
+  }
+  100% {
+    transform: rotate(240deg);
+  }
+}
+
+/* Same contract as the shipped spinner: reduced motion slows, never
+   stops — the motif becomes a long breath and drift. */
+@media (prefers-reduced-motion: reduce) {
+  .jburst {
+    animation-duration: 27s;
+  }
+  .jburst i {
+    animation-duration: 27s;
+  }
+}

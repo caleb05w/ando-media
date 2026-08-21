@@ -24,6 +24,30 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/agent-typing-experience",
+    week: "2026-08-17",
+    title: "Agent typing experience",
+    tag: "(Motion)",
+    brief:
+      "The typing indicator becoming an agent — five keepers in three takes (v1 shares one spring-and-shudder arrival; v2 tailors each profile arrival to its morph; v3 tones the same principles down for at-scale use), an archive of retired studies, and a live 1:1 library grid for comparing them. Built from the Agent trace storyboard.",
+  },
+  {
+    href: "/inline-multi-select",
+    week: "2026-08-17",
+    title: "Inline multi-select",
+    tag: "(Prototype)",
+    brief:
+      "An agent-rendered choice card inside the Ando channel — multi-select answers, a custom option, two-step navigation, and the selected-but-locked return state from the onboarding exploration.",
+  },
+  {
+    href: "/trace-canvas",
+    week: "2026-08-17",
+    title: "Inline trace — blank canvas",
+    tag: "(Sandbox)",
+    brief:
+      "This week's working copy of the inline agent trace on a blank message canvas — no sidebars, just the interfaces. A floating switcher flips between #channel, DM (with Tadao), and Thread (channel + 400px thread panel side by side, the small-screen check). Each surface keeps its own transcript; the agent machinery rides along in all three.",
+  },
+  {
     href: "/app-empty-state",
     week: "2026-08-10",
     title: "App empty state",

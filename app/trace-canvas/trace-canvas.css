@@ -1,0 +1,1335 @@
+/* /agent-inline-trace — agent presence + trace styling on the messaging
+   shell, forked unchanged from agent-working.css. Motion kit ported from
+   the agents-invocation lab (agent-flyout.css) — same curves and timings;
+   only the surfaces changed. */
+
+/* On-brand drag highlight over message text (Figma brand #2563eb). */
+.aw-messages ::selection {
+  background: rgba(37, 99, 235, 0.16);
+}
+
+/* Registered gradient knobs — what makes the comet's conic stops
+   animatable, so completion can close the tail on the SAME element
+   (same texture, same phase) instead of swapping in an SVG ring. */
+@property --aw-gap {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 55%;
+}
+@property --aw-a1 {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 12%;
+}
+@property --aw-a2 {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 60%;
+}
+@property --aw-a3 {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 18%;
+}
+@property --aw-a4 {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+@property --aw-live {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #2563eb;
+}
+
+/* Working comet — the Kinetic set's W2, promoted to be the working state
+   itself (it replaced the dashed ring): one bright head with a fading
+   tail on a 1.6s orbit, head softened by the gradient decay alone —
+   the spec's half-pixel blur was cut: at 30px the softened band hugs
+   the portrait so closely it read as a blurry avatar edge, and the
+   crisp ring reads better. Brand blue (#2563EB, the page's activity
+   color). Placed before aw-ring-fade so the fade's shorthand wins
+   during the seal. */
+@keyframes aw-comet {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.aw-comet {
+  --aw-live: #2563eb;
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  /* One parametric gradient serves working AND completion: the tail
+     gap (--aw-gap), the three body alphas, the head fade (--aw-a4,
+     0% while working so the head still dissolves), and the hue
+     (--aw-live). Working values reproduce the original comet exactly;
+     the catch animates them to a solid green ring. */
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 var(--aw-gap),
+    color-mix(in srgb, var(--aw-live) var(--aw-a1), transparent) calc(var(--aw-gap) * 1.2),
+    color-mix(in srgb, var(--aw-live) var(--aw-a2), transparent) 90%,
+    color-mix(in srgb, var(--aw-live) var(--aw-a3), transparent) 97%,
+    color-mix(in srgb, var(--aw-live) var(--aw-a4), transparent) 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  /* Linear: a steady orbit, no per-lap hitch — the motion itself is the
+     signal, so it keeps a constant pace. */
+  animation: aw-comet 1.6s linear infinite;
+}
+/* Completion — the tail catches up, in the comet's OWN body: the same
+   span keeps orbiting (the aw-comet entry is unchanged in the list, so
+   its phase carries over) while the registered stops animate — gap
+   closes, alphas rise to solid, hue drifts to the verdict green. Board
+   RC4's tempo: 1.2s. */
+@keyframes aw-catch-close {
+  /* Anticipation: the tail gathers — shrinks a touch — before it
+     sweeps around to close. A breath in before the exhale. */
+  18% {
+    --aw-gap: 63%;
+  }
+  to {
+    --aw-gap: 0%;
+    --aw-a1: 100%;
+    --aw-a2: 100%;
+    --aw-a3: 100%;
+    --aw-a4: 100%;
+    --aw-live: #16a34a;
+  }
+}
+/* The board card's racing finish: 660° — nearly two quick laps —
+   decelerating into the close. Listed LAST so it owns transform during
+   the catch (overriding the base orbit's rotate); it launches from
+   --aw-theta, the orbit's live angle at the flip (deterministic from
+   the shared phase clock), so there's no jump at takeoff. */
+@keyframes aw-catch-spin {
+  from {
+    transform: rotate(var(--aw-theta, 0deg));
+  }
+  to {
+    transform: rotate(calc(var(--aw-theta, 0deg) + 660deg));
+  }
+}
+.aw-comet-catching {
+  animation:
+    aw-comet 1.6s linear infinite,
+    aw-catch-close 1200ms cubic-bezier(0.3, 0, 0.2, 1) both,
+    aw-catch-spin 1200ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+/* Quiet catch (completion waves): the same registered-stop close, but
+   no racing spin and no anticipation gather — the orbit keeps its own
+   pace while the tail fills to green over 400ms. An exhale, not a
+   ceremony; quiet, but never a one-frame teleport. */
+@keyframes aw-catch-close-quiet {
+  to {
+    --aw-gap: 0%;
+    --aw-a1: 100%;
+    --aw-a2: 100%;
+    --aw-a3: 100%;
+    --aw-a4: 100%;
+    --aw-live: #16a34a;
+  }
+}
+.aw-comet-catching-quiet {
+  animation:
+    aw-comet 1.6s linear infinite,
+    aw-catch-close-quiet 400ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+/* Settled done (through the linger): the closed ring, still — same
+   texture, no orbit. */
+.aw-comet-done {
+  --aw-gap: 0%;
+  --aw-a1: 100%;
+  --aw-a2: 100%;
+  --aw-a3: 100%;
+  --aw-a4: 100%;
+  --aw-live: #16a34a;
+  animation: none;
+}
+
+/* Flyout / mention menu enter, anchored to the corner (bottom right). */
+@keyframes aw-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.aw-pop-enter {
+  animation: aw-pop-in 160ms cubic-bezier(0.2, 0, 0, 1) both;
+  transform-origin: bottom right;
+}
+@keyframes aw-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+}
+.aw-pop-exit {
+  /* Panel close is chrome, not presence — plain ease-in-out, and never
+     slower than the 160ms entrance: chrome leaves at least as fast as
+     it arrives. */
+  animation: aw-pop-out 180ms ease-in-out forwards;
+  transform-origin: bottom right;
+  pointer-events: none;
+}
+
+/* Pager flips remount the row list (keyed by page) — one brief settle
+   so the swap reads as a turn, not a teleport. */
+@keyframes aw-list-swap {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.aw-list-swap {
+  animation: aw-list-swap 140ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Trace modal enter — same curve, grows from center. */
+.aw-modal-enter {
+  animation: aw-pop-in 160ms cubic-bezier(0.2, 0, 0, 1) both;
+  transform-origin: center;
+}
+
+/* Flyout rows go in and out with one small, short gesture — a fade with
+   a single pixel of drift. The row's SPACE moves only while the row is
+   invisible: it eases open before the fade-in and eases shut after the
+   fade-out, so the panel height glides instead of snapping — but no
+   visible content ever slides. Deliberately NOT the corner's
+   condensation language: these follow intentional actions, so they are
+   plain, quick, and obedient — 200ms, decelerating. */
+@keyframes aw-row-in {
+  0% {
+    opacity: 0;
+    transform: translateY(1px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  /* Slot open, still invisible. */
+  40% {
+    opacity: 0;
+    transform: translateY(1px);
+    max-height: 52px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 52px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+.aw-row-in {
+  animation: aw-row-in 200ms ease-out both;
+  overflow: hidden;
+}
+@keyframes aw-row-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 52px;
+  }
+  /* Faded out; the slot is still open. */
+  60% {
+    opacity: 0;
+    transform: translateY(1px);
+    max-height: 52px;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(1px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+.aw-row-out {
+  animation: aw-row-out 200ms ease-out forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* User dismissal cut: fade and collapse run in PARALLEL over 120ms —
+   no phases, no stagger — so the next row's × arrives under the cursor
+   at click speed. Serial closing feels like flicking cards off a deck. */
+@keyframes aw-row-cut {
+  0% {
+    opacity: 1;
+    max-height: 52px;
+  }
+  /* Fade and slot-close run TOGETHER, one gesture at click speed — the
+     old phase map (dissolve at full height, THEN shut the slot) made
+     the list below wait ~200ms before moving, which read as a stagger
+     between the row leaving and the list closing. */
+  100% {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+.aw-row-cut {
+  animation: aw-row-cut 200ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Corner bubbles condense into presence and dissolve out of it — promoted
+   from the Gestures board (Arrive/Depart, sans droplets).
+   Arrival at the Gestures-board tempo: one continuous 880ms bloom
+   (opacity, blur, and scale resolve monotonically — no plateau, no
+   late blink) while the slot opens underneath, finishing early. The
+   margin is only pinned at 0% — it eases to each bubble's own inline
+   overlap value, so neighbors never snap when a newcomer mounts. */
+@keyframes aw-chip-in {
+  0% {
+    width: 0px;
+    margin-left: 0px;
+    opacity: 0;
+    transform: translateY(1px) scale(0.45);
+    filter: blur(2.5px);
+  }
+  55% {
+    width: 30px;
+  }
+  100% {
+    width: 30px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+.aw-chip-in {
+  animation: aw-chip-in 880ms cubic-bezier(0.2, 0, 0.2, 1) both;
+  /* Anchored left so mid-flight face overflow spills into the empty
+     margin on the right, never over the neighbor. */
+  transform-origin: left center;
+}
+/* Exit is the Gestures board's Depart (G6, "mist rises") promoted onto
+   the corner and rotated to the exit's axis: dismissed, the bubble
+   becomes weather — fading, blurring 2.5px, swelling 1.05 — and drifts
+   1.5px RIGHTWARD instead of up, out the row's own door. Tuned from
+   the board's 1625ms segment and 6px drift — Caleb's calls: slightly
+   quicker (1600ms exit, vapor done ~1300ms), drift quartered (6 → 3 →
+   1.5px): the mist barely reaches, the traveling is left to the slot
+   ride. The slot closes
+   across the ENTIRE exit, synchronized with the drift: the departing
+   face rides its collapsing slot rightward while it evaporates, and
+   the neighbors to its left flow right with it from frame zero — one
+   shared current, no channel waiting on the other. (Transforms don't
+   move layout; only the width does — so the width must move WITH the
+   mist, not after it.) */
+@keyframes aw-chip-out {
+  0% {
+    width: 30px;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+  }
+  81% {
+    opacity: 0;
+    transform: translateX(1.5px) scale(1.05);
+    filter: blur(2.5px);
+  }
+  100% {
+    width: 0px;
+    margin-left: 0;
+    opacity: 0;
+    transform: translateX(1.5px) scale(1.05);
+    filter: blur(2.5px);
+  }
+}
+/* Overlapped bubbles (inline margin-left −8) release their overlap
+   across the same full duration — width 30→0 plus margin −8→0 nets a
+   monotonic 22→0, so the slot shrinks smoothly with the mist. */
+@keyframes aw-chip-out-overlap {
+  0% {
+    width: 30px;
+    margin-left: var(--aw-overlap, -8px);
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+  }
+  81% {
+    opacity: 0;
+    transform: translateX(1.5px) scale(1.05);
+    filter: blur(2.5px);
+  }
+  100% {
+    width: 0px;
+    margin-left: 0;
+    opacity: 0;
+    transform: translateX(1.5px) scale(1.05);
+    filter: blur(2.5px);
+  }
+}
+.aw-chip-out,
+.aw-chip-out-overlap {
+  /* Fifth cut at depart, and the one with a name: G6 from the Gestures
+     board, rotated horizontal. The lineage — strict time-reverse (ended
+     at speed), forward curve (half-solid ghost slid), in-place dissolve
+     (too still), dissolve with slot-travel (directionless) — kept
+     circling one miss: the exit had mechanics but no gesture. Mist
+     rising sideways is a gesture. Tempo settled at 1600ms — between
+     the old 680ms goodbye and the board loop's 2s — with the slot
+     closing in step the whole way. */
+  pointer-events: none;
+}
+.aw-chip-out {
+  animation: aw-chip-out 1600ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+/* In-text variants: the end-of-line face runs 20px so it rides the
+   text line — same condensation arrival and mist departure as the 30px
+   corner bubbles, smaller body. */
+@keyframes aw-chip-in-sm {
+  0% {
+    width: 0px;
+    margin-left: 0px;
+    opacity: 0;
+    transform: translateY(1px) scale(0.45);
+    filter: blur(2.5px);
+  }
+  55% {
+    width: 20px;
+  }
+  100% {
+    width: 20px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+.aw-chip-in-sm {
+  animation: aw-chip-in-sm 880ms cubic-bezier(0.2, 0, 0.2, 1) both;
+  transform-origin: left center;
+}
+@keyframes aw-chip-out-sm {
+  0% {
+    width: 20px;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+  }
+  81% {
+    opacity: 0;
+    transform: translateX(1.5px) scale(1.05);
+    filter: blur(2.5px);
+  }
+  100% {
+    width: 0px;
+    margin-left: 0;
+    opacity: 0;
+    transform: translateX(1.5px) scale(1.05);
+    filter: blur(2.5px);
+  }
+}
+.aw-chip-out-sm {
+  animation: aw-chip-out-sm 1600ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+@keyframes aw-chip-dismiss-sm {
+  0% {
+    opacity: 1;
+    width: 20px;
+  }
+  28% {
+    opacity: 0.35;
+    width: 20px;
+  }
+  65% {
+    opacity: 0;
+    width: 20px;
+  }
+  100% {
+    opacity: 0;
+    width: 0px;
+    margin-left: 0;
+  }
+}
+.aw-chip-dismiss-sm {
+  animation: aw-chip-dismiss-sm 300ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+.aw-chip-out-overlap {
+  animation: aw-chip-out-overlap 1600ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+/* User delete: DELETION, not departure — the two exit registers, on
+   purpose. A natural depart LEAVES rightward (mist, ride, release); a
+   dismissal is your erasure and must NOT share that grammar: no
+   direction, no travel, no drift — it just disappears, one quick
+   150ms fade with the slot closing in parallel. (This was gotten
+   wrong twice — rightward motion added to dismissals reads as the
+   agent leaving of its own accord. It didn't. You deleted it.) The
+   corner bubble is the single conceal source: it is always mounted,
+   while the flyout may not be. */
+@keyframes aw-chip-dismiss {
+  0% {
+    opacity: 1;
+    width: 30px;
+  }
+  /* The bite: the click drops the bubble to a third of its ink in the
+     first 84ms — obedience you can feel — then the tail dissolves
+     softly to nothing by 65%. No scale, no direction; width holds
+     throughout so the face never rides a closing slot, and the gap
+     closes only over the invisible back stretch. */
+  28% {
+    opacity: 0.35;
+    width: 30px;
+  }
+  65% {
+    opacity: 0;
+    width: 30px;
+  }
+  100% {
+    opacity: 0;
+    width: 0px;
+    margin-left: 0;
+  }
+}
+@keyframes aw-chip-dismiss-overlap {
+  0% {
+    opacity: 1;
+    width: 30px;
+    margin-left: var(--aw-overlap, -8px);
+  }
+  28% {
+    opacity: 0.35;
+    width: 30px;
+    margin-left: var(--aw-overlap, -8px);
+  }
+  65% {
+    opacity: 0;
+    width: 30px;
+    margin-left: var(--aw-overlap, -8px);
+  }
+  100% {
+    opacity: 0;
+    width: 0px;
+    margin-left: 0;
+  }
+}
+.aw-chip-dismiss,
+.aw-chip-dismiss-overlap {
+  pointer-events: none;
+}
+/* 300ms on the promotion spring's curve, matching the row cut frame
+   for frame — both surfaces breathe together, and conceal (fired from
+   here) lands as the row's space finishes closing. */
+.aw-chip-dismiss {
+  animation: aw-chip-dismiss 300ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+.aw-chip-dismiss-overlap {
+  animation: aw-chip-dismiss-overlap 300ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+
+/* Thinking shimmer: a highlight sweeps the working status line (Linear's
+   "Analyzing stack trace…" treatment). Dark variant for the flyout, light
+   for the inline chips. */
+@keyframes aw-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.aw-shimmer-dark {
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aw-shimmer 2.2s linear infinite;
+}
+.aw-shimmer-dark {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.5) 35%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.5) 65%
+  );
+}
+
+/* Hover-popover thought line: each new beat ROLLS in ticker grammar —
+   the old line exits up and out while the new one rises from below, on
+   the chip family's curve. The live line carries aw-shimmer-dark. */
+@keyframes aw-thought-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes aw-thought-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+.aw-thought-in {
+  animation: aw-thought-in 240ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+/* Reversed shimmer for the thought line: solid white text with a dim
+   valley sweeping through — on the dark pill a moving dip reads better
+   than a moving highlight on already-dim text. */
+.aw-thought-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    #ffffff 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    #ffffff 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Light variant for white surfaces (the pending-reply row): tertiary
+   ink with a darker valley sweeping through. */
+.aw-thought-shimmer-light {
+  background-image: linear-gradient(
+    90deg,
+    #78716c 35%,
+    #1a1817 50%,
+    #78716c 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aw-shimmer 2.2s linear infinite;
+}
+/* Both classes set the `animation` shorthand — combined, the roll-in
+   must ride WITH the shimmer sweep, not override it. */
+.aw-thought-in.aw-thought-shimmer {
+  animation:
+    aw-thought-in 240ms cubic-bezier(0.3, 0, 0.2, 1) both,
+    aw-shimmer 2.2s linear infinite;
+}
+.aw-thought-in.aw-thought-shimmer-light {
+  animation:
+    aw-thought-in 240ms cubic-bezier(0.3, 0, 0.2, 1) both,
+    aw-shimmer 2.2s linear infinite;
+}
+.aw-thought-out {
+  animation: aw-thought-out 240ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+/* Typing indicator — linear replies (DM, inside a thread) that don't
+   fork a new thread announce themselves the app's way: a slim
+   "••• Tadao is typing…" line above the composer, dots pulsing
+   opacity on a 1.2s stagger. */
+@keyframes aw-typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+.aw-typing-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #78716c;
+  animation: aw-typing-dot 1.2s ease-in-out infinite;
+  /* Demotion recolors the dots to the agent's palette — eased, not
+     snapped. */
+  transition: background-color 320ms ease;
+}
+.aw-typing-dot:nth-child(2) {
+  animation-delay: 150ms;
+}
+.aw-typing-dot:nth-child(3) {
+  animation-delay: 300ms;
+}
+@keyframes aw-typing-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.aw-typing-in {
+  animation: aw-typing-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Typing demotion — one continuous object, four beats. The dots
+   shrink away INSIDE their own slot while the agent's working face
+   takes it over (a crossfade in place, text fading alongside); the
+   face then flies to the trace tray's actual resting point (target
+   measured per flight — x AND y); the tray bubble surfaces as the
+   face lands; and the emptied row squeezes closed instead of
+   snapping out of layout. */
+/* Consolidation: the three dots take the agent's color composition
+   (light / dominant / deep cuts of the portrait hue), the outer two
+   sweep into the middle one while the whole cluster drifts right, the
+   surviving dot swells into a core, and the agent's avatar forms out
+   of it — one object throughout. */
+/* Apple-family easing throughout: gentle gathering, momentum built
+   through the drift, then the iOS-sheet glide — fast launch, long soft
+   settle — into the tray. Slower on purpose: each beat should be
+   readable on its own. */
+@keyframes aw-typing-slot-drift {
+  to {
+    transform: translateX(24px);
+  }
+}
+/* Drift ACCELERATES through its end (end-slope ~2), handing real
+   velocity to the flight. The class stays on through fly/collapse so
+   the slot HOLDS at 24px while the faces launch from it. */
+.aw-typing-slot-drift {
+  animation: aw-typing-slot-drift 700ms cubic-bezier(0.55, 0, 0.75, 0.5) both;
+}
+/* Outer dots are PULLED in: ease-in acceleration with a horizontal
+   stretch as they streak toward the core, vanishing exactly at
+   contact — left first, right second, so the core's absorption pops
+   land per arrival. */
+@keyframes aw-typing-dot-converge-l {
+  0% {
+    transform: translateX(0) scale(1, 1);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(7px) scale(1.5, 0.75);
+    opacity: 0;
+  }
+}
+.aw-typing-dot-converge-l {
+  animation: aw-typing-dot-converge-l 220ms cubic-bezier(0.6, 0, 0.9, 0.6) 40ms both;
+}
+@keyframes aw-typing-dot-converge-r {
+  0% {
+    transform: translateX(0) scale(1, 1);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-7px) scale(1.5, 0.75);
+    opacity: 0;
+  }
+}
+.aw-typing-dot-converge-r {
+  animation: aw-typing-dot-converge-r 220ms cubic-bezier(0.6, 0, 0.9, 0.6) 180ms both;
+}
+/* The middle dot is the BODY the whole way: it pops as each dot lands
+   (mass gained), then inflates continuously from dot to face size —
+   and never fades. The avatar irises open inside it; the core is
+   simply covered, so nothing ever crossfades. Per-segment easing here
+   is intentional: the pops are accents, the final segment is one
+   smooth inflation. */
+@keyframes aw-typing-dot-core {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.4);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  42% {
+    transform: scale(1.8);
+  }
+  100% {
+    transform: scale(4.8);
+  }
+}
+.aw-typing-dot-core {
+  animation: aw-typing-dot-core 600ms cubic-bezier(0.3, 0, 0.2, 1) 60ms both;
+}
+/* The core's job ends at launch: it fades under the departing face(s)
+   so no orphan hue disc lingers in the slot. Combined shorthand keeps
+   the inflation's end state while the fade plays. */
+@keyframes aw-typing-core-fade {
+  to {
+    opacity: 0;
+  }
+}
+.aw-typing-core-out {
+  animation:
+    aw-typing-dot-core 600ms cubic-bezier(0.3, 0, 0.2, 1) 60ms both,
+    aw-typing-core-fade 200ms linear both;
+}
+/* The avatar irises open INSIDE the inflating core — a circular
+   reveal, not a fade: dot becomes face. */
+@keyframes aw-typing-face-form {
+  from {
+    clip-path: circle(8% at 50% 50%);
+  }
+  to {
+    clip-path: circle(52% at 50% 50%);
+  }
+}
+.aw-typing-face-form {
+  /* Iris starts as the second dot lands — no anonymous-blob beat
+     between "dots gone" and "face legible". */
+  animation: aw-typing-face-form 360ms cubic-bezier(0.2, 0, 0, 1) 300ms both;
+}
+@keyframes aw-typing-text-out {
+  to {
+    opacity: 0;
+  }
+}
+.aw-typing-text-out {
+  animation: aw-typing-text-out 350ms ease-out both;
+}
+/* Flight, Dynamic-Island style (the Spotify close fly-in). CSS eases
+   PER KEYFRAME SEGMENT, so a waypointed path stutters at every stop —
+   instead the arc is built from two nested single-segment animations:
+   X on the slot (sheet glide — fast launch, long settle), Y + the
+   swallow-compression on an inner wrapper (late curve — the face
+   rises and shrinks INTO the island as it arrives). The fade is its
+   own animation, where segment boundaries can't touch motion. */
+/* Faces fly INDIVIDUALLY (a group invocation launches up to three,
+   staggered) while the slot itself holds the drift's 24px — so the
+   flight starts from rest at the slot's current spot. */
+/* The face flies AS the bubble it's becoming: no fade, no shrink — it
+   scales up to tray size (20 → 30px) en route to the newcomer's exact
+   slot, and the real chip mounts silently in its place at touchdown.
+   --aw-fly-shift staggers group landings into adjacent slots. */
+@keyframes aw-typing-fly-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(var(--aw-fly-x, 360px) + var(--aw-fly-shift, 0px)));
+  }
+}
+.aw-typing-fly-x {
+  animation: aw-typing-fly-x 600ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes aw-typing-fly-y {
+  from {
+    transform: translateY(0) scale(1);
+  }
+  to {
+    transform: translateY(var(--aw-fly-y, -14px)) scale(1.5);
+  }
+}
+.aw-typing-fly-inner {
+  animation: aw-typing-fly-y 600ms cubic-bezier(0.55, 0, 0.65, 0.4) both;
+}
+
+/* The island receives: the tray stretches toward the incoming face
+   (anticipation), squashes as it swallows, and jelly-settles — the
+   Dynamic Island's reception, in the corner stack's grammar. Origin
+   right: it reaches from its anchored edge toward the arrival. */
+@keyframes aw-tray-receive {
+  0% {
+    transform: scale(1, 1);
+  }
+  35% {
+    transform: scale(1.05, 0.96);
+  }
+  70% {
+    transform: scale(0.985, 1.01);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+/* Subtle absorb at the swap — the chip is already in place; the stack
+   just takes the momentum. */
+.aw-tray-receive {
+  transform-origin: right center;
+  animation: aw-tray-receive 420ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes aw-typing-row-collapse {
+  from {
+    height: 20px;
+    margin-bottom: 6px;
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    margin-bottom: 0;
+    opacity: 0;
+  }
+}
+.aw-typing-row-collapse {
+  overflow: hidden;
+  animation: aw-typing-row-collapse 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Reply handoff: after the pending-reply row's ring seals green, it
+   lets go — the comet fades out while the portrait stays, so the swap
+   to the plain reply-footer face is invisible. transition (not
+   animation) so it never fights the comet's own animation shorthand. */
+.aw-reply-ring-off .aw-comet {
+  opacity: 0;
+  transition: opacity 360ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* Hover "thinking" pulse: while the pointer holds a working face, the
+   chip softly inhales/exhales on a quicker tempo than the ambient
+   4s breathe. Lives on a WRAPPER span so it composes with the face's
+   own aw-breathe-sm instead of fighting its animation shorthand. */
+@keyframes aw-face-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.14);
+  }
+}
+.group\/agent:hover .aw-face-pulse {
+  animation: aw-face-pulse 1.8s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+
+/* BENCHED (no current caller — see page.tsx header): invoke highlight.
+   While an agent works on a message, the TEXT ITSELF
+   is held — a selection-blue wash hugging the line boxes (cloned per
+   line, like a real selection) with a white sheen sweeping through in
+   the shimmer family's 2.2s tempo: thinking, written on the words. */
+@keyframes aw-invoke-sheen {
+  to {
+    background-position:
+      -200% 0,
+      0 0;
+  }
+}
+.aw-invoke-highlight {
+  border-radius: 3px;
+  padding: 1px 3px;
+  margin: -1px -3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 38%,
+      rgba(255, 255, 255, 0.75) 50%,
+      rgba(255, 255, 255, 0) 62%
+    ),
+    linear-gradient(rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.16));
+  background-size:
+    200% 100%,
+    100% 100%;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.28);
+  animation: aw-invoke-sheen 2.2s linear infinite;
+}
+
+/* BENCHED (wired but fed null — see LocalNav thinkingChannel): the
+   sidebar thinking wash. The channel's
+   row in the left nav carries the working signal — a blue wash bleeding
+   in from the row's left edge, extending behind the label, with a light
+   band sweeping through it. The sweep is what makes it read as a
+   THINKING state rather than a static highlight; it runs in the shimmer
+   family's 2.2s tempo over a slow 4s breathe. */
+.aw-thinking-wash {
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(37, 99, 235, 0.3) 0%,
+    rgba(59, 130, 246, 0.12) 55%,
+    rgba(59, 130, 246, 0) 100%
+  );
+  animation: aw-thinking-wash-breathe 4s ease-in-out infinite;
+}
+.aw-thinking-wash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0) 35%,
+    rgba(59, 130, 246, 0.25) 50%,
+    rgba(59, 130, 246, 0) 65%
+  );
+  background-size: 200% 100%;
+  animation: aw-shimmer 2.2s linear infinite;
+}
+@keyframes aw-thinking-wash-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* "Thinking" pulse while a trace is live. */
+@keyframes aw-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.aw-pulse {
+  animation: aw-pulse 1.1s ease-in-out infinite;
+}
+
+/* Working breath: the whole bubble inhales and exhales — a slight scale
+   at a body's cadence. Defined BEFORE aw-scale-pop and aw-shake so the
+   transition moments win the animation shorthand when they fire. */
+@keyframes aw-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+.aw-breathe {
+  animation: aw-breathe 4s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+/* Small-body breathe: the 20px in-text face needs more relative
+   amplitude for the inhale to read at all (1.035 is sub-pixel there —
+   1.09 is ~1.8px of travel: a slight pulse, not a throb). */
+@keyframes aw-breathe-sm {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.09);
+  }
+}
+.aw-breathe-sm {
+  animation: aw-breathe-sm 4s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+
+/* ---- State-change transitions ---- */
+
+/* Ring seal: when a run fails or stops, the red ring draws itself
+   closed (12 o'clock, clockwise) over the fading working comet. */
+@keyframes aw-seal-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.aw-seal-draw {
+  animation: aw-seal-draw 450ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes aw-ring-fade {
+  to {
+    opacity: 0;
+  }
+}
+.aw-ring-fade {
+  animation: aw-ring-fade 300ms ease-out forwards;
+}
+
+/* Success lands with a small pop (also plays when a rerun kicks back in). */
+@keyframes aw-scale-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.aw-scale-pop {
+  animation: aw-scale-pop 350ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Failure gives a quick side-to-side shake. */
+@keyframes aw-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1.5px);
+  }
+  80% {
+    transform: translateX(1.5px);
+  }
+}
+.aw-shake {
+  animation: aw-shake 320ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* Failure pulse — the board's "Urgent breath": the working breathe's
+   sine shape at triple tempo and double depth. Same gesture family as
+   everything else on the page, but the tempo alone says something is
+   wrong. The 450ms delay lets the seal draw at full strength first. */
+@keyframes aw-fail-throb {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.aw-fail-throb {
+  animation: aw-fail-throb 0.9s ease-in-out 450ms infinite;
+}
+
+/* Completion ping: a green ring rolls off a bubble after the catch
+   closes (Chrome downloads bubble's completion pulse). Base opacity 0
+   hides it through the 1.2s catch; the keyframes take over from there. */
+@keyframes aw-ping {
+  from {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+.aw-ping {
+  pointer-events: none;
+  opacity: 0;
+  border: 2px solid #16a34a;
+  animation: aw-ping 700ms cubic-bezier(0.2, 0, 0.4, 1) 1200ms forwards;
+}
+
+/* Sequenced celebration: hold the success pop until the catch finishes
+   closing — cause first, then effect. (Longhands after the aw-scale-pop
+   shorthand so they win the cascade.) */
+.aw-after-seal {
+  animation-delay: 1200ms;
+  animation-fill-mode: both;
+}
+
+/* Jump-to-latest pill (dynamic-island language): springs up from the
+   transcript's bottom edge, retracts into it, bumps on retarget. */
+@keyframes aw-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.aw-pill-in {
+  animation: aw-pill-in 320ms cubic-bezier(0.34, 1.2, 0.64, 1) both;
+  transform-origin: bottom center;
+}
+@keyframes aw-pill-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.75);
+  }
+}
+.aw-pill-out {
+  animation: aw-pill-out 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  transform-origin: bottom center;
+  pointer-events: none;
+}
+@keyframes aw-pill-bump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.07);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.aw-pill-bump {
+  animation: aw-pill-bump 200ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Spotlight discipline: while the flyout is open it is the one stage —
+   the corner stack rests. Loops pause mid-frame and the working comets
+   dim; the panel's rows carry the live signal alone. Eases back in
+   when the panel leaves. */
+.aw-stack-rest .aw-comet,
+.aw-stack-rest .aw-breathe,
+.aw-stack-rest .aw-fail-throb {
+  animation-play-state: paused;
+}
+.aw-comet {
+  transition: opacity 240ms ease;
+}
+.aw-stack-rest .aw-comet {
+  opacity: 0.35;
+}
+
+/* Tailwind v4 preflight leaves buttons cursor:default — everything
+   clickable on this page invokes something. */
+.aw-page button:not(:disabled),
+.aw-page [role="button"] {
+  cursor: pointer;
+}
+
+/* Stop acknowledgment: the footer materializes a beat after the command
+   (the agent takes ~1s to obey and report) — so it lands with a small
+   settle instead of popping into a message the eye already read. */
+@keyframes aw-attr-in {
+  from {
+    opacity: 0;
+    transform: translateY(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.aw-attr-in {
+  animation: aw-attr-in 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+
+/* The +N dial: count changes roll like an instrument, not a rerender.
+   Odometer semantics — the crowd grows, digits climb; it thins, they
+   descend. Chrome register: 240ms, the presence curve, clipped by the
+   disc's own window. */
+@keyframes aw-dial-in-up {
+  from {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes aw-dial-out-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-9px);
+    opacity: 0;
+  }
+}
+@keyframes aw-dial-in-down {
+  from {
+    transform: translateY(-9px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes aw-dial-out-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+}
+.aw-dial-in-up {
+  animation: aw-dial-in-up 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.aw-dial-out-up {
+  animation: aw-dial-out-up 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.aw-dial-in-down {
+  animation: aw-dial-in-down 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.aw-dial-out-down {
+  animation: aw-dial-out-down 240ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+
+/* Loops still on request: the continuous motion (orbit, breathe,
+   shimmer, pulse) goes still; one-shot transitions stay, so state
+   changes remain legible without any perpetual movement. The catch
+   collapses to an instant finish (1ms) so its animationend still
+   clears the seal state. */
+@media (prefers-reduced-motion: reduce) {
+  .aw-comet,
+  .aw-breathe,
+  .aw-breathe-sm,
+  .aw-fail-throb,
+  .aw-pulse,
+  .aw-shimmer-dark {
+    animation: none;
+  }
+  /* The wash goes still at its resting weight — presence without
+     motion. */
+  .aw-thinking-wash {
+    animation: none;
+    opacity: 0.8;
+  }
+  .aw-thinking-wash::after {
+    animation: none;
+  }
+  /* The held text keeps its blue; the sheen goes still. */
+  .aw-invoke-highlight {
+    animation: none;
+  }
+  .aw-comet-catching {
+    animation: aw-catch-close 1ms linear both;
+  }
+  .aw-comet-catching-quiet {
+    animation: aw-catch-close-quiet 1ms linear both;
+  }
+  /* The dial goes still: the new count lands in place; the outgoing
+     label hides itself (its animationend never fires, so it would
+     otherwise sit overlapping at full opacity). */
+  .aw-dial-in-up,
+  .aw-dial-in-down {
+    animation: none;
+  }
+  .aw-dial-out-up,
+  .aw-dial-out-down {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Cream wash flash on the message a flyout row jumps back to. */
+@keyframes aw-flash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.aw-flash {
+  animation: aw-flash 1.6s ease-out both;
+}

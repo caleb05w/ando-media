@@ -37,7 +37,7 @@ const PROJECTS: Entry[] = [
     title: "Inline multi-select",
     tag: "(Prototype)",
     brief:
-      "An agent-rendered choice card inside the Ando channel — multi-select answers, a custom option, two-step navigation, and the selected-but-locked return state from the onboarding exploration.",
+      "An agent-rendered choice card inside the Ando channel — single-select answers with a custom input, per-intent follow-up flows (scheduled events, web research, apps), and the Notion connect card from the onboarding exploration.",
   },
   {
     href: "/trace-canvas",

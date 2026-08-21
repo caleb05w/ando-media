@@ -1,7 +1,7 @@
 .ims-card {
   position: relative;
   width: 512px;
-  height: 325px;
+  height: 323px;
   max-width: 100%;
   flex: 0 0 auto;
   overflow: visible;
@@ -47,7 +47,10 @@
   flex: 0 0 auto;
   align-items: center;
   overflow: hidden;
-  will-change: width;
+}
+
+.ims-step-slot[data-visible] {
+  width: 40px;
 }
 
 .ims-step {
@@ -112,7 +115,46 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  will-change: transform, opacity;
+}
+
+.ims-title-value--in {
+  animation: ims-title-slot-in 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.ims-title-value--out {
+  animation: ims-title-slot-out 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.ims-title[data-direction="-1"] .ims-title-value--in {
+  animation-name: ims-title-slot-in-back;
+}
+
+.ims-title[data-direction="-1"] .ims-title-value--out {
+  animation-name: ims-title-slot-out-back;
+}
+
+@keyframes ims-title-slot-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes ims-title-slot-in-back {
+  from {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes ims-title-slot-out {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes ims-title-slot-out-back {
+  to {
+    transform: translateY(100%);
+  }
 }
 
 .ims-title:focus-visible {
@@ -169,7 +211,7 @@
   padding: 0;
 }
 
-.ims-linear-connector {
+.ims-connector {
   display: flex;
   width: 100%;
   height: 138px;
@@ -177,59 +219,69 @@
   flex-direction: column;
 }
 
-.ims-linear-summary {
+.ims-connector-summary {
   display: flex;
   width: 100%;
-  height: 89px;
-  flex: 0 0 89px;
+  min-height: 0;
+  flex: 1 1 auto;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px;
+  padding: 16px 16px 0;
 }
 
-.ims-linear-icon {
+.ims-connector-icon {
   display: flex;
   width: 32px;
   height: 32px;
   flex: 0 0 32px;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  border: 0.5px solid #ebe9e8;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fafaf9;
+  box-shadow:
+    0 0 0.75px 0.5px rgba(16, 16, 16, 0.06),
+    0 1px 6px rgba(0, 0, 0, 0.04),
+    0 8px 12px -6px rgba(0, 0, 0, 0.04);
 }
 
-.ims-linear-icon > img {
+.ims-connector-icon > img {
   display: block;
-  width: 32px;
-  height: 32px;
+  width: 16px;
+  height: 16px;
 }
 
-.ims-linear-copy {
+.ims-connector-copy {
   display: flex;
   min-width: 0;
   flex: 1 1 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
-.ims-linear-heading {
+.ims-connector-heading {
   display: flex;
   min-width: 0;
   height: 18px;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.ims-linear-name {
+.ims-connector-name {
   color: #1a1817;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 18px;
+  line-height: 20px;
 }
 
-.ims-linear-connected {
+.ims-connector-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 999px;
+  background: #c6c3c1;
+}
+
+.ims-connector-connected {
   display: inline-flex;
   height: 18px;
   align-items: center;
@@ -243,46 +295,82 @@
   line-height: 14px;
 }
 
-.ims-linear-connected > img {
+.ims-connector-connected > img {
   width: 12px;
   height: 12px;
 }
 
-.ims-linear-description {
+.ims-connector-description {
   display: -webkit-box;
   overflow: hidden;
-  color: #6d6762;
-  font-size: 12px;
-  line-height: 16px;
+  color: #58524e;
+  font-size: 13px;
+  line-height: 18px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
-.ims-linear-divider {
-  width: calc(100% - 32px);
+.ims-connector-divider {
+  width: 100%;
   height: 1px;
   flex: 0 0 1px;
-  margin: 0 16px;
+  border-radius: 999px;
   background: #f0efee;
 }
 
-.ims-linear-actions {
+.ims-connector-actions {
   display: flex;
   width: 100%;
   height: 48px;
   flex: 0 0 48px;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 10px;
+  gap: 12px;
+  padding: 12px 10px 12px 16px;
 }
 
-.ims-linear-connecting {
+.ims-connector-more {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  overflow: hidden;
+  color: #58524e;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.ims-text-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  border-radius: 6px;
+  padding: 4px;
+  color: #1a1817;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.ims-text-button:hover,
+.ims-text-button:focus-visible {
+  text-decoration: underline;
+}
+
+.ims-connector-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.ims-connector-connecting {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.ims-linear-connecting .ims-loading-dots > span {
+.ims-connector-connecting .ims-loading-dots > span {
   background: rgba(255, 255, 255, 0.72);
 }
 
@@ -656,6 +744,214 @@
   background: #efeeec;
 }
 
+.ims-summary {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #fff;
+  padding: 16px 16px 12px;
+  box-shadow:
+    0 0 0.75px 0.5px rgba(16, 16, 16, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ims-summary:focus {
+  outline: none;
+}
+
+.ims-summary-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Hosts the /agent-typing-experience rig at product scale (32px = the crop's
+ * 32 units 1:1). The resting dots sit 8 units into the crop, so the svg is
+ * pulled 8px left to align the graphic with the card's text column. */
+.ims-summary-typing {
+  display: flex;
+  width: 24px;
+  height: 32px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+.ims-summary-typing > span {
+  margin-left: -8px;
+}
+
+.ims-summary-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #1a1817;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ims-summary-activity {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #58524e;
+  font-size: 13px;
+  line-height: 18px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ims-summary-divider {
+  height: 1px;
+  flex: 0 0 1px;
+  margin: 16px -16px 12px;
+  border-radius: 999px;
+  background: #f0efee;
+}
+
+.ims-summary-trace-toggle {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 4px;
+  color: #58524e;
+  font-size: 13px;
+  line-height: 18px;
+  transition: color 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ims-summary-trace-toggle:hover,
+.ims-summary-trace-toggle:focus-visible {
+  color: #1a1817;
+}
+
+.ims-summary-trace-label {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Stream-of-thought ticker (ported from the inline agent trace): each beat
+ * rolls in from below while a dark valley sweeps the tertiary ink. */
+.ims-thought {
+  position: relative;
+  display: block;
+  height: 18px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-align: left;
+}
+
+.ims-thought-line {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  background-image: linear-gradient(
+    90deg,
+    #78716c 35%,
+    #1a1817 50%,
+    #78716c 65%
+  );
+  background-clip: text;
+  background-size: 200% 100%;
+  color: transparent;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-background-clip: text;
+  animation:
+    ims-thought-in 240ms cubic-bezier(0.3, 0, 0.2, 1) both,
+    ims-shimmer 2.2s linear infinite;
+}
+
+@keyframes ims-thought-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ims-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.ims-summary-trace-chevron {
+  transform: rotate(180deg);
+  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ims-summary-trace-toggle[aria-expanded="true"] .ims-summary-trace-chevron {
+  transform: rotate(0deg);
+}
+
+/* Trace drawer — the 0fr/1fr grid trick keeps the open/close animation in
+ * CSS while the card's auto height follows along. */
+.ims-summary-trace-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ims-summary-trace-body[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.ims-summary-trace-body > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ims-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.ims-summary-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ims-summary-row > dt {
+  flex: 0 0 auto;
+  color: #928c88;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.ims-summary-row > dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #1a1817;
+  font-size: 13px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ims-loading-dots {
   display: grid;
   width: 12px;
@@ -729,6 +1025,24 @@
   }
 
   .ims-loading-dots {
+    animation: none;
+  }
+
+  .ims-title-value--in {
+    animation: none;
+  }
+
+  .ims-title-value--out {
+    display: none;
+  }
+
+  .ims-summary-trace-body,
+  .ims-summary-trace-chevron,
+  .ims-summary-trace-toggle {
+    transition-duration: 0.01ms;
+  }
+
+  .ims-thought-line {
     animation: none;
   }
 

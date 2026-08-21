@@ -4,8 +4,16 @@
     {
       "name": "dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3012
+      "runtimeArgs": ["run", "dev:preview"],
+      "port": 3012,
+      "autoPort": true
+    },
+    {
+      "name": "dev-worktree",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:preview"],
+      "port": 3015,
+      "autoPort": true
     },
     {
       "name": "dev-worktree",

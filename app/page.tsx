@@ -24,6 +24,14 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/inline-multi-select",
+    week: "2026-08-17",
+    title: "Inline multi-select",
+    tag: "(Prototype)",
+    brief:
+      "An agent-rendered choice card inside the Ando channel — single-select answers with a custom input, per-intent follow-up flows (scheduled events, web research, apps), and the Notion connect card from the onboarding exploration.",
+  },
+  {
     href: "/app-empty-state",
     week: "2026-08-10",
     title: "App empty state",

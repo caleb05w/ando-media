@@ -16,7 +16,14 @@
 // neighbours at ±38.3% of the banner, lower on the arc, blurred into the
 // scrim.
 
-import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import "./landing-page-animations.css";
 
 const DOTS = 28; // storyboard ran 36 at 10°; opened up for breathing room
@@ -260,12 +267,44 @@ function useReducedMotion() {
   );
 }
 
+// IconEyeOpen off the brand file (3495-1536), inlined so it can't expire;
+// the closed state adds the conventional slash in the same stroke.
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M21.5298 11.1188C16.6909 2.62714 7.30917 2.62704 2.47032 11.1187C2.15898 11.665 2.15898 12.3348 2.47032 12.8811C7.30917 21.3728 16.6909 21.3729 21.5298 12.8812C21.8411 12.3349 21.8411 11.6652 21.5298 11.1188Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.25 12C15.25 13.7949 13.7949 15.25 12 15.25C10.2051 15.25 8.75 13.7949 8.75 12C8.75 10.2051 10.2051 8.75 12 8.75C13.7949 8.75 15.25 10.2051 15.25 12Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {!open && (
+        <path
+          d="M4 4L20 20"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
+
 export default function LandingPageAnimations() {
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<SVGLineElement>(null);
   const tlRef = useRef<SVGSVGElement>(null);
   const [ver, bumpVer] = useReducer((c: number) => c + 1, 0);
+  const [showCurves, setShowCurves] = useState(true);
   const reduced = useReducedMotion();
 
   // The strip's curves and handle positions — recomputed when a handle is
@@ -386,19 +425,24 @@ export default function LandingPageAnimations() {
         } else hh = 1 - (ph - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
         if (tt < 0) {
           if (ph < OUT_F && hh >= MOTION.peak.x) {
+            const legS = OUT_F * CYCLE;
             if (!sOn) {
               sOn = true;
               sH0 = hh;
-              const legS = OUT_F * CYCLE;
               const nat = coastFrom(hh, legS);
-              const ram = coastFrom(hh, legS, sH0 + STEER_EASE);
               sTarget = Math.round((a + nat) / SECTOR) * SECTOR;
-              sExtra = (sTarget - a - nat) / Math.max(ram, 1e-3);
             }
-            const f = 1 + sExtra * smoothstep(sH0, sH0 + STEER_EASE, hh);
-            a += speedAt(hh) * Math.max(0, f) * sdt * 360;
-            a = Math.min(a, sTarget);
-            if (hh > 0.9) a += (sTarget - a) * Math.min(1, sdt * 5);
+            const remaining = coastFrom(hh, legS);
+            const needed = sTarget - a;
+            if (needed <= 0 || remaining < 1e-3) {
+              a = sTarget - Math.max(0, needed);
+            } else {
+              const ratio = Math.min(1.8, Math.max(0.4, needed / remaining));
+              sExtra = ratio - 1;
+              const f = 1 + sExtra * smoothstep(sH0, sH0 + STEER_EASE, hh);
+              a += speedAt(hh) * Math.max(0, f) * sdt * 360;
+              a = Math.min(a, sTarget);
+            }
             if (hh >= SPREAD_START && rem0 < 0) rem0 = sTarget - a;
           } else {
             a = (a + speedAt(hh) * sdt * 360) % 360;
@@ -450,29 +494,33 @@ export default function LandingPageAnimations() {
 
       if (tau < 0 && scrubP === null) {
         if (phase < OUT_F && h >= MOTION.peak.x) {
-          // Arm once at the peak: project the remaining coast, pick the
-          // NEAREST face-centre, and scale the whole descent by the hair
-          // that lands there (±7% at most). The scaling eases in across
-          // the peak blend, so the curve's shape never changes — the
-          // descent is one smooth stroke that runs out on a face.
+          // Feedback steering: pick the NEAREST face-centre once at the
+          // peak, then every frame scale ω by (travel still required ÷
+          // natural coast remaining). Required and available shrink to
+          // zero together, so the ratio stays near 1, the curve's shape
+          // is preserved, the landing is exact — and there is no end-of-
+          // approach clamp or settle to freeze or yank the wheel. The
+          // factor eases in over STEER_EASE and adapts live if the curves
+          // are edited mid-flight.
+          const legS = OUT_F * CYCLE;
           if (!steerOn) {
             steerOn = true;
             steerH0 = h;
-            const legS = OUT_F * CYCLE;
             const natural = coastFrom(h, legS);
-            const ramped = coastFrom(h, legS, steerH0 + STEER_EASE);
             steerTarget = Math.round((angle + natural) / SECTOR) * SECTOR;
-            steerExtra = (steerTarget - angle - natural) / Math.max(ramped, 1e-3);
           }
-          const factor =
-            1 +
-            steerExtra * smoothstep(steerH0, steerH0 + STEER_EASE, h);
-          angle += speedAt(h) * Math.max(0, factor) * dt * 360;
-          // Overshoot clamp + drift settle: integration error is eased
-          // out over the last stretch where ω is effectively zero —
-          // sub-pixel per frame, never a snap, never backwards.
-          angle = Math.min(angle, steerTarget);
-          if (h > 0.9) angle += (steerTarget - angle) * Math.min(1, dt * 5);
+          const remaining = coastFrom(h, legS);
+          const needed = steerTarget - angle;
+          if (needed <= 0 || remaining < 1e-3) {
+            angle = steerTarget - Math.max(0, needed);
+          } else {
+            const ratio = Math.min(1.8, Math.max(0.4, needed / remaining));
+            steerExtra = ratio - 1;
+            const factor =
+              1 + steerExtra * smoothstep(steerH0, steerH0 + STEER_EASE, h);
+            angle += speedAt(h) * Math.max(0, factor) * dt * 360;
+            angle = Math.min(angle, steerTarget);
+          }
         } else {
           angle = (angle + speedAt(h) * dt * 360) % 360;
           if (phase > OUT_F + HOLD_F) steerOn = false; // re-arm next pass
@@ -812,8 +860,18 @@ export default function LandingPageAnimations() {
         </div>
       </section>
       {/* The motion timeline — the cycle's curves with a live playhead.
-          A read-out, not part of the piece. */}
+          A read-out, not part of the piece. The eye tucks it away; the
+          strip stays mounted so its handlers and refs survive the toggle. */}
       <div className="lpa-timeline" aria-hidden="true">
+        <button
+          type="button"
+          className="lpa-tl-toggle"
+          onClick={() => setShowCurves((v) => !v)}
+          title={showCurves ? "Hide motion curves" : "Show motion curves"}
+        >
+          <EyeIcon open={showCurves} />
+        </button>
+        <div className={showCurves ? "lpa-tl-body" : "lpa-tl-body lpa-tl-body-hidden"}>
         <svg
           ref={tlRef}
           viewBox={`0 0 ${TL_W} ${TL_H}`}
@@ -889,6 +947,7 @@ export default function LandingPageAnimations() {
           <span className="lpa-tl-key">drag handles to edit · elsewhere to scrub · dbl-click resets</span>
         </div>
         <code className="lpa-tl-vals">{strip.vals}</code>
+        </div>
       </div>
     </main>
   );

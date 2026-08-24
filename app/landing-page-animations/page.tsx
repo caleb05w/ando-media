@@ -142,6 +142,52 @@ function scaleAt(h: number) {
   return 1 + (MAX_SCALE - 1) * smoothstep(SPIN_UP_TO, 1, h);
 }
 
+// ── The timeline strip ──────────────────────────────────────────────────
+// A read-out of the cycle drawn under the banner: the same functions the
+// frame loop runs, sampled once at module load. ω is speed × stop-taper
+// on the legs and zero through the hold (the per-cycle steer ratio is
+// omitted — it varies with where the coast lands). The playhead is driven
+// from the rAF loop.
+const TL_W = 1000;
+const TL_H = 120;
+function cycleAt(p: number) {
+  let h: number;
+  let tau = -1;
+  if (p < OUT_F) h = p / OUT_F;
+  else if (p < OUT_F + HOLD_F) {
+    h = 1;
+    tau = (p - OUT_F) / HOLD_F;
+  } else h = 1 - (p - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
+  const omega = tau >= 0 ? 0 : speedAt(h) * stopperAt(h);
+  const zoom = (scaleAt(h) - 1) / (MAX_SCALE - 1);
+  const tH = tau >= 0 ? tau * HOLD_F * CYCLE : -1;
+  let lab = 0;
+  if (tH >= DOTS_AT) lab = Math.min(1, (tH - DOTS_AT) / POP_S);
+  else if (tau < 0 && p > OUT_F) lab = smoothstep(0.9, 0.985, h);
+  return { omega, zoom, lab };
+}
+function tlPath(pick: (c: ReturnType<typeof cycleAt>) => number, max = 1) {
+  const pts: string[] = [];
+  for (let i = 0; i <= 240; i++) {
+    const p = i / 240;
+    const y = TL_H - 12 - (pick(cycleAt(p)) / max) * (TL_H - 28);
+    pts.push(`${i === 0 ? "M" : "L"}${((p * TL_W)).toFixed(1)},${y.toFixed(1)}`);
+  }
+  return pts.join(" ");
+}
+const TL_OMEGA_MAX = PEAK_SPEED;
+const TL_PATHS = {
+  omega: tlPath((c) => c.omega, TL_OMEGA_MAX),
+  zoom: tlPath((c) => c.zoom),
+  label: tlPath((c) => c.lab),
+};
+const TL_HOLD = { x: OUT_F * TL_W, w: HOLD_F * TL_W };
+const TL_MARKS = [
+  { x: OUT_F * SPIN_UP_TO * TL_W, name: "crank end" },
+  { x: OUT_F * STEER_FROM * TL_W, name: "steer" },
+  { x: OUT_F * STOP_FROM * TL_W, name: "stop drain" },
+];
+
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(onChange: () => void) {
   const query = window.matchMedia(REDUCED_MOTION);
@@ -159,6 +205,7 @@ function useReducedMotion() {
 export default function LandingPageAnimations() {
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
+  const playheadRef = useRef<SVGLineElement>(null);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -358,6 +405,12 @@ export default function LandingPageAnimations() {
       label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px) scale(${cScale.toFixed(3)})`;
 
       place(angle, scale);
+      const ph = playheadRef.current;
+      if (ph) {
+        const x = (phase * TL_W).toFixed(1);
+        ph.setAttribute("x1", x);
+        ph.setAttribute("x2", x);
+      }
       raf = requestAnimationFrame(frame);
     };
 
@@ -445,6 +498,46 @@ export default function LandingPageAnimations() {
           </span>
         </div>
       </section>
+      {/* The motion timeline — the cycle's curves with a live playhead.
+          A read-out, not part of the piece. */}
+      <div className="lpa-timeline" aria-hidden="true">
+        <svg viewBox={`0 0 ${TL_W} ${TL_H}`} preserveAspectRatio="none">
+          <rect
+            x={TL_HOLD.x}
+            y={0}
+            width={TL_HOLD.w}
+            height={TL_H}
+            className="lpa-tl-hold"
+          />
+          {TL_MARKS.map((m) => (
+            <line
+              key={m.name}
+              x1={m.x}
+              x2={m.x}
+              y1={10}
+              y2={TL_H}
+              className="lpa-tl-mark"
+            />
+          ))}
+          <path d={TL_PATHS.omega} className="lpa-tl-omega" />
+          <path d={TL_PATHS.zoom} className="lpa-tl-zoom" />
+          <path d={TL_PATHS.label} className="lpa-tl-label" />
+          <line
+            ref={playheadRef}
+            x1={0}
+            x2={0}
+            y1={0}
+            y2={TL_H}
+            className="lpa-tl-playhead"
+          />
+        </svg>
+        <div className="lpa-tl-legend">
+          <span className="lpa-tl-key lpa-tl-key-zoom">zoom</span>
+          <span className="lpa-tl-key lpa-tl-key-omega">spin ω</span>
+          <span className="lpa-tl-key lpa-tl-key-label">label</span>
+          <span className="lpa-tl-key">hold = shaded · ticks: crank end / steer / stop drain</span>
+        </div>
+      </div>
     </main>
   );
 }

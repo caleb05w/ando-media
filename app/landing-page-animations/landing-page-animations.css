@@ -14,8 +14,10 @@
   /* The grey placeholder the banner floats on. */
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
 }
 
 /* The banner — 0.9× the original 100vw × 35vh strip, centered in the field
@@ -229,4 +231,77 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 6.76%, #ffffff);
+}
+
+/* ── The motion timeline ─────────────────────────────────────────────────
+   A read-out of the cycle under the banner: ω (spin), zoom, and the label
+   envelope over one cycle, hold shaded, with a live playhead. Not part of
+   the piece — a dev aid. */
+.lpa-timeline {
+  width: 90vw;
+}
+
+.lpa-timeline svg {
+  display: block;
+  width: 100%;
+  height: 120px;
+}
+
+.lpa-tl-hold {
+  fill: rgba(36, 33, 31, 0.05);
+}
+
+.lpa-tl-mark {
+  stroke: rgba(36, 33, 31, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-omega {
+  fill: none;
+  stroke: #928c88;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-zoom {
+  fill: none;
+  stroke: #24211f;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-label {
+  fill: none;
+  stroke: #b9b4b0;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-playhead {
+  stroke: #2563eb;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #928c88;
+}
+
+.lpa-tl-key-zoom {
+  color: #24211f;
+}
+
+.lpa-tl-key-omega {
+  color: #928c88;
+}
+
+.lpa-tl-key-label {
+  color: #b9b4b0;
 }

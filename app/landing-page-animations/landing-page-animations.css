@@ -83,8 +83,11 @@
   left: 50%;
   top: calc(var(--u) * (34 + 48 + 12));
   transform: translateX(-50%);
-  font-size: calc(var(--u) * 20);
-  line-height: calc(var(--u) * 28);
+  display: flex;
+  align-items: center;
+  gap: 0.32em;
+  font-size: calc(var(--u) * 10);
+  line-height: calc(var(--u) * 14);
   color: #24211f;
   white-space: nowrap;
   opacity: 0;
@@ -95,18 +98,18 @@
    the floor. Opacity/offset written per frame. */
 .lpa-label-text {
   display: inline-block;
-  min-height: calc(var(--u) * 28);
+  min-height: calc(var(--u) * 14);
   opacity: 0;
 }
 
-/* The three dots — the "…" phase. Absolutely centred on the label's slot
-   so the sentence replaces them in place; each pulses on a phase-offset
-   wave written per frame and fades out at the resolve. */
+.lpa-label-text:empty {
+  display: none;
+}
+
+/* The three dots — the live typing indicator. Centred alone during the
+   "…" phase, trailing the sentence after the resolve; each pulses on a
+   phase-offset wave written per frame. */
 .lpa-label-dots {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
   display: inline-flex;
   align-items: center;
   gap: 0.18em;
@@ -117,6 +120,64 @@
   height: 0.24em;
   border-radius: 50%;
   background: #24211f;
+}
+
+/* Side scrims — the neighbours' dissolve. A gradient-masked backdrop
+   blur compounding toward each edge plus a soft white wash, so the faces
+   at the banner's sides blur and fade without any filter touching the
+   avatars themselves (SVG-child filters re-raster per frame). */
+.lpa-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  pointer-events: none;
+}
+
+.lpa-side-l {
+  left: 0;
+}
+
+.lpa-side-r {
+  right: 0;
+}
+
+.lpa-side-blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(4px);
+}
+
+.lpa-side-l .lpa-side-blur:nth-child(1) {
+  mask-image: linear-gradient(to right, black 0%, black 45%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 45%, transparent 90%);
+}
+
+.lpa-side-l .lpa-side-blur:nth-child(2) {
+  mask-image: linear-gradient(to right, black 0%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 55%);
+}
+
+.lpa-side-r .lpa-side-blur:nth-child(1) {
+  mask-image: linear-gradient(to left, black 0%, black 45%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to left, black 0%, black 45%, transparent 90%);
+}
+
+.lpa-side-r .lpa-side-blur:nth-child(2) {
+  mask-image: linear-gradient(to left, black 0%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 55%);
+}
+
+.lpa-side-l .lpa-side-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%);
+}
+
+.lpa-side-r .lpa-side-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%);
 }
 
 /* The dissolve — the storyboard's Rectangle 1: the bottom half of the

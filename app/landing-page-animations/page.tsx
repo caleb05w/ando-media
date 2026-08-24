@@ -90,9 +90,9 @@ const POP_S = 0.2; // s: pop-in duration (slight overshoot)
 const RESOLVE_AT = 1.4; // s: dots resolve into the sentence
 const DOT_PERIOD = 0.9; // s: one wave through the three dots
 // Blueprint 3488-1842: the crest face's neighbours sit at ±38.3% of the
-// banner width (their centres), lower on the arc, blurred into the scrim.
+// banner width (their centres), lower on the arc. Their blur comes from
+// the side scrims (gradient-masked backdrop-filters), not the avatars.
 const NEIGHBOUR_X = (206 - 48) / 412;
-const NEIGHBOUR_BLUR = "blur(0.9px)"; // viewBox units ≈ 8px on screen
 
 // The shudder when the zoom lands — a subtle settle, more tremor than thud.
 const SHUDDER_AMP = 2; // px, before the decay envelope
@@ -224,7 +224,6 @@ export default function LandingPageAnimations() {
     let steerTarget = 0; // the sector-aligned angle the coast lands on
     let pendingText = ""; // this visit's sentence, applied at the resolve
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
-    let blurredEls: SVGImageElement[] = []; // flanking faces, blurred at hold
     let lastSpread = 1; // last spacing multiple written to the dots
 
     const frame = (now: number) => {
@@ -269,10 +268,8 @@ export default function LandingPageAnimations() {
       }
 
       // Hold entry: pick the crest face and a verb for this visit (random,
-      // so nobody is stuck jamming forever), stage its sentence, arm the
-      // settle, and blur the two flanking faces into the background per the
-      // blueprint. The wheel is parked for the whole hold, so the blur
-      // rasters once — cleared before motion resumes.
+      // so nobody is stuck jamming forever), stage its sentence, and arm
+      // the settle.
       if (tau >= 0 && prevTau < 0) {
         const k =
           (((Math.round(-steerTarget / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
@@ -282,17 +279,6 @@ export default function LandingPageAnimations() {
         if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
         pipEl = avatarEls[k] ?? null;
         shudderT = 0;
-        blurredEls = [
-          avatarEls[(k + 1) % DOTS],
-          avatarEls[(k - 1 + DOTS) % DOTS],
-        ];
-        for (const el of blurredEls) el.style.filter = NEIGHBOUR_BLUR;
-      }
-      if (tau < 0 && prevTau >= 0) {
-        // Hold just ended — unblur before the wheel moves again (a filter
-        // on SVG children forces software re-rasters while animating).
-        for (const el of blurredEls) el.style.filter = "";
-        blurredEls = [];
       }
       prevTau = tau;
 
@@ -368,9 +354,8 @@ export default function LandingPageAnimations() {
       }
 
       if (cOp > 0) {
-        // The resolve envelope: 0 while the dots have the floor, 1 once
-        // the sentence is up. Dots fade out as the text pops in — the
-        // blueprint's resolved state is text alone, centred (3488-1842).
+        // The three dots cycle the whole time the label is up — the live
+        // typing indicator, trailing the sentence once it resolves.
         const te =
           tau >= 0
             ? smoothstep(RESOLVE_AT, RESOLVE_AT + 0.18, tHold)
@@ -378,8 +363,7 @@ export default function LandingPageAnimations() {
         const wave = now / 1000 / DOT_PERIOD;
         for (let j = 0; j < dotEls.length; j++) {
           const o =
-            (0.25 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * wave - j * 1.05))) *
-            (1 - te);
+            0.25 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * wave - j * 1.05));
           dotEls[j].style.opacity = o.toFixed(2);
         }
         if (te > 0) {
@@ -445,6 +429,19 @@ export default function LandingPageAnimations() {
               </g>
             ))}
           </svg>
+        </div>
+        {/* Side scrims — gradient-masked backdrop blur + wash at each edge
+            so the crest face's neighbours dissolve toward the banner edges
+            without filtering the avatars themselves. */}
+        <div className="lpa-side lpa-side-l">
+          <div className="lpa-side-blur" />
+          <div className="lpa-side-blur" />
+          <div className="lpa-side-wash" />
+        </div>
+        <div className="lpa-side lpa-side-r">
+          <div className="lpa-side-blur" />
+          <div className="lpa-side-blur" />
+          <div className="lpa-side-wash" />
         </div>
         {/* Progressive blur + white wash over the bottom half — see the
             .lpa-scrim rules for how the bands stack. */}

@@ -57,7 +57,8 @@ const HOLD_F = 0.13; // …holding at the close-up (~1.7s)…
 const SPIN_UP_TO = 0.32; // fraction of each leg spent cranking
 const START_SPEED = 0.09; // rev/s the leg opens on
 const PEAK_SPEED = 0.25; // rev/s at the end of the crank
-const DESCENT_POW = 3; // (1-v)^p descent: steep off the peak, easing to 0
+const DESCENT_POW = 2; // (1-v)^p descent — lazy enough that the wheel is
+// still visibly turning on its tail while the zoom closes in
 // The blueprint's close-up (3488-1842) puts the crest avatar at 48/152 of
 // the banner; dots are 11.52 in storyboard units, so the zoom ceiling is
 // 48 / 11.52. Keep in sync with --lpa-max in the CSS.
@@ -210,6 +211,7 @@ export default function LandingPageAnimations() {
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<SVGLineElement>(null);
+  const tlRef = useRef<SVGSVGElement>(null);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -264,22 +266,91 @@ export default function LandingPageAnimations() {
     let last = performance.now();
     let phase = 0;
     let angle = 0;
+    let cycleStartAngle = 0; // ring angle when this cycle began (for scrub)
     let steerOn = false; // landing projection armed for this approach
     let steerH0 = 0; // leg position where the projection was armed
     let steerExtra = 0; // extra speed factor, eased in via the steer ramp
     let steerTarget = 0; // the sector-aligned angle the coast lands on
     let labelT = -1; // seconds since the label sequence started; <0 = off
     let spreadRem0 = -1; // wheel travel remaining when the parting began
-    let pendingText = ""; // this visit's sentence, applied at the resolve
+    let pendingText = `${displayName(FACES[0])} is ${VERBS[0]}`;
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
     let lastSpread = 1; // last spacing multiple written to the dots
+    let scrubP: number | null = null; // timeline scrub position; null = live
+
+    // Deterministically rebuild the loop's state at cycle position p by
+    // re-integrating from the cycle's start — the angle is integrated, so
+    // scrubbing can't just be a function evaluation. Used while dragging
+    // the timeline; on release the live loop adopts the rebuilt state.
+    const simulate = (p: number) => {
+      const steps = 480;
+      const sdt = (p * CYCLE) / steps || 1e-6;
+      let a = cycleStartAngle;
+      let sOn = false;
+      let sH0 = 0;
+      let sExtra = 0;
+      let sTarget = steerTarget;
+      let lT = -1;
+      let rem0 = -1;
+      for (let i = 0; i < steps; i++) {
+        const ph = ((i + 1) / steps) * p;
+        let hh: number;
+        let tt = -1;
+        if (ph < OUT_F) hh = ph / OUT_F;
+        else if (ph < OUT_F + HOLD_F) {
+          hh = 1;
+          tt = (ph - OUT_F) / HOLD_F;
+        } else hh = 1 - (ph - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
+        if (tt < 0) {
+          if (ph < OUT_F && hh >= SPIN_UP_TO - SPEED_BLEND) {
+            if (!sOn) {
+              sOn = true;
+              sH0 = hh;
+              const legS = OUT_F * CYCLE;
+              const nat = coastFrom(hh, legS);
+              const ram = coastFrom(hh, legS, sH0 + SPEED_BLEND * 2);
+              sTarget = Math.round((a + nat) / SECTOR) * SECTOR;
+              sExtra = (sTarget - a - nat) / Math.max(ram, 1e-3);
+            }
+            const f = 1 + sExtra * smoothstep(sH0, sH0 + SPEED_BLEND * 2, hh);
+            a += speedAt(hh) * Math.max(0, f) * sdt * 360;
+            a = Math.min(a, sTarget);
+            if (hh > 0.9) a += (sTarget - a) * Math.min(1, sdt * 5);
+            if (hh >= SPREAD_START && rem0 < 0) rem0 = sTarget - a;
+          } else {
+            a = (a + speedAt(hh) * sdt * 360) % 360;
+          }
+        } else a = sTarget;
+        if (lT < 0 && ph < OUT_F && hh >= LABEL_AT_H) lT = 0;
+        else if (lT >= 0) {
+          lT += sdt;
+          if (tt < 0 && ph > OUT_F + HOLD_F && hh < 0.85) lT = -1;
+        }
+      }
+      return { a, sOn, sH0, sExtra, sTarget, lT, rem0 };
+    };
 
     const frame = (now: number) => {
       // Clamped so a backgrounded tab doesn't return and jump the wheel.
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
-      phase = (phase + dt / CYCLE) % 1;
+      if (scrubP === null) {
+        const next = (phase + dt / CYCLE) % 1;
+        if (next < phase) cycleStartAngle = angle; // cycle wrapped
+        phase = next;
+      } else {
+        // Scrubbing: park time at the handle and rebuild state there.
+        phase = scrubP;
+        const st = simulate(phase);
+        angle = st.a;
+        steerOn = st.sOn;
+        steerH0 = st.sH0;
+        steerExtra = st.sExtra;
+        steerTarget = st.sTarget;
+        labelT = st.lT;
+        spreadRem0 = st.rem0;
+      }
 
       // Timeline: push in (h 0→1) → hold (h = 1, tau 0→1) → pull back out
       // (h 1→0). The wheel only turns on the legs; the hold is still.
@@ -294,7 +365,7 @@ export default function LandingPageAnimations() {
         h = 1 - (phase - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
       }
 
-      if (tau < 0) {
+      if (tau < 0 && scrubP === null) {
         if (phase < OUT_F && h >= SPIN_UP_TO - SPEED_BLEND) {
           // Arm once at the peak: project the remaining coast, pick the
           // NEAREST face-centre, and scale the whole descent by the hair
@@ -323,7 +394,7 @@ export default function LandingPageAnimations() {
           angle = (angle + speedAt(h) * dt * 360) % 360;
           if (phase > OUT_F + HOLD_F) steerOn = false; // re-arm next pass
         }
-      } else {
+      } else if (scrubP === null) {
         // Held: parked where the coast ran out.
         angle = steerTarget;
       }
@@ -331,7 +402,7 @@ export default function LandingPageAnimations() {
       // Label trigger — on the approach, once the landing face is known
       // and the zoom is closing (the steer armed long ago): pick the verb,
       // stage the sentence, aim the pip.
-      if (labelT < 0 && phase < OUT_F && h >= LABEL_AT_H) {
+      if (scrubP === null && labelT < 0 && phase < OUT_F && h >= LABEL_AT_H) {
         labelT = 0;
         const k =
           (((Math.round(-steerTarget / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
@@ -340,7 +411,7 @@ export default function LandingPageAnimations() {
         textEl.textContent = "";
         if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
         pipEl = avatarEls[k] ?? null;
-      } else if (labelT >= 0) {
+      } else if (scrubP === null && labelT >= 0) {
         labelT += dt;
         // Off again once the departure fade has fully taken it.
         if (tau < 0 && phase > OUT_F + HOLD_F && h < 0.85) labelT = -1;
@@ -457,9 +528,41 @@ export default function LandingPageAnimations() {
     };
 
     raf = requestAnimationFrame(frame);
+
+    // Timeline scrubbing — drag anywhere on the strip to park the loop at
+    // that cycle position; release to resume from there.
+    const tl = tlRef.current;
+    const toP = (e: PointerEvent) => {
+      const r = tl!.getBoundingClientRect();
+      return Math.min(0.999, Math.max(0, (e.clientX - r.left) / r.width));
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!tl) return;
+      try {
+        tl.setPointerCapture(e.pointerId);
+      } catch {
+        // synthetic events have no active pointer — scrub still works
+      }
+      scrubP = toP(e);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (scrubP !== null) scrubP = toP(e);
+    };
+    const onUp = () => {
+      scrubP = null;
+    };
+    tl?.addEventListener("pointerdown", onDown);
+    tl?.addEventListener("pointermove", onMove);
+    tl?.addEventListener("pointerup", onUp);
+    tl?.addEventListener("pointercancel", onUp);
+
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      tl?.removeEventListener("pointerdown", onDown);
+      tl?.removeEventListener("pointermove", onMove);
+      tl?.removeEventListener("pointerup", onUp);
+      tl?.removeEventListener("pointercancel", onUp);
     };
   }, [reduced]);
 
@@ -543,7 +646,12 @@ export default function LandingPageAnimations() {
       {/* The motion timeline — the cycle's curves with a live playhead.
           A read-out, not part of the piece. */}
       <div className="lpa-timeline" aria-hidden="true">
-        <svg viewBox={`0 0 ${TL_W} ${TL_H}`} preserveAspectRatio="none">
+        <svg
+          ref={tlRef}
+          viewBox={`0 0 ${TL_W} ${TL_H}`}
+          preserveAspectRatio="none"
+          className="lpa-tl-svg"
+        >
           <rect
             x={TL_HOLD.x}
             y={0}
@@ -577,7 +685,7 @@ export default function LandingPageAnimations() {
           <span className="lpa-tl-key lpa-tl-key-zoom">zoom</span>
           <span className="lpa-tl-key lpa-tl-key-omega">spin ω</span>
           <span className="lpa-tl-key lpa-tl-key-label">label</span>
-          <span className="lpa-tl-key">hold = shaded · ticks: spin peaks (steer arms there)</span>
+          <span className="lpa-tl-key">hold = shaded · ticks: spin peaks · drag to scrub</span>
         </div>
       </div>
     </main>

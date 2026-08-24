@@ -271,28 +271,28 @@
 
 .lpa-tl-omega {
   fill: none;
-  stroke: #928c88;
+  stroke: #7d8a66;
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
 .lpa-tl-zoom {
   fill: none;
-  stroke: #24211f;
+  stroke: #2563eb;
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
 .lpa-tl-label {
   fill: none;
-  stroke: #b9b4b0;
+  stroke: #b9952f;
   stroke-width: 1.5;
   stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke;
 }
 
 .lpa-tl-playhead {
-  stroke: #2563eb;
+  stroke: #24211f;
   stroke-width: 1.25;
   vector-effect: non-scaling-stroke;
 }
@@ -306,13 +306,19 @@
 }
 
 .lpa-tl-key-zoom {
-  color: #24211f;
+  color: #2563eb;
 }
 
 .lpa-tl-key-omega {
-  color: #928c88;
+  color: #7d8a66;
 }
 
 .lpa-tl-key-label {
-  color: #b9b4b0;
+  color: #b9952f;
+}
+
+/* Scrub affordance */
+.lpa-tl-svg {
+  cursor: ew-resize;
+  touch-action: none;
 }

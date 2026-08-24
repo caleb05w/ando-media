@@ -37,16 +37,6 @@
   overflow: hidden;
 }
 
-/* The motion-blur clip — banner-sized and overflow-clipped so the zoom
-   blur only ever filters visible pixels. filter is written per frame from
-   the rAF loop while the camera is moving. */
-.lpa-clip {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  will-change: filter;
-}
-
 /* The wheel. Laid out so its untransformed centre sits exactly on the crest
    line; the frame loop pushes it down by (ring radius × scale) so the top
    dot stays pinned at --lpa-crest while the wheel grows beneath the banner.
@@ -91,8 +81,10 @@
 .lpa-label {
   position: absolute;
   left: 50%;
-  top: calc(var(--u) * (34 + 11.52 * 3.8) + 14px);
-  transform: translateX(-50%);
+  /* Vertically centred on the crest face — the pill row (3446-2773). The
+     horizontal offset (avatar radius + the 13:48 gap, minus the recentre
+     shift) is written per frame from the rAF loop. */
+  top: calc(var(--u) * (34 + 11.52 * 3.8 / 2));
   display: flex;
   align-items: center;
   gap: 0.28em;

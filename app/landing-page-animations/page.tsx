@@ -3,28 +3,26 @@
 // /landing-page-animations — the Ando Brand dot wheel (Figma
 // e4gEqJUqBMec19AI1BhLEc / 3446-2571) running as a loop.
 //
-// The storyboard: a ring of 36 dots whose centre sits below the banner, so
-// only the crest shows. Small, it spins up and gains momentum; then it
-// grows toward the camera and the growth and the slow-down are the same
-// gesture — a bike wheel freewheeling down, reading bigger as it reads
-// slower. The crest stays pinned to the storyboard's 34/152 line while the
-// wheel scales, so it grows downward, into the scrim.
+// A ring of avatars whose centre sits below the banner, so only the crest
+// shows. It cranks up small, pushes into a close-up, holds on whoever
+// crested while their typing indicator plays (3446-2775), then pulls back
+// out. Everything is integrated per frame — angular velocity to an angle —
+// so momentum is real and every arrival is one continuous, forward motion:
+// the approach is steered so the wheel's natural coast lands a face at
+// dead centre, with no corrective roll afterwards.
 //
-// The angle is integrated from an angular velocity (revolutions/second)
-// rather than tweened, so momentum is real: spin-up is a rising ω on a
-// squared ramp, the slow-down is friction bleeding ω off exponentially.
-// The loop ping-pongs: the second half of the cycle retraces the first, so
-// the wheel shrinks back out of the close-up and gathers its speed again on
-// the way. No fades, no seam — ω and scale are continuous at both turns.
+// As the camera closes in, the spacing between avatars widens until the
+// crest face's neighbours sit just outside the banner — at the hold there
+// is one face, and its label composes beside it exactly like the Figma
+// pill (48px avatar / 13px gap / 20px text, scaled).
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import "./landing-page-animations.css";
 
-// ── The wheel, in storyboard numbers ────────────────────────────────────
 const DOTS = 28; // storyboard ran 36 at 10°; opened up for breathing room
 const SECTOR = 360 / DOTS; // degrees between neighbouring avatars
 
-// The people in the wheel — public/avatars, repeated around the 36 dots so
+// The people in the wheel — public/avatars, repeated around the dots so
 // no two neighbours share a face.
 const AVATARS = [
   "aj",
@@ -38,12 +36,11 @@ const AVATARS = [
   "sara",
 ];
 
-// The crest label (Figma 3446-2775): "{name} is {verb}", shown beside
-// whichever face is at the top of the wheel once the close-up lands.
+// The crest label (Figma 3446-2775): "{name} is {verb}", composed beside
+// whichever face is at the top once the close-up lands.
 const VERBS = ["prompting", "typing", "jamming"];
 const displayName = (slug: string) =>
   slug === "aj" ? "AJ" : slug[0].toUpperCase() + slug.slice(1);
-
 
 // ── The loop ────────────────────────────────────────────────────────────
 const CYCLE = 16; // seconds for out → hold → back
@@ -57,33 +54,25 @@ const FLOOR_SPEED = 0.02; // rev/s the freewheel decays toward
 const FRICTION = 5; // how hard the wheel is braked once torque is off
 const MAX_SCALE = 3.8; // 288px ring → ~1100px, the close-up frame
 
-// ── The camera ──────────────────────────────────────────────────────────
-// The zoom blur is a focus pull, not a speed effect: the frame smears
-// quickly when the push starts, then spends the whole approach resolving —
-// fully sharp before the close-up lands, so arriving reads as un-blurring.
-const BLUR_MAX = 6; // px at the height of the pull
-const BLUR_ON_BY = 0.07; // leg fraction after the push starts to reach max
-const SHARP_FROM = 0.55; // leg position where the resolve begins…
-const SHARP_BY = 0.92; // …and where the frame is fully sharp again
-// The shudder when the zoom lands at full size — a subtle settle, more
-// tremor than thud.
-const SHUDDER_AMP = 2; // px, before the decay envelope
-const SHUDDER_DECAY = 9; // higher = settles faster (~0.5s tail)
-
 // ── The stop ────────────────────────────────────────────────────────────
-// The wheel never freezes mid-motion. Approaching the hold, the remaining
-// spin drains away (STOP_*), and over the last stretch of the leg the ring
-// rolls the crest face into its detent (SNAP_FROM_H → landing) — like a
-// wheel settling into a notch, already stopped when the hold begins. The
-// departure builds back up through the same taper in reverse.
+// One fluid landing: from STEER_FROM the wheel's remaining coast is
+// projected forward and scaled — imperceptibly, the speeds are tiny — so
+// the natural drain (STOP_*) runs out exactly as a face reaches dead
+// centre. Always forward; nothing rolls back into place.
+const STEER_FROM = 0.6; // leg position where the landing is projected
 const STOP_FROM = 0.88; // leg position where the spin starts draining…
 const STOP_BY = 0.97; // …and where it reaches zero
-const SNAP_FROM_H = 0.955; // leg position where the detent roll begins
+
+// ── The spread ──────────────────────────────────────────────────────────
+// As the camera closes in, spacing between avatars grows until the crest
+// face's neighbours sit just past the banner's edges — the close-up is one
+// person. The exact multiple is computed from the banner's measured width.
+const SPREAD_START = 0.72; // leg position where the spacing starts growing
 
 // ── The hold ────────────────────────────────────────────────────────────
 // The typing-indicator grammar, in absolute seconds from the landing:
-// the crest face acknowledges with a small pip, "…" pops in beneath it and
-// cycles, then resolves to "{name} is {verb}" with the dots trailing live
+// the crest face acknowledges with a small pip, "…" pops in beside it and
+// cycles, then the sentence resolves whole with the dots trailing live
 // for the whole dwell. The label never folds itself away — the departure
 // motion is what removes it.
 const ACK_AT = 0.3; // s: the avatar's pip
@@ -91,11 +80,22 @@ const DOTS_AT = 0.35; // s: the "…" container pops in
 const POP_S = 0.2; // s: pop-in duration (slight overshoot)
 const RESOLVE_AT = 1.4; // s: dots resolve into the sentence
 const DOT_PERIOD = 0.9; // s: one wave through the three dots
+const GAP_RATIO = 13 / 48; // pill gap : avatar, off Figma 3446-2773
+
+// The shudder when the zoom lands — a subtle settle, more tremor than thud.
+const SHUDDER_AMP = 2; // px, before the decay envelope
+const SHUDDER_DECAY = 9; // higher = settles faster (~0.5s tail)
 
 /** Hermite ramp between two edges — 0 below edge0, 1 above edge1, eased. */
 function smoothstep(edge0: number, edge1: number, x: number) {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
   return t * t * (3 - 2 * t);
+}
+
+/** Normalize an angle to (-180, 180]. */
+function norm(a: number) {
+  const m = ((a % 360) + 360) % 360;
+  return m > 180 ? m - 360 : m;
 }
 
 /** Angular velocity, rev/s, at leg position h ∈ [0,1]. */
@@ -106,11 +106,26 @@ function speedAt(h: number) {
     const u = h / SPIN_UP_TO;
     return START_SPEED + (PEAK_SPEED - START_SPEED) * u * u;
   }
-  // Torque off: exponential decay toward the floor. By the time the wheel
-  // is huge it's barely turning; on the return leg this same curve runs
-  // backwards, so the wheel gathers speed again as it shrinks out.
+  // Torque off: exponential decay toward the floor. On the return leg the
+  // same curve runs backwards, so the wheel gathers speed as it shrinks.
   const u = (h - SPIN_UP_TO) / (1 - SPIN_UP_TO);
   return FLOOR_SPEED + (PEAK_SPEED - FLOOR_SPEED) * Math.exp(-FRICTION * u);
+}
+
+/** The stop taper — spin drains to zero across the approach's last leg. */
+function stopperAt(h: number) {
+  return 1 - smoothstep(STOP_FROM, STOP_BY, h);
+}
+
+/** Degrees the wheel would naturally coast from leg position h0 to 1. */
+function coastFrom(h0: number, legSeconds: number) {
+  const steps = 32;
+  let deg = 0;
+  for (let i = 0; i < steps; i++) {
+    const h = h0 + ((i + 0.5) / steps) * (1 - h0);
+    deg += speedAt(h) * stopperAt(h) * 360 * (legSeconds * (1 - h0)) / steps;
+  }
+  return deg;
 }
 
 /** Scale at leg position h — held at 1 through the crank, then the push in. */
@@ -135,43 +150,59 @@ function useReducedMotion() {
 export default function LandingPageAnimations() {
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
-  const clipRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
 
   useEffect(() => {
     const ring = ringRef.current;
     const label = labelRef.current;
-    const clip = clipRef.current;
-    if (!ring || !label || !clip) return;
+    if (!ring || !label) return;
+    const banner = ring.parentElement as HTMLElement;
     const textEl = label.querySelector<HTMLSpanElement>(".lpa-label-text")!;
     const dotEls = Array.from(
       label.querySelectorAll<HTMLElement>(".lpa-label-dots i"),
     );
     const avatarEls = ring.querySelectorAll<SVGImageElement>("image");
+    const dotGroups = ring.querySelectorAll<SVGGElement>("svg > g");
 
-    // Half the ring's laid-out size — the crest-pinning offset is
-    // (radius × scale). Cached on resize so the frame loop never reads
-    // layout.
+    // Geometry, cached on resize so the frame loop never reads layout for
+    // it: the crest-pin offset, the pill's gap, and how far the spacing
+    // must spread to clear the crest face's neighbours past the edges.
     let baseR = ring.offsetWidth / 2;
-    const ro = new ResizeObserver(() => {
+    let dotD = 0; // crest avatar's on-screen diameter at full zoom
+    let gapPx = 0; // pill gap, scaled from the Figma 13:48 ratio
+    let spreadMax = 1; // sector multiple that clears the neighbours
+    const measure = () => {
       baseR = ring.offsetWidth / 2;
-    });
+      const u = banner.clientHeight / 152;
+      dotD = 11.52 * MAX_SCALE * u;
+      gapPx = dotD * GAP_RATIO;
+      const rimR = baseR * (138.24 / 144.115);
+      const clear = banner.clientWidth / 2 + dotD * 0.6;
+      spreadMax = Math.max(
+        1,
+        ((Math.asin(Math.min(0.98, clear / rimR)) * 180) / Math.PI) / SECTOR,
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(ring);
+    ro.observe(banner);
 
-    const place = (angle: number, scale: number, sx = 0, sy = 0, blur = 0) => {
+    const place = (
+      angle: number,
+      scale: number,
+      shift = 0,
+      sx = 0,
+      sy = 0,
+    ) => {
       // The ring is laid out at MAX_SCALE (see the CSS), so the on-screen
       // scale is scale/MAX_SCALE — always ≤ 1. Scaling down instead of up
       // keeps the avatar bitmaps rasterized at close-up resolution.
       const v = scale / MAX_SCALE;
-      // sx/sy is the arrival shudder — applied after the crest offset so
-      // it's in screen pixels, unaffected by the zoom.
-      ring.style.transform = `translateY(${baseR * v}px) translate(${sx}px, ${sy}px) rotate(${angle}deg) scale(${v})`;
-      // The zoom blur goes on the ring div (one GPU-composited layer) — a
-      // filter on the SVG's child images forces a software re-raster of the
-      // whole SVG every frame and drops the page to ~1fps. Quantized so the
-      // style only changes when the blur visibly does.
-      const q = Math.round(blur * 4) / 4;
-      clip.style.filter = q > 0 ? `blur(${q}px)` : "";
+      // shift recentres the whole scene on the avatar+label pill while the
+      // label is up; sx/sy is the arrival shudder. Both in screen pixels,
+      // applied after the crest offset so the zoom doesn't amplify them.
+      ring.style.transform = `translateY(${baseR * v}px) translate(${(sx - shift).toFixed(2)}px, ${sy}px) rotate(${angle}deg) scale(${v})`;
       // Fed to the CSS on each avatar: the counter-rotation that keeps
       // faces upright while the wheel turns.
       ring.style.setProperty("--lpa-spin", `${angle}deg`);
@@ -189,11 +220,12 @@ export default function LandingPageAnimations() {
     let angle = 0;
     let shudderT = -1; // <0 = not shuddering
     let prevTau = -1; // hold-local time last frame; <0 = not holding
-    let snapArmed = false; // detent roll engaged for this approach
-    let snapFrom = 0; // ring angle when the detent roll began…
-    let snapTo = 0; // …and the sector-aligned angle it rolls to
+    let steer = 0; // 0 = free; else the speed ratio that lands on centre
+    let steerTarget = 0; // the sector-aligned angle the coast lands on
     let pendingText = ""; // this visit's sentence, applied at the resolve
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
+    let shiftCur = 0; // current recentre offset, lerped toward its target
+    let lastSpread = 1; // last spacing multiple written to the dots
 
     const frame = (now: number) => {
       // Clamped so a backgrounded tab doesn't return and jump the wheel.
@@ -216,36 +248,32 @@ export default function LandingPageAnimations() {
       }
 
       if (tau < 0) {
-        // The stop taper: spin drains to zero before the hold, and builds
-        // back through the same curve on the way out — no hard stops.
-        const stopper = 1 - smoothstep(STOP_FROM, STOP_BY, h);
-        angle = (angle + speedAt(h) * stopper * dt * 360) % 360;
-        // The detent roll (approach only): with the spin drained, the ring
-        // rolls the crest face the last few degrees into dead centre.
-        if (phase < OUT_F && h >= SNAP_FROM_H) {
-          if (!snapArmed) {
-            snapArmed = true;
-            snapFrom = angle;
-            snapTo = Math.round(angle / SECTOR) * SECTOR;
+        if (phase < OUT_F && h >= STEER_FROM) {
+          // Project the coast once, pick the next detent past it, and scale
+          // the remaining travel to land there — same physics, same drain,
+          // just slightly more of it. Never backwards.
+          if (steer === 0) {
+            const natural = coastFrom(h, OUT_F * CYCLE);
+            steerTarget = Math.ceil((angle + natural) / SECTOR) * SECTOR;
+            steer = (steerTarget - angle) / Math.max(natural, 1e-3);
           }
-          angle = snapFrom + (snapTo - snapFrom) * smoothstep(SNAP_FROM_H, 1, h);
+          angle += speedAt(h) * stopperAt(h) * steer * dt * 360;
+          angle = Math.min(angle, steerTarget);
+        } else {
+          angle = (angle + speedAt(h) * stopperAt(h) * dt * 360) % 360;
+          if (phase > OUT_F + HOLD_F) steer = 0; // re-arm for the next pass
         }
-        if (phase > OUT_F + HOLD_F && h < SNAP_FROM_H) snapArmed = false;
       } else {
-        // Held: parked on the detent.
-        if (!snapArmed) {
-          // A clamped-dt jump can skip the roll; land directly.
-          snapArmed = true;
-          snapTo = Math.round(angle / SECTOR) * SECTOR;
-        }
-        angle = snapTo;
+        // Held: parked where the coast ran out.
+        angle = steerTarget;
       }
 
       // Hold entry: pick the crest face and a verb for this visit (random,
-      // so nobody is stuck jamming forever), clear the old sentence, and
-      // arm the settle.
+      // so nobody is stuck jamming forever), stage its sentence, and arm
+      // the settle.
       if (tau >= 0 && prevTau < 0) {
-        const k = (((Math.round(-snapTo / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
+        const k =
+          (((Math.round(-steerTarget / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
         const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
         pendingText = `${displayName(AVATARS[k % AVATARS.length])} is ${verb}`;
         textEl.textContent = "";
@@ -257,15 +285,23 @@ export default function LandingPageAnimations() {
 
       const scale = scaleAt(h);
 
-      // The focus pull — a function of where the leg is, not how fast it's
-      // moving: smears on quickly when the push starts, then unblurs across
-      // the whole approach so the close-up resolves into focus. On the
-      // return leg the same curve runs backwards — sharp leaving the
-      // close-up, resolving again into the small state.
-      const blur =
-        BLUR_MAX *
-        smoothstep(SPIN_UP_TO, SPIN_UP_TO + BLUR_ON_BY, h) *
-        (1 - smoothstep(SHARP_FROM, SHARP_BY, h));
+      // The spread — spacing grows through the final zoom until the crest
+      // face's neighbours sit past the banner's edges, and contracts the
+      // same way on the way out. Anchored at the crest line, so the centre
+      // face never moves while the others slide away.
+      const spread = 1 + (spreadMax - 1) * smoothstep(SPREAD_START, 1, h);
+      if (spread > 1.0005 || lastSpread > 1.0005) {
+        lastSpread = spread;
+        for (let j = 0; j < dotGroups.length; j++) {
+          const base = j * SECTOR;
+          const a = base + (spread - 1) * norm(angle + base);
+          dotGroups[j].setAttribute(
+            "transform",
+            `rotate(${a.toFixed(3)} 144.115 144.115)`,
+          );
+          avatarEls[j].style.setProperty("--lpa-da", `${a.toFixed(3)}deg`);
+        }
+      }
 
       // The arrival shudder — a decaying two-axis wobble as the hold lands.
       let sx = 0;
@@ -312,18 +348,17 @@ export default function LandingPageAnimations() {
         cOp = e;
         cDy = (1 - e) * 6;
       }
-      label.style.opacity = cOp.toFixed(3);
-      label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px) scale(${cScale.toFixed(3)})`;
 
       if (cOp > 0) {
         // The three dots cycle the entire time the label is visible —
         // "typing" stays alive through the dwell and out the door.
-        const wave = (now / 1000) / DOT_PERIOD;
+        const wave = now / 1000 / DOT_PERIOD;
         for (let j = 0; j < dotEls.length; j++) {
-          const o = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * wave - j * 1.05));
+          const o =
+            0.25 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * wave - j * 1.05));
           dotEls[j].style.opacity = o.toFixed(2);
         }
-        // The resolve: the sentence pops in whole beside the dots.
+        // The resolve: the sentence pops in whole between face and dots.
         if (tHold >= RESOLVE_AT || tau < 0) {
           if (textEl.textContent !== pendingText) textEl.textContent = pendingText;
           const te = tau >= 0 ? smoothstep(RESOLVE_AT, RESOLVE_AT + 0.18, tHold) : 1;
@@ -332,7 +367,19 @@ export default function LandingPageAnimations() {
         }
       }
 
-      place(angle, scale, sx, sy, blur);
+      // The recentre: while the label is up, face + gap + label reads as
+      // one pill, so the whole scene eases left by half the label's width
+      // to centre the pill — and eases home as the label goes. Lerped, so
+      // the width jump at the resolve becomes a glide.
+      const shiftTarget = cOp > 0 ? ((label.offsetWidth + gapPx) / 2) * cOp : 0;
+      shiftCur += (shiftTarget - shiftCur) * Math.min(1, dt * 10);
+      if (Math.abs(shiftCur) < 0.05) shiftCur = 0;
+
+      // The label rides beside the (shifted) crest face at the pill's gap.
+      label.style.opacity = cOp.toFixed(3);
+      label.style.transform = `translateX(${(-shiftCur + dotD / 2 + gapPx).toFixed(1)}px) translateY(calc(-50% + ${cDy.toFixed(1)}px)) scale(${cScale.toFixed(3)})`;
+
+      place(angle, scale, shiftCur, sx, sy);
       raf = requestAnimationFrame(frame);
     };
 
@@ -346,11 +393,6 @@ export default function LandingPageAnimations() {
   return (
     <main className="lpa-field bg-gray-100">
       <section className="lpa-banner">
-        {/* The clip carries the zoom's motion blur. Filtering this
-            banner-sized, overflow-clipped layer instead of the ring keeps
-            the per-frame blur to the visible pixels — filtering the full
-            ~2256px ring layer drops the page to a crawl. */}
-        <div ref={clipRef} className="lpa-clip">
         {/* The wheel is one SVG in the storyboard's own coordinate space —
             circles straight off the Figma asset (cx 144.115, cy 5.875,
             r 5.76 in a 288.23 box), each rotated about the centre. */}
@@ -389,7 +431,6 @@ export default function LandingPageAnimations() {
             ))}
           </svg>
         </div>
-        </div>
         {/* Progressive blur + white wash over the bottom half — see the
             .lpa-scrim rules for how the bands stack. */}
         <div className="lpa-scrim">
@@ -399,11 +440,11 @@ export default function LandingPageAnimations() {
           <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-wash" />
         </div>
-        {/* The typing indicator, centred beneath the crest face (Figma
-            3446-2775): "…" cycles, then resolves to "{name} is {verb}"
-            with the dots trailing live. All motion written per frame from
-            the rAF loop. After the scrim in paint order so it sits above
-            the blur it would otherwise be washed by. */}
+        {/* The typing indicator, composed beside the crest face at the
+            Figma pill's ratios (3446-2773): "…" cycles, the sentence
+            resolves whole, the dots trail live. All motion written per
+            frame from the rAF loop. After the scrim in paint order so it
+            sits above the blur it would otherwise be washed by. */}
         <div ref={labelRef} className="lpa-label" aria-hidden="true">
           <span className="lpa-label-text" />
           <span className="lpa-label-dots">

@@ -56,21 +56,18 @@ const HOLD_F = 0.185; // …holding at the close-up (~2.6s, label plays here)…
 const SPIN_UP_TO = 0.32; // fraction of each leg spent cranking
 const START_SPEED = 0.09; // rev/s the leg opens on
 const PEAK_SPEED = 0.25; // rev/s at the end of the crank
-const FLOOR_SPEED = 0.02; // rev/s the freewheel decays toward
-const FRICTION = 5; // how hard the wheel is braked once torque is off
+const DESCENT_POW = 3; // (1-v)^p descent: steep off the peak, easing to 0
 // The blueprint's close-up (3488-1842) puts the crest avatar at 48/152 of
 // the banner; dots are 11.52 in storyboard units, so the zoom ceiling is
 // 48 / 11.52. Keep in sync with --lpa-max in the CSS.
 const MAX_SCALE = 48 / 11.52;
 
 // ── The stop ────────────────────────────────────────────────────────────
-// One fluid landing: from STEER_FROM the wheel's remaining coast is
-// projected forward and scaled — imperceptibly, the speeds are tiny — so
-// the natural drain (STOP_*) runs out exactly as a face reaches dead
-// centre. Always forward; nothing rolls back into place.
-const STEER_FROM = 0.6; // leg position where the landing is projected
-const STOP_FROM = 0.88; // leg position where the spin starts draining…
-const STOP_BY = 0.97; // …and where it reaches zero
+// One curve, one landing: the descent (1-v)^p runs from the peak straight
+// to zero at the hold — the zoom's opposite number, equally smooth. At the
+// crank's end the remaining descent is projected, the nearest face-centre
+// is chosen, and the whole descent is scaled by a hair (±7% at most, eased
+// in across the peak blend) so the coast runs out exactly on a face.
 
 // ── The spread ──────────────────────────────────────────────────────────
 // As the camera closes in, spacing between avatars grows until the crest
@@ -107,38 +104,35 @@ function norm(a: number) {
   return m > 180 ? m - 360 : m;
 }
 
-/** Angular velocity, rev/s, at leg position h ∈ [0,1]. The crank's squared
- *  ramp and the freewheel's exponential decay are BLENDED across ±BLEND of
- *  the handoff — the raw pieces meet at a corner (acceleration flips sign
- *  in one frame), which read as the wheel hitting a wall at peak spin. */
+/** Angular velocity, rev/s, at leg position h ∈ [0,1]: the crank's squared
+ *  ramp up to the peak, then ONE smooth descent — (1-v)^p from the peak
+ *  straight to zero at the hold, the zoom's opposite number. The two are
+ *  blended across ±BLEND of the handoff so acceleration never jumps. */
 const SPEED_BLEND = 0.08;
 function crankAt(h: number) {
   const u = h / SPIN_UP_TO;
   return START_SPEED + (PEAK_SPEED - START_SPEED) * u * u;
 }
-function freewheelAt(h: number) {
-  const u = Math.max(0, (h - SPIN_UP_TO) / (1 - SPIN_UP_TO));
-  return FLOOR_SPEED + (PEAK_SPEED - FLOOR_SPEED) * Math.exp(-FRICTION * u);
+function descentAt(h: number) {
+  const v = Math.min(1, Math.max(0, (h - SPIN_UP_TO) / (1 - SPIN_UP_TO)));
+  return PEAK_SPEED * Math.pow(1 - v, DESCENT_POW);
 }
 function speedAt(h: number) {
   const m = smoothstep(SPIN_UP_TO - SPEED_BLEND, SPIN_UP_TO + SPEED_BLEND, h);
   if (m <= 0) return crankAt(h);
-  if (m >= 1) return freewheelAt(h);
-  return crankAt(h) * (1 - m) + freewheelAt(h) * m;
+  if (m >= 1) return descentAt(h);
+  return crankAt(h) * (1 - m) + descentAt(h) * m;
 }
 
-/** The stop taper — spin drains to zero across the approach's last leg. */
-function stopperAt(h: number) {
-  return 1 - smoothstep(STOP_FROM, STOP_BY, h);
-}
-
-/** Degrees the wheel would naturally coast from leg position h0 to 1. */
-function coastFrom(h0: number, legSeconds: number) {
+/** Degrees the wheel coasts from leg position h0 to the hold, optionally
+ *  weighted by the steer's ease-in window. */
+function coastFrom(h0: number, legSeconds: number, rampTo = -1) {
   const steps = 32;
   let deg = 0;
   for (let i = 0; i < steps; i++) {
     const h = h0 + ((i + 0.5) / steps) * (1 - h0);
-    deg += speedAt(h) * stopperAt(h) * 360 * (legSeconds * (1 - h0)) / steps;
+    const w = rampTo > h0 ? smoothstep(h0, rampTo, h) : 1;
+    deg += speedAt(h) * w * 360 * (legSeconds * (1 - h0)) / steps;
   }
   return deg;
 }
@@ -165,7 +159,7 @@ function cycleAt(p: number) {
     h = 1;
     tau = (p - OUT_F) / HOLD_F;
   } else h = 1 - (p - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
-  const omega = tau >= 0 ? 0 : speedAt(h) * stopperAt(h);
+  const omega = tau >= 0 ? 0 : speedAt(h);
   const zoom = (scaleAt(h) - 1) / (MAX_SCALE - 1);
   const tH = tau >= 0 ? tau * HOLD_F * CYCLE : -1;
   let lab = 0;
@@ -190,9 +184,8 @@ const TL_PATHS = {
 };
 const TL_HOLD = { x: OUT_F * TL_W, w: HOLD_F * TL_W };
 const TL_MARKS = [
-  { x: OUT_F * SPIN_UP_TO * TL_W, name: "crank end" },
-  { x: OUT_F * STEER_FROM * TL_W, name: "steer" },
-  { x: OUT_F * STOP_FROM * TL_W, name: "stop drain" },
+  { x: OUT_F * SPIN_UP_TO * TL_W, name: "peak / steer" },
+  { x: (OUT_F + HOLD_F + (1 - OUT_F - HOLD_F) * (1 - SPIN_UP_TO)) * TL_W, name: "peak (return)" },
 ];
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
@@ -272,7 +265,6 @@ export default function LandingPageAnimations() {
     let steerH0 = 0; // leg position where the projection was armed
     let steerExtra = 0; // extra speed factor, eased in via the steer ramp
     let steerTarget = 0; // the sector-aligned angle the coast lands on
-    const STEER_RAMP = 0.12; // leg fraction over which the factor eases in
     let pendingText = ""; // this visit's sentence, applied at the resolve
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
     let lastSpread = 1; // last spacing multiple written to the dots
@@ -298,34 +290,31 @@ export default function LandingPageAnimations() {
       }
 
       if (tau < 0) {
-        if (phase < OUT_F && h >= STEER_FROM) {
-          // Project the coast once and pick the next detent past it. The
-          // extra speed that closes the gap eases in over STEER_RAMP —
-          // engaging it in one frame was an audible speed step. The ramp's
-          // weighted coast is integrated so the landing still hits the
-          // detent exactly. Never backwards.
+        if (phase < OUT_F && h >= SPIN_UP_TO - SPEED_BLEND) {
+          // Arm once at the peak: project the remaining coast, pick the
+          // NEAREST face-centre, and scale the whole descent by the hair
+          // that lands there (±7% at most). The scaling eases in across
+          // the peak blend, so the curve's shape never changes — the
+          // descent is one smooth stroke that runs out on a face.
           if (!steerOn) {
             steerOn = true;
             steerH0 = h;
             const legS = OUT_F * CYCLE;
             const natural = coastFrom(h, legS);
-            let ramped = 0;
-            for (let i = 0; i < 32; i++) {
-              const hh = h + ((i + 0.5) / 32) * (1 - h);
-              ramped +=
-                speedAt(hh) * stopperAt(hh) *
-                smoothstep(steerH0, steerH0 + STEER_RAMP, hh) *
-                360 * (legS * (1 - h)) / 32;
-            }
-            steerTarget = Math.ceil((angle + natural) / SECTOR) * SECTOR;
+            const ramped = coastFrom(h, legS, steerH0 + SPEED_BLEND * 2);
+            steerTarget = Math.round((angle + natural) / SECTOR) * SECTOR;
             steerExtra = (steerTarget - angle - natural) / Math.max(ramped, 1e-3);
           }
           const factor =
-            1 + steerExtra * smoothstep(steerH0, steerH0 + STEER_RAMP, h);
-          angle += speedAt(h) * stopperAt(h) * factor * dt * 360;
-          angle = Math.min(angle, steerTarget);
+            1 +
+            steerExtra * smoothstep(steerH0, steerH0 + SPEED_BLEND * 2, h);
+          angle += speedAt(h) * Math.max(0, factor) * dt * 360;
+          // Frame-rate integration drifts the landing by a fraction of a
+          // degree; ease the residual out over the last stretch, where ω
+          // is effectively zero — sub-pixel per frame, never a snap.
+          if (h > 0.9) angle += (steerTarget - angle) * Math.min(1, dt * 5);
         } else {
-          angle = (angle + speedAt(h) * stopperAt(h) * dt * 360) % 360;
+          angle = (angle + speedAt(h) * dt * 360) % 360;
           if (phase > OUT_F + HOLD_F) steerOn = false; // re-arm next pass
         }
       } else {
@@ -560,7 +549,7 @@ export default function LandingPageAnimations() {
           <span className="lpa-tl-key lpa-tl-key-zoom">zoom</span>
           <span className="lpa-tl-key lpa-tl-key-omega">spin ω</span>
           <span className="lpa-tl-key lpa-tl-key-label">label</span>
-          <span className="lpa-tl-key">hold = shaded · ticks: crank end / steer / stop drain</span>
+          <span className="lpa-tl-key">hold = shaded · ticks: spin peaks (steer arms there)</span>
         </div>
       </div>
     </main>

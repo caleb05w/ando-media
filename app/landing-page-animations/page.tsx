@@ -61,11 +61,16 @@ const HOLD_F = 0.13; // …holding at the close-up (~1.7s)…
 const MOTION = {
   sy: 0.09, // rev/s at the cycle seam
   peak: { x: 0.32, y: 0.25 }, // the spin's summit (leg position, rev/s)
-  rise: { x: 0.2, y: 0.13 }, // rise-shape handle
-  fall: { x: 0.55, y: 0.05 }, // fall-shape handle
-  zoomStart: 0.27, // leg position where the push-in begins
-  z1: { x: 0.45, y: 0.05 }, // zoom ease handle 1
-  z2: { x: 0.6, y: 0.95 }, // zoom ease handle 2
+  // Both shape handles sit near the summit's height, so the bell crests
+  // through a rounded top instead of a corner — the rise arrives level and
+  // the long coast leaves level, then brakes smoothly into the hold.
+  rise: { x: 0.2, y: 0.24 }, // rise-shape handle
+  fall: { x: 0.72, y: 0.23 }, // fall-shape handle — the long live coast
+  zoomStart: 0.25, // leg position where the push-in begins
+  // The ease engages immediately (no flat lead-in): the lull-then-lurch
+  // came from a dead first half of the ease window.
+  z1: { x: 0.3, y: 0.12 }, // zoom ease handle 1
+  z2: { x: 0.65, y: 0.95 }, // zoom ease handle 2
 };
 const MOTION_DEFAULTS = JSON.stringify(MOTION);
 const STEER_EASE = 0.16; // leg fraction over which the landing scale eases in

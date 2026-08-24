@@ -37,6 +37,16 @@
   overflow: hidden;
 }
 
+/* The motion-blur clip — banner-sized and overflow-clipped so the zoom
+   blur only ever filters visible pixels. filter is written per frame from
+   the rAF loop while the camera is moving. */
+.lpa-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  will-change: filter;
+}
+
 /* The wheel. Laid out so its untransformed centre sits exactly on the crest
    line; the frame loop pushes it down by (ring radius × scale) so the top
    dot stays pinned at --lpa-crest while the wheel grows beneath the banner.
@@ -67,7 +77,10 @@
 .lpa-avatar {
   transform-box: fill-box;
   transform-origin: center;
-  transform: rotate(calc((var(--lpa-spin, 0deg) + var(--lpa-da, 0deg)) * -1));
+  /* --lpa-pip is the crest face's acknowledgment breath, pulsed from the
+     rAF loop just before its typing dots appear. */
+  transform: rotate(calc((var(--lpa-spin, 0deg) + var(--lpa-da, 0deg)) * -1))
+    scale(var(--lpa-pip, 1));
 }
 
 /* The crest label — "{name} is {verb}" (Figma 3446-2775: 20px text against
@@ -80,11 +93,40 @@
   left: 50%;
   top: calc(var(--u) * (34 + 11.52 * 3.8) + 14px);
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.28em;
   font-size: calc(var(--u) * 11.52 * 3.8 * (20 / 48));
   color: #24211f;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
+}
+
+/* The sentence — pops in whole at the resolve; hidden while the dots have
+   the floor. Opacity/offset written per frame. */
+.lpa-label-text {
+  opacity: 0;
+}
+
+.lpa-label-text:empty {
+  display: none;
+}
+
+/* The three dots — the live part. Each pulses on a phase-offset wave
+   written per frame, before the resolve (centred alone) and after it
+   (trailing the sentence). */
+.lpa-label-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+}
+
+.lpa-label-dots i {
+  width: 0.24em;
+  height: 0.24em;
+  border-radius: 50%;
+  background: #24211f;
 }
 
 /* The dissolve — the storyboard's Rectangle 1: the bottom half of the

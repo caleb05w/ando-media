@@ -81,10 +81,16 @@ const STOP_BY = 0.97; // …and where it reaches zero
 const SNAP_FROM_H = 0.955; // leg position where the detent roll begins
 
 // ── The hold ────────────────────────────────────────────────────────────
-// While held, the crest face's label rises centred beneath it, dwells,
-// and folds away before departure.
-const LABEL_IN = [0.06, 0.22] as const; // hold fraction: rise in
-const LABEL_OUT = [0.8, 0.94] as const; // hold fraction: fold away
+// The typing-indicator grammar, in absolute seconds from the landing:
+// the crest face acknowledges with a small pip, "…" pops in beneath it and
+// cycles, then resolves to "{name} is {verb}" with the dots trailing live
+// for the whole dwell. The label never folds itself away — the departure
+// motion is what removes it.
+const ACK_AT = 0.3; // s: the avatar's pip
+const DOTS_AT = 0.35; // s: the "…" container pops in
+const POP_S = 0.2; // s: pop-in duration (slight overshoot)
+const RESOLVE_AT = 1.4; // s: dots resolve into the sentence
+const DOT_PERIOD = 0.9; // s: one wave through the three dots
 
 /** Hermite ramp between two edges — 0 below edge0, 1 above edge1, eased. */
 function smoothstep(edge0: number, edge1: number, x: number) {
@@ -129,12 +135,19 @@ function useReducedMotion() {
 export default function LandingPageAnimations() {
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
+  const clipRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
 
   useEffect(() => {
     const ring = ringRef.current;
     const label = labelRef.current;
-    if (!ring || !label) return;
+    const clip = clipRef.current;
+    if (!ring || !label || !clip) return;
+    const textEl = label.querySelector<HTMLSpanElement>(".lpa-label-text")!;
+    const dotEls = Array.from(
+      label.querySelectorAll<HTMLElement>(".lpa-label-dots i"),
+    );
+    const avatarEls = ring.querySelectorAll<SVGImageElement>("image");
 
     // Half the ring's laid-out size — the crest-pinning offset is
     // (radius × scale). Cached on resize so the frame loop never reads
@@ -158,7 +171,7 @@ export default function LandingPageAnimations() {
       // whole SVG every frame and drops the page to ~1fps. Quantized so the
       // style only changes when the blur visibly does.
       const q = Math.round(blur * 4) / 4;
-      ring.style.filter = q > 0 ? `blur(${q}px)` : "";
+      clip.style.filter = q > 0 ? `blur(${q}px)` : "";
       // Fed to the CSS on each avatar: the counter-rotation that keeps
       // faces upright while the wheel turns.
       ring.style.setProperty("--lpa-spin", `${angle}deg`);
@@ -179,6 +192,8 @@ export default function LandingPageAnimations() {
     let snapArmed = false; // detent roll engaged for this approach
     let snapFrom = 0; // ring angle when the detent roll began…
     let snapTo = 0; // …and the sector-aligned angle it rolls to
+    let pendingText = ""; // this visit's sentence, applied at the resolve
+    let pipEl: SVGImageElement | null = null; // the crest face, for the pip
 
     const frame = (now: number) => {
       // Clamped so a backgrounded tab doesn't return and jump the wheel.
@@ -226,10 +241,16 @@ export default function LandingPageAnimations() {
         angle = snapTo;
       }
 
-      // Hold entry: name the crest face and arm the settle.
+      // Hold entry: pick the crest face and a verb for this visit (random,
+      // so nobody is stuck jamming forever), clear the old sentence, and
+      // arm the settle.
       if (tau >= 0 && prevTau < 0) {
         const k = (((Math.round(-snapTo / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
-        label.textContent = `${displayName(AVATARS[k % AVATARS.length])} is ${VERBS[k % VERBS.length]}`;
+        const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
+        pendingText = `${displayName(AVATARS[k % AVATARS.length])} is ${verb}`;
+        textEl.textContent = "";
+        if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
+        pipEl = avatarEls[k] ?? null;
         shudderT = 0;
       }
       prevTau = tau;
@@ -260,18 +281,56 @@ export default function LandingPageAnimations() {
         }
       }
 
-      // The label plays only inside the hold: g runs 0→1→0 (rise, dwell,
-      // fold away). Centred beneath the crest face, it reveals from its
-      // middle outward while drifting up into place.
-      const g =
-        tau >= 0
-          ? smoothstep(LABEL_IN[0], LABEL_IN[1], tau) *
-            (1 - smoothstep(LABEL_OUT[0], LABEL_OUT[1], tau))
-          : 0;
-      const s = ((1 - g) * 50).toFixed(1);
-      label.style.opacity = String(g);
-      label.style.clipPath = `inset(0 ${s}% 0 ${s}%)`;
-      label.style.transform = `translateX(-50%) translateY(${((1 - g) * 8).toFixed(1)}px)`;
+      // ── The typing indicator ──────────────────────────────────────────
+      // Seconds since the hold landed; <0 while travelling.
+      const tHold = tau >= 0 ? tau * HOLD_F * CYCLE : -1;
+
+      // The crest face's pip — a small breath the moment before its dots
+      // appear, tying the label to the person.
+      if (pipEl && tHold >= ACK_AT) {
+        const p = Math.min(1, (tHold - ACK_AT) / 0.45);
+        pipEl.style.setProperty(
+          "--lpa-pip",
+          (1 + 0.06 * Math.sin(Math.PI * p)).toFixed(4),
+        );
+      }
+
+      // Container: pops in shortly after landing (fast, slight overshoot),
+      // stays for the whole hold, and is taken away by the departure — it
+      // fades and sinks with the first motion of the pull-out.
+      let cOp = 0;
+      let cDy = 4;
+      let cScale = 1;
+      if (tHold >= DOTS_AT) {
+        const u = Math.min(1, (tHold - DOTS_AT) / POP_S);
+        cOp = u;
+        cScale = 1 + 0.05 * Math.sin(u * Math.PI) - 0.1 * (1 - u) * (1 - u);
+        cDy = (1 - u) * 4;
+      } else if (tau < 0 && phase > OUT_F) {
+        // Return leg: the camera leaving is what removes the label.
+        const e = smoothstep(0.9, 0.985, h);
+        cOp = e;
+        cDy = (1 - e) * 6;
+      }
+      label.style.opacity = cOp.toFixed(3);
+      label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px) scale(${cScale.toFixed(3)})`;
+
+      if (cOp > 0) {
+        // The three dots cycle the entire time the label is visible —
+        // "typing" stays alive through the dwell and out the door.
+        const wave = (now / 1000) / DOT_PERIOD;
+        for (let j = 0; j < dotEls.length; j++) {
+          const o = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * wave - j * 1.05));
+          dotEls[j].style.opacity = o.toFixed(2);
+        }
+        // The resolve: the sentence pops in whole beside the dots.
+        if (tHold >= RESOLVE_AT || tau < 0) {
+          if (textEl.textContent !== pendingText) textEl.textContent = pendingText;
+          const te = tau >= 0 ? smoothstep(RESOLVE_AT, RESOLVE_AT + 0.18, tHold) : 1;
+          textEl.style.opacity = te.toFixed(3);
+          textEl.style.transform = `translateY(${((1 - te) * 4).toFixed(1)}px)`;
+        }
+      }
 
       place(angle, scale, sx, sy, blur);
       raf = requestAnimationFrame(frame);
@@ -287,8 +346,13 @@ export default function LandingPageAnimations() {
   return (
     <main className="lpa-field bg-gray-100">
       <section className="lpa-banner">
+        {/* The clip carries the zoom's motion blur. Filtering this
+            banner-sized, overflow-clipped layer instead of the ring keeps
+            the per-frame blur to the visible pixels — filtering the full
+            ~2256px ring layer drops the page to a crawl. */}
+        <div ref={clipRef} className="lpa-clip">
         {/* The wheel is one SVG in the storyboard's own coordinate space —
-            36 circles straight off the Figma asset (cx 144.115, cy 5.875,
+            circles straight off the Figma asset (cx 144.115, cy 5.875,
             r 5.76 in a 288.23 box), each rotated about the centre. */}
         <div ref={ringRef} className="lpa-ring">
           <svg
@@ -325,6 +389,7 @@ export default function LandingPageAnimations() {
             ))}
           </svg>
         </div>
+        </div>
         {/* Progressive blur + white wash over the bottom half — see the
             .lpa-scrim rules for how the bands stack. */}
         <div className="lpa-scrim">
@@ -334,11 +399,19 @@ export default function LandingPageAnimations() {
           <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-wash" />
         </div>
-        {/* "{name} is {verb}" centred beneath the crest face (Figma
-            3446-2775) — text, opacity, and reveal written per frame from
+        {/* The typing indicator, centred beneath the crest face (Figma
+            3446-2775): "…" cycles, then resolves to "{name} is {verb}"
+            with the dots trailing live. All motion written per frame from
             the rAF loop. After the scrim in paint order so it sits above
             the blur it would otherwise be washed by. */}
-        <div ref={labelRef} className="lpa-label" aria-hidden="true" />
+        <div ref={labelRef} className="lpa-label" aria-hidden="true">
+          <span className="lpa-label-text" />
+          <span className="lpa-label-dots">
+            <i />
+            <i />
+            <i />
+          </span>
+        </div>
       </section>
     </main>
   );

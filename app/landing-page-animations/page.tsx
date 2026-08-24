@@ -53,8 +53,8 @@ const CYCLE = 14; // seconds for out → hold → back
 const OUT_F = 0.41; // fraction of the cycle spent pushing in…
 const HOLD_F = 0.185; // …holding at the close-up (~2.6s, label plays here)…
 // …and the remainder pulling back out.
-const SPIN_UP_TO = 0.35; // fraction of each leg spent cranking
-const START_SPEED = 0.06; // rev/s the leg opens on
+const SPIN_UP_TO = 0.32; // fraction of each leg spent cranking
+const START_SPEED = 0.09; // rev/s the leg opens on
 const PEAK_SPEED = 0.25; // rev/s at the end of the crank
 const FLOOR_SPEED = 0.02; // rev/s the freewheel decays toward
 const FRICTION = 5; // how hard the wheel is braked once torque is off
@@ -76,7 +76,7 @@ const STOP_BY = 0.97; // …and where it reaches zero
 // As the camera closes in, spacing between avatars grows until the crest
 // face's neighbours sit just past the banner's edges — the close-up is one
 // person. The exact multiple is computed from the banner's measured width.
-const SPREAD_START = 0.72; // leg position where the spacing starts growing
+const SPREAD_START = 0.65; // leg position where the spacing starts growing
 
 // ── The hold ────────────────────────────────────────────────────────────
 // The typing-indicator grammar, in absolute seconds from the landing:
@@ -107,18 +107,24 @@ function norm(a: number) {
   return m > 180 ? m - 360 : m;
 }
 
-/** Angular velocity, rev/s, at leg position h ∈ [0,1]. */
-function speedAt(h: number) {
-  if (h < SPIN_UP_TO) {
-    // Squared ramp — the wheel puts on speed faster the longer you crank,
-    // which reads as momentum rather than an ease-in.
-    const u = h / SPIN_UP_TO;
-    return START_SPEED + (PEAK_SPEED - START_SPEED) * u * u;
-  }
-  // Torque off: exponential decay toward the floor. On the return leg the
-  // same curve runs backwards, so the wheel gathers speed as it shrinks.
-  const u = (h - SPIN_UP_TO) / (1 - SPIN_UP_TO);
+/** Angular velocity, rev/s, at leg position h ∈ [0,1]. The crank's squared
+ *  ramp and the freewheel's exponential decay are BLENDED across ±BLEND of
+ *  the handoff — the raw pieces meet at a corner (acceleration flips sign
+ *  in one frame), which read as the wheel hitting a wall at peak spin. */
+const SPEED_BLEND = 0.08;
+function crankAt(h: number) {
+  const u = h / SPIN_UP_TO;
+  return START_SPEED + (PEAK_SPEED - START_SPEED) * u * u;
+}
+function freewheelAt(h: number) {
+  const u = Math.max(0, (h - SPIN_UP_TO) / (1 - SPIN_UP_TO));
   return FLOOR_SPEED + (PEAK_SPEED - FLOOR_SPEED) * Math.exp(-FRICTION * u);
+}
+function speedAt(h: number) {
+  const m = smoothstep(SPIN_UP_TO - SPEED_BLEND, SPIN_UP_TO + SPEED_BLEND, h);
+  if (m <= 0) return crankAt(h);
+  if (m >= 1) return freewheelAt(h);
+  return crankAt(h) * (1 - m) + freewheelAt(h) * m;
 }
 
 /** The stop taper — spin drains to zero across the approach's last leg. */
@@ -137,9 +143,10 @@ function coastFrom(h0: number, legSeconds: number) {
   return deg;
 }
 
-/** Scale at leg position h — held at 1 through the crank, then the push in. */
+/** Scale at leg position h — the push in starts on the crank's tail, so
+ *  the zoom and the spin peak don't land on the same frame. */
 function scaleAt(h: number) {
-  return 1 + (MAX_SCALE - 1) * smoothstep(SPIN_UP_TO, 1, h);
+  return 1 + (MAX_SCALE - 1) * smoothstep(SPIN_UP_TO - 0.05, 1, h);
 }
 
 // ── The timeline strip ──────────────────────────────────────────────────
@@ -261,8 +268,11 @@ export default function LandingPageAnimations() {
     let phase = 0;
     let angle = 0;
     let prevTau = -1; // hold-local time last frame; <0 = not holding
-    let steer = 0; // 0 = free; else the speed ratio that lands on centre
+    let steerOn = false; // landing projection armed for this approach
+    let steerH0 = 0; // leg position where the projection was armed
+    let steerExtra = 0; // extra speed factor, eased in via the steer ramp
     let steerTarget = 0; // the sector-aligned angle the coast lands on
+    const STEER_RAMP = 0.12; // leg fraction over which the factor eases in
     let pendingText = ""; // this visit's sentence, applied at the resolve
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
     let lastSpread = 1; // last spacing multiple written to the dots
@@ -289,19 +299,34 @@ export default function LandingPageAnimations() {
 
       if (tau < 0) {
         if (phase < OUT_F && h >= STEER_FROM) {
-          // Project the coast once, pick the next detent past it, and scale
-          // the remaining travel to land there — same physics, same drain,
-          // just slightly more of it. Never backwards.
-          if (steer === 0) {
-            const natural = coastFrom(h, OUT_F * CYCLE);
+          // Project the coast once and pick the next detent past it. The
+          // extra speed that closes the gap eases in over STEER_RAMP —
+          // engaging it in one frame was an audible speed step. The ramp's
+          // weighted coast is integrated so the landing still hits the
+          // detent exactly. Never backwards.
+          if (!steerOn) {
+            steerOn = true;
+            steerH0 = h;
+            const legS = OUT_F * CYCLE;
+            const natural = coastFrom(h, legS);
+            let ramped = 0;
+            for (let i = 0; i < 32; i++) {
+              const hh = h + ((i + 0.5) / 32) * (1 - h);
+              ramped +=
+                speedAt(hh) * stopperAt(hh) *
+                smoothstep(steerH0, steerH0 + STEER_RAMP, hh) *
+                360 * (legS * (1 - h)) / 32;
+            }
             steerTarget = Math.ceil((angle + natural) / SECTOR) * SECTOR;
-            steer = (steerTarget - angle) / Math.max(natural, 1e-3);
+            steerExtra = (steerTarget - angle - natural) / Math.max(ramped, 1e-3);
           }
-          angle += speedAt(h) * stopperAt(h) * steer * dt * 360;
+          const factor =
+            1 + steerExtra * smoothstep(steerH0, steerH0 + STEER_RAMP, h);
+          angle += speedAt(h) * stopperAt(h) * factor * dt * 360;
           angle = Math.min(angle, steerTarget);
         } else {
           angle = (angle + speedAt(h) * stopperAt(h) * dt * 360) % 360;
-          if (phase > OUT_F + HOLD_F) steer = 0; // re-arm for the next pass
+          if (phase > OUT_F + HOLD_F) steerOn = false; // re-arm next pass
         }
       } else {
         // Held: parked where the coast ran out.

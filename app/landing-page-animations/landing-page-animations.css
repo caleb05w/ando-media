@@ -27,7 +27,7 @@
      it DOWN from there. Scaling down keeps the avatar bitmaps rasterizing
      at full size; laying out small and scaling up rasterizes the faces at
      dot size and they smear. */
-  --lpa-max: 3.8;
+  --lpa-max: calc(48 / 11.52);
   --lpa-ring-d: calc(var(--u) * 288.23 * var(--lpa-max));
   --lpa-crest: calc(var(--u) * 34);
   position: relative;
@@ -73,22 +73,18 @@
     scale(var(--lpa-pip, 1));
 }
 
-/* The crest label — "{name} is {verb}" (Figma 3446-2775: 20px text against
-   a 48px avatar, #24211f). Centred beneath the top face at its close-up
-   size: the dot's visual radius at full zoom is 11.52 × 3.8 / 2 storyboard
-   units, and the text scales with the same ratio the pill uses (20/48 of
-   the avatar). Text and opacity are written per frame from the rAF loop. */
+/* The crest label — "{name} is {verb}" per the blueprint (3488-1842):
+   centred beneath the 48u close-up face with a 12u gap, 20u/28u Geist,
+   #24211f. Crest top is 34u and the close-up avatar is 48u tall, so the
+   label's top edge sits at (34 + 48 + 12)u. Text, opacity, and the reveal
+   are written per frame from the rAF loop. */
 .lpa-label {
   position: absolute;
   left: 50%;
-  /* Vertically centred on the crest face — the pill row (3446-2773). The
-     horizontal offset (avatar radius + the 13:48 gap, minus the recentre
-     shift) is written per frame from the rAF loop. */
-  top: calc(var(--u) * (34 + 11.52 * 3.8 / 2));
-  display: flex;
-  align-items: center;
-  gap: 0.28em;
-  font-size: calc(var(--u) * 11.52 * 3.8 * (20 / 48));
+  top: calc(var(--u) * (34 + 48 + 12));
+  transform: translateX(-50%);
+  font-size: calc(var(--u) * 20);
+  line-height: calc(var(--u) * 28);
   color: #24211f;
   white-space: nowrap;
   opacity: 0;
@@ -98,17 +94,19 @@
 /* The sentence — pops in whole at the resolve; hidden while the dots have
    the floor. Opacity/offset written per frame. */
 .lpa-label-text {
+  display: inline-block;
+  min-height: calc(var(--u) * 28);
   opacity: 0;
 }
 
-.lpa-label-text:empty {
-  display: none;
-}
-
-/* The three dots — the live part. Each pulses on a phase-offset wave
-   written per frame, before the resolve (centred alone) and after it
-   (trailing the sentence). */
+/* The three dots — the "…" phase. Absolutely centred on the label's slot
+   so the sentence replaces them in place; each pulses on a phase-offset
+   wave written per frame and fades out at the resolve. */
 .lpa-label-dots {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: inline-flex;
   align-items: center;
   gap: 0.18em;

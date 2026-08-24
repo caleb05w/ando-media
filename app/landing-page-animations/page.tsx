@@ -42,6 +42,13 @@ const VERBS = ["prompting", "typing", "jamming"];
 const displayName = (slug: string) =>
   slug === "aj" ? "AJ" : slug[0].toUpperCase() + slug.slice(1);
 
+// The face in each slot. 28 % 9 = 1, so a plain modulo puts the same face
+// on dots 27 and 0 — neighbours across the wrap. Patch the last slot with
+// a face that matches neither neighbour.
+const FACES = Array.from({ length: DOTS }, (_, i) =>
+  i === DOTS - 1 ? AVATARS[4] : AVATARS[i % AVATARS.length],
+);
+
 // ── The loop ────────────────────────────────────────────────────────────
 const CYCLE = 16; // seconds for out → hold → back
 const OUT_F = 0.36; // fraction of the cycle spent pushing in…
@@ -177,7 +184,7 @@ export default function LandingPageAnimations() {
       dotD = 11.52 * MAX_SCALE * u;
       gapPx = dotD * GAP_RATIO;
       const rimR = baseR * (138.24 / 144.115);
-      const clear = banner.clientWidth / 2 + dotD * 0.6;
+      const clear = banner.clientWidth / 2 + dotD * 2.5;
       spreadMax = Math.max(
         1,
         ((Math.asin(Math.min(0.98, clear / rimR)) * 180) / Math.PI) / SECTOR,
@@ -275,7 +282,7 @@ export default function LandingPageAnimations() {
         const k =
           (((Math.round(-steerTarget / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
         const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
-        pendingText = `${displayName(AVATARS[k % AVATARS.length])} is ${verb}`;
+        pendingText = `${displayName(FACES[k])} is ${verb}`;
         textEl.textContent = "";
         if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
         pipEl = avatarEls[k] ?? null;
@@ -294,7 +301,12 @@ export default function LandingPageAnimations() {
         lastSpread = spread;
         for (let j = 0; j < dotGroups.length; j++) {
           const base = j * SECTOR;
-          const a = base + (spread - 1) * norm(angle + base);
+          // Multiply the dot's angle from the crest, CLAMPED at the wheel's
+          // bottom (±180°) — without the clamp, far-side dots spread past
+          // the bottom and wrap back around into the crest view.
+          const n = norm(angle + base);
+          const spreadTo = Math.sign(n) * Math.min(Math.abs(n) * spread, 180);
+          const a = base + (spreadTo - n);
           dotGroups[j].setAttribute(
             "transform",
             `rotate(${a.toFixed(3)} 144.115 144.115)`,
@@ -418,7 +430,7 @@ export default function LandingPageAnimations() {
                     offset, negated) keeps it upright while it orbits. */}
                 <image
                   className="lpa-avatar"
-                  href={`/avatars/${AVATARS[i % AVATARS.length]}.png`}
+                  href={`/avatars/${FACES[i]}.png`}
                   x={144.115 - 5.76}
                   y={5.875 - 5.76}
                   width={11.52}

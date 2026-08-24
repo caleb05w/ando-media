@@ -81,6 +81,8 @@ const MOTION = {
 };
 const MOTION_DEFAULTS = JSON.stringify(MOTION);
 const STEER_EASE = 0.16; // leg fraction over which the landing scale eases in
+const HOLD_CREEP = 0.0015; // rev/s — the hold never dead-stops; the landed
+// composition (faces + label together) pans on, barely
 // The blueprint's close-up (3488-1842) puts the crest avatar at 48/152 of
 // the banner; dots are 11.52 in storyboard units, so the zoom ceiling is
 // 48 / 11.52. Keep in sync with --lpa-max in the CSS.
@@ -226,7 +228,7 @@ function cycleAt(p: number) {
     h = 1;
     tau = (p - OUT_F) / HOLD_F;
   } else h = 1 - (p - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
-  const omega = tau >= 0 ? 0 : speedAt(h);
+  const omega = tau >= 0 ? HOLD_CREEP : speedAt(h);
   const zoom = (scaleAt(h) - 1) / (MAX_SCALE - 1);
   let lab = 0;
   if (p < OUT_F) lab = smoothstep(LABEL_AT_H, LABEL_AT_H + 0.05, h);
@@ -374,8 +376,12 @@ export default function LandingPageAnimations() {
       const v = scale / MAX_SCALE;
       ring.style.transform = `translateY(${baseR * v}px) rotate(${angle}deg) scale(${v})`;
       // Fed to the CSS on each avatar: the counter-rotation that keeps
-      // faces upright while the wheel turns.
-      ring.style.setProperty("--lpa-spin", `${angle}deg`);
+      // faces upright while the wheel turns. Flushed only when it moved a
+      // visible amount — every write recalcs style on all 28 faces.
+      if (Math.abs(angle - lastSpinWritten) > 0.02) {
+        lastSpinWritten = angle;
+        ring.style.setProperty("--lpa-spin", `${angle}deg`);
+      }
     };
 
     if (reduced) {
@@ -399,6 +405,9 @@ export default function LandingPageAnimations() {
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
     let lastSpread = 1; // last spacing multiple written to the dots
     let scrubP: number | null = null; // timeline scrub position; null = live
+    let holdDrift = 0; // degrees the composition has panned during the hold
+    let wasHold = false; // previous frame was inside the hold
+    let lastSpinWritten = 1e9; // last --lpa-spin value flushed to CSS
 
     // Deterministically rebuild the loop's state at cycle position p by
     // re-integrating from the cycle's start — the angle is integrated, so
@@ -414,6 +423,8 @@ export default function LandingPageAnimations() {
       let sTarget = steerTarget;
       let lT = -1;
       let rem0 = -1;
+      let simHold = false;
+      let simDrift = 0;
       for (let i = 0; i < steps; i++) {
         const ph = ((i + 1) / steps) * p;
         let hh: number;
@@ -447,14 +458,21 @@ export default function LandingPageAnimations() {
           } else {
             a = (a + speedAt(hh) * sdt * 360) % 360;
           }
-        } else a = sTarget;
+        } else {
+          if (!simHold) {
+            simHold = true;
+            simDrift = 0;
+          }
+          simDrift += HOLD_CREEP * sdt * 360;
+          a = sTarget + simDrift;
+        }
         if (lT < 0 && ph < OUT_F && hh >= LABEL_AT_H) lT = 0;
         else if (lT >= 0) {
           lT += sdt;
           if (tt < 0 && ph > OUT_F + HOLD_F && hh < 0.85) lT = -1;
         }
       }
-      return { a, sOn, sH0, sExtra, sTarget, lT, rem0 };
+      return { a, sOn, sH0, sExtra, sTarget, lT, rem0, drift: simDrift };
     };
 
     const frame = (now: number) => {
@@ -477,6 +495,7 @@ export default function LandingPageAnimations() {
         steerTarget = st.sTarget;
         labelT = st.lT;
         spreadRem0 = st.rem0;
+        holdDrift = st.drift;
       }
 
       // Timeline: push in (h 0→1) → hold (h = 1, tau 0→1) → pull back out
@@ -506,6 +525,7 @@ export default function LandingPageAnimations() {
           if (!steerOn) {
             steerOn = true;
             steerH0 = h;
+            holdDrift = 0;
             const natural = coastFrom(h, legS);
             steerTarget = Math.round((angle + natural) / SECTOR) * SECTOR;
           }
@@ -526,9 +546,12 @@ export default function LandingPageAnimations() {
           if (phase > OUT_F + HOLD_F) steerOn = false; // re-arm next pass
         }
       } else if (scrubP === null) {
-        // Held: parked where the coast ran out.
-        angle = steerTarget;
+        // Held: no dead-stop — the landed composition pans on, barely.
+        if (!wasHold) holdDrift = 0;
+        holdDrift += HOLD_CREEP * dt * 360;
+        angle = steerTarget + holdDrift;
       }
+      wasHold = tau >= 0;
 
       // Label trigger — on the approach, once the landing face is known
       // and the zoom is closing (the steer armed long ago): pick the verb,
@@ -582,10 +605,11 @@ export default function LandingPageAnimations() {
           const base = j * SECTOR;
           let a = base;
           if (sMix > 0) {
-            const nf = norm(steerTarget + base);
+            const anchor = steerTarget + holdDrift;
+            const nf = norm(anchor + base);
             const nfTo =
               Math.sign(nf) * Math.min(Math.abs(nf) * spreadMax, 180);
-            const finalWorld = steerTarget + base + (nfTo - nf);
+            const finalWorld = anchor + base + (nfTo - nf);
             a = base + sMix * norm(finalWorld - angle - base);
           }
           dotGroups[j].setAttribute(
@@ -645,8 +669,10 @@ export default function LandingPageAnimations() {
 
       // The label sits centred beneath the crest face (blueprint: 12u gap,
       // 20u/28u text).
+      // The label pans with the crest face through the hold's creep.
+      const panDx = Math.sin((holdDrift * Math.PI) / 180) * baseR * 0.9594;
       label.style.opacity = cOp.toFixed(3);
-      label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px)`;
+      label.style.transform = `translateX(calc(-50% + ${panDx.toFixed(1)}px)) translateY(${cDy.toFixed(1)}px)`;
 
       place(angle, scale);
       const ph = playheadRef.current;
@@ -828,19 +854,15 @@ export default function LandingPageAnimations() {
             without filtering the avatars themselves. */}
         <div className="lpa-side lpa-side-l">
           <div className="lpa-side-blur" />
-          <div className="lpa-side-blur" />
           <div className="lpa-side-wash" />
         </div>
         <div className="lpa-side lpa-side-r">
-          <div className="lpa-side-blur" />
           <div className="lpa-side-blur" />
           <div className="lpa-side-wash" />
         </div>
         {/* Progressive blur + white wash over the bottom half — see the
             .lpa-scrim rules for how the bands stack. */}
         <div className="lpa-scrim">
-          <div className="lpa-scrim-blur" />
-          <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-wash" />

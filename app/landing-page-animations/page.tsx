@@ -16,7 +16,7 @@
 // neighbours at ±38.3% of the banner, lower on the arc, blurred into the
 // scrim.
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import "./landing-page-animations.css";
 
 const DOTS = 28; // storyboard ran 36 at 10°; opened up for breathing room
@@ -54,11 +54,21 @@ const OUT_F = 0.435; // fraction of the cycle spent pushing in…
 const HOLD_F = 0.13; // …holding at the close-up (~1.7s)…
 // …and the remainder pulling back out. The label rides the zoom's tail,
 // so the hold only needs to cover the read, not the whole reveal.
-const SPIN_UP_TO = 0.32; // fraction of each leg spent cranking
-const START_SPEED = 0.09; // rev/s the leg opens on
-const PEAK_SPEED = 0.25; // rev/s at the end of the crank
-const DESCENT_POW = 2; // (1-v)^p descent — lazy enough that the wheel is
-// still visibly turning on its tail while the zoom closes in
+// The motion curves are EDITABLE — drag the handles on the timeline strip.
+// Spin ω(h) is two quadratic beziers (rise to the peak, fall to zero at
+// the hold); the zoom is a cubic-bezier ease over [zoomStart, 1]. The
+// frame loop, the landing steer, and the scrubber all read these live.
+const MOTION = {
+  sy: 0.09, // rev/s at the cycle seam
+  peak: { x: 0.32, y: 0.25 }, // the spin's summit (leg position, rev/s)
+  rise: { x: 0.2, y: 0.13 }, // rise-shape handle
+  fall: { x: 0.55, y: 0.05 }, // fall-shape handle
+  zoomStart: 0.27, // leg position where the push-in begins
+  z1: { x: 0.45, y: 0.05 }, // zoom ease handle 1
+  z2: { x: 0.6, y: 0.95 }, // zoom ease handle 2
+};
+const MOTION_DEFAULTS = JSON.stringify(MOTION);
+const STEER_EASE = 0.16; // leg fraction over which the landing scale eases in
 // The blueprint's close-up (3488-1842) puts the crest avatar at 48/152 of
 // the banner; dots are 11.52 in storyboard units, so the zoom ceiling is
 // 48 / 11.52. Keep in sync with --lpa-max in the CSS.
@@ -109,24 +119,63 @@ function norm(a: number) {
   return m > 180 ? m - 360 : m;
 }
 
-/** Angular velocity, rev/s, at leg position h ∈ [0,1]: the crank's squared
- *  ramp up to the peak, then ONE smooth descent — (1-v)^p from the peak
- *  straight to zero at the hold, the zoom's opposite number. The two are
- *  blended across ±BLEND of the handoff so acceleration never jumps. */
-const SPEED_BLEND = 0.08;
-function crankAt(h: number) {
-  const u = h / SPIN_UP_TO;
-  return START_SPEED + (PEAK_SPEED - START_SPEED) * u * u;
+/** y(x) on a quadratic bezier (x monotone between the endpoints). */
+function qBezY(
+  x: number,
+  p0x: number,
+  p0y: number,
+  cx: number,
+  cy: number,
+  p1x: number,
+  p1y: number,
+) {
+  const a = p0x - 2 * cx + p1x;
+  const b = 2 * (cx - p0x);
+  const c = p0x - x;
+  let t: number;
+  if (Math.abs(a) < 1e-6) {
+    t = Math.abs(b) < 1e-9 ? 0 : -c / b;
+  } else {
+    const disc = Math.max(0, b * b - 4 * a * c);
+    t = (-b + Math.sqrt(disc)) / (2 * a);
+    if (t < 0 || t > 1) t = (-b - Math.sqrt(disc)) / (2 * a);
+  }
+  t = Math.min(1, Math.max(0, t));
+  return (1 - t) * (1 - t) * p0y + 2 * (1 - t) * t * cy + t * t * p1y;
 }
-function descentAt(h: number) {
-  const v = Math.min(1, Math.max(0, (h - SPIN_UP_TO) / (1 - SPIN_UP_TO)));
-  return PEAK_SPEED * Math.pow(1 - v, DESCENT_POW);
+
+/** y(x) on a CSS-style cubic-bezier ease (endpoints (0,0) and (1,1)). */
+function cubicEaseY(x: number, x1: number, y1: number, x2: number, y2: number) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  let lo = 0;
+  let hi = 1;
+  let t = x;
+  for (let i = 0; i < 24; i++) {
+    const mt = 1 - t;
+    const cx = 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t;
+    if (cx < x) lo = t;
+    else hi = t;
+    t = (lo + hi) / 2;
+  }
+  const mt = 1 - t;
+  return 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t;
 }
+
+/** Angular velocity, rev/s, at leg position h ∈ [0,1] — the editable spin
+ *  bell: quadratic rise from the seam speed to the peak, quadratic fall
+ *  from the peak to zero at the hold. */
 function speedAt(h: number) {
-  const m = smoothstep(SPIN_UP_TO - SPEED_BLEND, SPIN_UP_TO + SPEED_BLEND, h);
-  if (m <= 0) return crankAt(h);
-  if (m >= 1) return descentAt(h);
-  return crankAt(h) * (1 - m) + descentAt(h) * m;
+  const m = MOTION;
+  if (h <= m.peak.x)
+    return Math.max(
+      0,
+      qBezY(h, 0, m.sy, m.rise.x, m.rise.y, m.peak.x, m.peak.y),
+    );
+  return Math.max(
+    0,
+    qBezY(h, m.peak.x, m.peak.y, m.fall.x, m.fall.y, 1, 0),
+  );
 }
 
 /** Degrees the wheel coasts from leg position h0 to the hold, optionally
@@ -142,10 +191,11 @@ function coastFrom(h0: number, legSeconds: number, rampTo = -1) {
   return deg;
 }
 
-/** Scale at leg position h — the push in starts on the crank's tail, so
- *  the zoom and the spin peak don't land on the same frame. */
+/** Scale at leg position h — the editable zoom ease over [zoomStart, 1]. */
 function scaleAt(h: number) {
-  return 1 + (MAX_SCALE - 1) * smoothstep(SPIN_UP_TO - 0.05, 1, h);
+  const u = (h - MOTION.zoomStart) / (1 - MOTION.zoomStart);
+  const e = cubicEaseY(u, MOTION.z1.x, MOTION.z1.y, MOTION.z2.x, MOTION.z2.y);
+  return 1 + (MAX_SCALE - 1) * e;
 }
 
 // ── The timeline strip ──────────────────────────────────────────────────
@@ -181,17 +231,15 @@ function tlPath(pick: (c: ReturnType<typeof cycleAt>) => number, max = 1) {
   }
   return pts.join(" ");
 }
-const TL_OMEGA_MAX = PEAK_SPEED;
-const TL_PATHS = {
-  omega: tlPath((c) => c.omega, TL_OMEGA_MAX),
-  zoom: tlPath((c) => c.zoom),
-  label: tlPath((c) => c.lab),
-};
+const TL_OMEGA_MAX = 0.4; // fixed headroom so handle drags don't rescale
 const TL_HOLD = { x: OUT_F * TL_W, w: HOLD_F * TL_W };
-const TL_MARKS = [
-  { x: OUT_F * SPIN_UP_TO * TL_W, name: "peak / steer" },
-  { x: (OUT_F + HOLD_F + (1 - OUT_F - HOLD_F) * (1 - SPIN_UP_TO)) * TL_W, name: "peak (return)" },
-];
+// Strip-space mapping for the editable handles (out leg only — the return
+// leg mirrors the same curves automatically).
+const tlXLeg = (hx: number) => OUT_F * hx * TL_W;
+const tlYOm = (y: number) => TL_H - 12 - (y / TL_OMEGA_MAX) * (TL_H - 28);
+const tlYUnit = (v: number) => TL_H - 12 - v * (TL_H - 28);
+const tlXZoom = (u: number) =>
+  tlXLeg(MOTION.zoomStart + u * (1 - MOTION.zoomStart));
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(onChange: () => void) {
@@ -212,7 +260,37 @@ export default function LandingPageAnimations() {
   const labelRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<SVGLineElement>(null);
   const tlRef = useRef<SVGSVGElement>(null);
+  const [ver, bumpVer] = useReducer((c: number) => c + 1, 0);
   const reduced = useReducedMotion();
+
+  // The strip's curves and handle positions — recomputed when a handle is
+  // dragged (bumpVer). The motion itself reads MOTION live; this memo is
+  // only the drawing.
+  const strip = useMemo(() => {
+    void ver;
+    const m = MOTION;
+    return {
+      paths: {
+        omega: tlPath((c) => c.omega, TL_OMEGA_MAX),
+        zoom: tlPath((c) => c.zoom),
+        label: tlPath((c) => c.lab),
+      },
+      marks: [
+        tlXLeg(m.peak.x),
+        (OUT_F + HOLD_F + (1 - OUT_F - HOLD_F) * (1 - m.peak.x)) * TL_W,
+      ],
+      handles: {
+        sy: { x: 0, y: tlYOm(m.sy) },
+        rise: { x: tlXLeg(m.rise.x), y: tlYOm(m.rise.y) },
+        peak: { x: tlXLeg(m.peak.x), y: tlYOm(m.peak.y) },
+        fall: { x: tlXLeg(m.fall.x), y: tlYOm(m.fall.y) },
+        zs: { x: tlXLeg(m.zoomStart), y: tlYUnit(0) },
+        z1: { x: tlXZoom(m.z1.x), y: tlYUnit(m.z1.y) },
+        z2: { x: tlXZoom(m.z2.x), y: tlYUnit(m.z2.y) },
+      },
+      vals: JSON.stringify(m),
+    };
+  }, [ver]);
 
   useEffect(() => {
     const ring = ringRef.current;
@@ -302,17 +380,17 @@ export default function LandingPageAnimations() {
           tt = (ph - OUT_F) / HOLD_F;
         } else hh = 1 - (ph - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
         if (tt < 0) {
-          if (ph < OUT_F && hh >= SPIN_UP_TO - SPEED_BLEND) {
+          if (ph < OUT_F && hh >= MOTION.peak.x) {
             if (!sOn) {
               sOn = true;
               sH0 = hh;
               const legS = OUT_F * CYCLE;
               const nat = coastFrom(hh, legS);
-              const ram = coastFrom(hh, legS, sH0 + SPEED_BLEND * 2);
+              const ram = coastFrom(hh, legS, sH0 + STEER_EASE);
               sTarget = Math.round((a + nat) / SECTOR) * SECTOR;
               sExtra = (sTarget - a - nat) / Math.max(ram, 1e-3);
             }
-            const f = 1 + sExtra * smoothstep(sH0, sH0 + SPEED_BLEND * 2, hh);
+            const f = 1 + sExtra * smoothstep(sH0, sH0 + STEER_EASE, hh);
             a += speedAt(hh) * Math.max(0, f) * sdt * 360;
             a = Math.min(a, sTarget);
             if (hh > 0.9) a += (sTarget - a) * Math.min(1, sdt * 5);
@@ -366,7 +444,7 @@ export default function LandingPageAnimations() {
       }
 
       if (tau < 0 && scrubP === null) {
-        if (phase < OUT_F && h >= SPIN_UP_TO - SPEED_BLEND) {
+        if (phase < OUT_F && h >= MOTION.peak.x) {
           // Arm once at the peak: project the remaining coast, pick the
           // NEAREST face-centre, and scale the whole descent by the hair
           // that lands there (±7% at most). The scaling eases in across
@@ -377,13 +455,13 @@ export default function LandingPageAnimations() {
             steerH0 = h;
             const legS = OUT_F * CYCLE;
             const natural = coastFrom(h, legS);
-            const ramped = coastFrom(h, legS, steerH0 + SPEED_BLEND * 2);
+            const ramped = coastFrom(h, legS, steerH0 + STEER_EASE);
             steerTarget = Math.round((angle + natural) / SECTOR) * SECTOR;
             steerExtra = (steerTarget - angle - natural) / Math.max(ramped, 1e-3);
           }
           const factor =
             1 +
-            steerExtra * smoothstep(steerH0, steerH0 + SPEED_BLEND * 2, h);
+            steerExtra * smoothstep(steerH0, steerH0 + STEER_EASE, h);
           angle += speedAt(h) * Math.max(0, factor) * dt * 360;
           // Overshoot clamp + drift settle: integration error is eased
           // out over the last stretch where ω is effectively zero —
@@ -529,28 +607,112 @@ export default function LandingPageAnimations() {
 
     raf = requestAnimationFrame(frame);
 
-    // Timeline scrubbing — drag anywhere on the strip to park the loop at
-    // that cycle position; release to resume from there.
+    // Timeline interaction — grab a curve handle to edit the motion, or
+    // drag anywhere else to scrub the loop; double-click resets the curves.
     const tl = tlRef.current;
+    let dragId: string | null = null;
     const toP = (e: PointerEvent) => {
       const r = tl!.getBoundingClientRect();
       return Math.min(0.999, Math.max(0, (e.clientX - r.left) / r.width));
+    };
+    const clamp = (v: number, a: number, b: number) =>
+      Math.min(b, Math.max(a, v));
+    const handleList = () => {
+      const m = MOTION;
+      return [
+        { id: "sy", x: 0, y: tlYOm(m.sy) },
+        { id: "rise", x: tlXLeg(m.rise.x), y: tlYOm(m.rise.y) },
+        { id: "peak", x: tlXLeg(m.peak.x), y: tlYOm(m.peak.y) },
+        { id: "fall", x: tlXLeg(m.fall.x), y: tlYOm(m.fall.y) },
+        { id: "zs", x: tlXLeg(m.zoomStart), y: tlYUnit(0) },
+        { id: "z1", x: tlXZoom(m.z1.x), y: tlYUnit(m.z1.y) },
+        { id: "z2", x: tlXZoom(m.z2.x), y: tlYUnit(m.z2.y) },
+      ];
+    };
+    const hitHandle = (e: PointerEvent) => {
+      if (!tl) return null;
+      const r = tl.getBoundingClientRect();
+      let best: string | null = null;
+      let bestD = 14; // px
+      for (const hd of handleList()) {
+        const px = r.left + (hd.x / TL_W) * r.width;
+        const py = r.top + (hd.y / TL_H) * r.height;
+        const d = Math.hypot(e.clientX - px, e.clientY - py);
+        if (d < bestD) {
+          bestD = d;
+          best = hd.id;
+        }
+      }
+      return best;
+    };
+    const applyDrag = (e: PointerEvent) => {
+      if (!tl || !dragId) return;
+      const r = tl.getBoundingClientRect();
+      const vx = ((e.clientX - r.left) / r.width) * TL_W;
+      const vy = ((e.clientY - r.top) / r.height) * TL_H;
+      const hx = clamp(vx / (OUT_F * TL_W), 0, 1); // leg position
+      const om = clamp(
+        ((TL_H - 12 - vy) / (TL_H - 28)) * TL_OMEGA_MAX,
+        0,
+        TL_OMEGA_MAX,
+      );
+      const unit = clamp((TL_H - 12 - vy) / (TL_H - 28), -0.2, 1.2);
+      const m = MOTION;
+      if (dragId === "sy") m.sy = clamp(om, 0, 0.3);
+      else if (dragId === "peak") {
+        m.peak.x = clamp(hx, 0.1, 0.6);
+        m.peak.y = clamp(om, 0.04, TL_OMEGA_MAX);
+        m.rise.x = Math.min(m.rise.x, m.peak.x - 0.01);
+        m.fall.x = Math.max(m.fall.x, m.peak.x + 0.01);
+      } else if (dragId === "rise") {
+        m.rise.x = clamp(hx, 0.01, m.peak.x - 0.01);
+        m.rise.y = om;
+      } else if (dragId === "fall") {
+        m.fall.x = clamp(hx, m.peak.x + 0.01, 0.99);
+        m.fall.y = om;
+      } else if (dragId === "zs") {
+        m.zoomStart = clamp(hx, 0.05, 0.7);
+      } else if (dragId === "z1") {
+        m.z1.x = clamp(
+          (hx - m.zoomStart) / (1 - m.zoomStart),
+          0,
+          1,
+        );
+        m.z1.y = unit;
+      } else if (dragId === "z2") {
+        m.z2.x = clamp(
+          (hx - m.zoomStart) / (1 - m.zoomStart),
+          0,
+          1,
+        );
+        m.z2.y = unit;
+      }
+      bumpVer();
     };
     const onDown = (e: PointerEvent) => {
       if (!tl) return;
       try {
         tl.setPointerCapture(e.pointerId);
       } catch {
-        // synthetic events have no active pointer — scrub still works
+        // synthetic events have no active pointer — still works
       }
-      scrubP = toP(e);
+      dragId = hitHandle(e);
+      if (dragId) applyDrag(e);
+      else scrubP = toP(e);
     };
     const onMove = (e: PointerEvent) => {
-      if (scrubP !== null) scrubP = toP(e);
+      if (dragId) applyDrag(e);
+      else if (scrubP !== null) scrubP = toP(e);
     };
     const onUp = () => {
+      dragId = null;
       scrubP = null;
     };
+    const onDbl = () => {
+      Object.assign(MOTION, JSON.parse(MOTION_DEFAULTS));
+      bumpVer();
+    };
+    tl?.addEventListener("dblclick", onDbl);
     tl?.addEventListener("pointerdown", onDown);
     tl?.addEventListener("pointermove", onMove);
     tl?.addEventListener("pointerup", onUp);
@@ -563,6 +725,7 @@ export default function LandingPageAnimations() {
       tl?.removeEventListener("pointermove", onMove);
       tl?.removeEventListener("pointerup", onUp);
       tl?.removeEventListener("pointercancel", onUp);
+      tl?.removeEventListener("dblclick", onDbl);
     };
   }, [reduced]);
 
@@ -659,19 +822,52 @@ export default function LandingPageAnimations() {
             height={TL_H}
             className="lpa-tl-hold"
           />
-          {TL_MARKS.map((m) => (
+          {strip.marks.map((x, i) => (
             <line
-              key={m.name}
-              x1={m.x}
-              x2={m.x}
+              key={i}
+              x1={x}
+              x2={x}
               y1={10}
               y2={TL_H}
               className="lpa-tl-mark"
             />
           ))}
-          <path d={TL_PATHS.omega} className="lpa-tl-omega" />
-          <path d={TL_PATHS.zoom} className="lpa-tl-zoom" />
-          <path d={TL_PATHS.label} className="lpa-tl-label" />
+          <path d={strip.paths.omega} className="lpa-tl-omega" />
+          <path d={strip.paths.zoom} className="lpa-tl-zoom" />
+          <path d={strip.paths.label} className="lpa-tl-label" />
+          {/* Editable handles: olive = the spin bell (seam speed, shape
+              handles, peak), blue = the zoom ease (start + two bezier
+              handles). Connector stems show what each handle bends. */}
+          <line x1={strip.handles.rise.x} y1={strip.handles.rise.y} x2={0} y2={tlYOm(MOTION.sy)} className="lpa-tl-stem lpa-tl-stem-om" />
+          <line x1={strip.handles.rise.x} y1={strip.handles.rise.y} x2={strip.handles.peak.x} y2={strip.handles.peak.y} className="lpa-tl-stem lpa-tl-stem-om" />
+          <line x1={strip.handles.fall.x} y1={strip.handles.fall.y} x2={strip.handles.peak.x} y2={strip.handles.peak.y} className="lpa-tl-stem lpa-tl-stem-om" />
+          <line x1={strip.handles.z1.x} y1={strip.handles.z1.y} x2={strip.handles.zs.x} y2={tlYUnit(0)} className="lpa-tl-stem lpa-tl-stem-zm" />
+          <line x1={strip.handles.z2.x} y1={strip.handles.z2.y} x2={tlXZoom(1)} y2={tlYUnit(1)} className="lpa-tl-stem lpa-tl-stem-zm" />
+          {(["sy", "rise", "peak", "fall"] as const).map((id) => (
+            <circle
+              key={id}
+              cx={strip.handles[id].x}
+              cy={strip.handles[id].y}
+              r={5}
+              className="lpa-tl-handle lpa-tl-handle-om"
+            />
+          ))}
+          {(["z1", "z2"] as const).map((id) => (
+            <circle
+              key={id}
+              cx={strip.handles[id].x}
+              cy={strip.handles[id].y}
+              r={5}
+              className="lpa-tl-handle lpa-tl-handle-zm"
+            />
+          ))}
+          <rect
+            x={strip.handles.zs.x - 4}
+            y={strip.handles.zs.y - 4}
+            width={8}
+            height={8}
+            className="lpa-tl-handle lpa-tl-handle-zm"
+          />
           <line
             ref={playheadRef}
             x1={0}
@@ -685,8 +881,9 @@ export default function LandingPageAnimations() {
           <span className="lpa-tl-key lpa-tl-key-zoom">zoom</span>
           <span className="lpa-tl-key lpa-tl-key-omega">spin ω</span>
           <span className="lpa-tl-key lpa-tl-key-label">label</span>
-          <span className="lpa-tl-key">hold = shaded · ticks: spin peaks · drag to scrub</span>
+          <span className="lpa-tl-key">drag handles to edit · elsewhere to scrub · dbl-click resets</span>
         </div>
+        <code className="lpa-tl-vals">{strip.vals}</code>
       </div>
     </main>
   );

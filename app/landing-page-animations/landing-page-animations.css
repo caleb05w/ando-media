@@ -322,3 +322,43 @@
   cursor: ew-resize;
   touch-action: none;
 }
+
+/* Curve-edit handles */
+.lpa-tl-handle {
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.lpa-tl-handle-om {
+  fill: #7d8a66;
+}
+
+.lpa-tl-handle-zm {
+  fill: #2563eb;
+}
+
+.lpa-tl-stem {
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-stem-om {
+  stroke: rgba(125, 138, 102, 0.45);
+}
+
+.lpa-tl-stem-zm {
+  stroke: rgba(37, 99, 235, 0.4);
+}
+
+.lpa-tl-vals {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #b9b4b0;
+  user-select: all;
+  white-space: nowrap;
+  overflow-x: auto;
+}

@@ -49,10 +49,11 @@ const FACES = Array.from({ length: DOTS }, (_, i) =>
 );
 
 // ── The loop ────────────────────────────────────────────────────────────
-const CYCLE = 14; // seconds for out → hold → back
-const OUT_F = 0.41; // fraction of the cycle spent pushing in…
-const HOLD_F = 0.185; // …holding at the close-up (~2.6s, label plays here)…
-// …and the remainder pulling back out.
+const CYCLE = 13.2; // seconds for out → hold → back
+const OUT_F = 0.435; // fraction of the cycle spent pushing in…
+const HOLD_F = 0.13; // …holding at the close-up (~1.7s)…
+// …and the remainder pulling back out. The label rides the zoom's tail,
+// so the hold only needs to cover the read, not the whole reveal.
 const SPIN_UP_TO = 0.32; // fraction of each leg spent cranking
 const START_SPEED = 0.09; // rev/s the leg opens on
 const PEAK_SPEED = 0.25; // rev/s at the end of the crank
@@ -73,18 +74,21 @@ const MAX_SCALE = 48 / 11.52;
 // As the camera closes in, spacing between avatars grows until the crest
 // face's neighbours sit just past the banner's edges — the close-up is one
 // person. The exact multiple is computed from the banner's measured width.
-const SPREAD_START = 0.65; // leg position where the spacing starts growing
+const SPREAD_START = 0.86; // leg position where the parting starts — the
+// rotation is spent by then (~0.15° remains), so the spread reads as a
+// clean parting on a stationary wheel instead of fighting the spin
 
-// ── The hold ────────────────────────────────────────────────────────────
-// The typing-indicator grammar, in absolute seconds from the landing:
-// the crest face acknowledges with a small pip, "…" pops in beneath it
-// and cycles, then the sentence resolves whole in its place (the
-// blueprint's resolved state is text alone). The label never folds itself
-// away — the departure motion is what removes it.
-const ACK_AT = 0.3; // s: the avatar's pip
-const DOTS_AT = 0.35; // s: the "…" container pops in
+// ── The label ───────────────────────────────────────────────────────────
+// The typing indicator starts on the approach, not at the landing: as the
+// zoom closes in (h ≥ LABEL_AT_H) the crest face pips, "…" rises in from
+// below and cycles, and the sentence resolves right around touchdown —
+// already read-ready when the wheel parks. The departure motion is what
+// removes it.
+const LABEL_AT_H = 0.8; // leg position (approach) where the label starts
 const POP_S = 0.2; // s: pop-in duration (slight overshoot)
-const RESOLVE_AT = 1.0; // s: dots resolve into the sentence
+const RISE_S = 0.5; // s: the rise from below, riding the zoom's tail
+const RISE_PX = 26; // px the label climbs while fading in
+const RESOLVE_AT = 0.9; // s after the label starts: dots → sentence
 const DOT_PERIOD = 0.9; // s: one wave through the three dots
 // Blueprint 3488-1842: the crest face's neighbours sit at ±38.3% of the
 // banner width (their centres), lower on the arc. Their blur comes from
@@ -161,10 +165,10 @@ function cycleAt(p: number) {
   } else h = 1 - (p - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
   const omega = tau >= 0 ? 0 : speedAt(h);
   const zoom = (scaleAt(h) - 1) / (MAX_SCALE - 1);
-  const tH = tau >= 0 ? tau * HOLD_F * CYCLE : -1;
   let lab = 0;
-  if (tH >= DOTS_AT) lab = Math.min(1, (tH - DOTS_AT) / POP_S);
-  else if (tau < 0 && p > OUT_F) lab = smoothstep(0.9, 0.985, h);
+  if (p < OUT_F) lab = smoothstep(LABEL_AT_H, LABEL_AT_H + 0.05, h);
+  else if (tau >= 0) lab = 1;
+  else lab = smoothstep(0.9, 0.985, h);
   return { omega, zoom, lab };
 }
 function tlPath(pick: (c: ReturnType<typeof cycleAt>) => number, max = 1) {
@@ -260,11 +264,11 @@ export default function LandingPageAnimations() {
     let last = performance.now();
     let phase = 0;
     let angle = 0;
-    let prevTau = -1; // hold-local time last frame; <0 = not holding
     let steerOn = false; // landing projection armed for this approach
     let steerH0 = 0; // leg position where the projection was armed
     let steerExtra = 0; // extra speed factor, eased in via the steer ramp
     let steerTarget = 0; // the sector-aligned angle the coast lands on
+    let labelT = -1; // seconds since the label sequence started; <0 = off
     let pendingText = ""; // this visit's sentence, applied at the resolve
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
     let lastSpread = 1; // last spacing multiple written to the dots
@@ -309,9 +313,10 @@ export default function LandingPageAnimations() {
             1 +
             steerExtra * smoothstep(steerH0, steerH0 + SPEED_BLEND * 2, h);
           angle += speedAt(h) * Math.max(0, factor) * dt * 360;
-          // Frame-rate integration drifts the landing by a fraction of a
-          // degree; ease the residual out over the last stretch, where ω
-          // is effectively zero — sub-pixel per frame, never a snap.
+          // Overshoot clamp + drift settle: integration error is eased
+          // out over the last stretch where ω is effectively zero —
+          // sub-pixel per frame, never a snap, never backwards.
+          angle = Math.min(angle, steerTarget);
           if (h > 0.9) angle += (steerTarget - angle) * Math.min(1, dt * 5);
         } else {
           angle = (angle + speedAt(h) * dt * 360) % 360;
@@ -322,10 +327,11 @@ export default function LandingPageAnimations() {
         angle = steerTarget;
       }
 
-      // Hold entry: pick the crest face and a verb for this visit (random,
-      // so nobody is stuck jamming forever), stage its sentence, and arm
-      // the settle.
-      if (tau >= 0 && prevTau < 0) {
+      // Label trigger — on the approach, once the landing face is known
+      // and the zoom is closing (the steer armed long ago): pick the verb,
+      // stage the sentence, aim the pip.
+      if (labelT < 0 && phase < OUT_F && h >= LABEL_AT_H) {
+        labelT = 0;
         const k =
           (((Math.round(-steerTarget / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
         const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
@@ -333,26 +339,34 @@ export default function LandingPageAnimations() {
         textEl.textContent = "";
         if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
         pipEl = avatarEls[k] ?? null;
+      } else if (labelT >= 0) {
+        labelT += dt;
+        // Off again once the departure fade has fully taken it.
+        if (tau < 0 && phase > OUT_F + HOLD_F && h < 0.85) labelT = -1;
       }
-      prevTau = tau;
 
       const scale = scaleAt(h);
 
-      // The spread — spacing grows through the final zoom until the crest
-      // face's neighbours sit past the banner's edges, and contracts the
-      // same way on the way out. Anchored at the crest line, so the centre
-      // face never moves while the others slide away.
-      const spread = 1 + (spreadMax - 1) * smoothstep(SPREAD_START, 1, h);
-      if (spread > 1.0005 || lastSpread > 1.0005) {
-        lastSpread = spread;
+      // The spread — each dot eases from its rotating position toward its
+      // FINAL spot in the landing composition (spacing widened around the
+      // landing crest, clamped at the wheel's bottom so far dots never
+      // wrap into view). Interpolating positions, not multiplying the live
+      // angle: the old anchor moved with the wheel, so mid-approach the
+      // spread growth could out-pace the dying rotation and visibly pull
+      // dots backwards — the stutter. Visible dots now move forward only.
+      const sMix = smoothstep(SPREAD_START, 1, h);
+      if (sMix > 0.0005 || lastSpread > 0.0005) {
+        lastSpread = sMix;
         for (let j = 0; j < dotGroups.length; j++) {
           const base = j * SECTOR;
-          // Multiply the dot's angle from the crest, CLAMPED at the wheel's
-          // bottom (±180°) — without the clamp, far-side dots spread past
-          // the bottom and wrap back around into the crest view.
-          const n = norm(angle + base);
-          const spreadTo = Math.sign(n) * Math.min(Math.abs(n) * spread, 180);
-          const a = base + (spreadTo - n);
+          let a = base;
+          if (sMix > 0) {
+            const nf = norm(steerTarget + base);
+            const nfTo =
+              Math.sign(nf) * Math.min(Math.abs(nf) * spreadMax, 180);
+            const finalWorld = steerTarget + base + (nfTo - nf);
+            a = base + sMix * norm(finalWorld - angle - base);
+          }
           dotGroups[j].setAttribute(
             "transform",
             `rotate(${a.toFixed(3)} 144.115 144.115)`,
@@ -362,44 +376,39 @@ export default function LandingPageAnimations() {
       }
 
       // ── The typing indicator ──────────────────────────────────────────
-      // Seconds since the hold landed; <0 while travelling.
-      const tHold = tau >= 0 ? tau * HOLD_F * CYCLE : -1;
-
-      // The crest face's pip — a small breath the moment before its dots
-      // appear, tying the label to the person.
-      if (pipEl && tHold >= ACK_AT) {
-        const p = Math.min(1, (tHold - ACK_AT) / 0.45);
+      // The crest face's pip — a small breath as its label sets off.
+      if (pipEl && labelT >= 0 && labelT < 0.5) {
+        const pp = Math.min(1, labelT / 0.45);
         pipEl.style.setProperty(
           "--lpa-pip",
-          (1 + 0.06 * Math.sin(Math.PI * p)).toFixed(4),
+          (1 + 0.06 * Math.sin(Math.PI * pp)).toFixed(4),
         );
       }
 
-      // Container: pops in shortly after landing (fast, slight overshoot),
-      // stays for the whole hold, and is taken away by the departure — it
-      // fades and sinks with the first motion of the pull-out.
+      // Container: fades in while RISING from below, riding the zoom's
+      // tail into its resting spot — up by the time the wheel parks. The
+      // departure fade takes it back down with the pull-out.
       let cOp = 0;
-      let cDy = 4;
+      let cDy = RISE_PX;
       let cScale = 1;
-      if (tHold >= DOTS_AT) {
-        const u = Math.min(1, (tHold - DOTS_AT) / POP_S);
+      if (labelT >= 0) {
+        const u = Math.min(1, labelT / POP_S);
+        const rise = smoothstep(0, RISE_S, labelT);
         cOp = u;
-        cScale = 1 + 0.05 * Math.sin(u * Math.PI) - 0.1 * (1 - u) * (1 - u);
-        cDy = (1 - u) * 4;
-      } else if (tau < 0 && phase > OUT_F) {
-        // Return leg: the camera leaving is what removes the label.
-        const e = smoothstep(0.9, 0.985, h);
-        cOp = e;
-        cDy = (1 - e) * 6;
+        cScale = 1 + 0.04 * Math.sin(u * Math.PI) - 0.08 * (1 - u) * (1 - u);
+        cDy = (1 - rise) * RISE_PX;
+        if (tau < 0 && phase > OUT_F) {
+          // Return leg: the camera leaving is what removes the label.
+          const e = smoothstep(0.9, 0.985, h);
+          cOp = Math.min(cOp, e);
+          cDy = (1 - e) * 6;
+        }
       }
 
       if (cOp > 0) {
         // The three dots cycle the whole time the label is up — the live
         // typing indicator, trailing the sentence once it resolves.
-        const te =
-          tau >= 0
-            ? smoothstep(RESOLVE_AT, RESOLVE_AT + 0.18, tHold)
-            : 1;
+        const te = smoothstep(RESOLVE_AT, RESOLVE_AT + 0.18, labelT);
         const wave = now / 1000 / DOT_PERIOD;
         for (let j = 0; j < dotEls.length; j++) {
           const o =

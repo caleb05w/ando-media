@@ -49,9 +49,9 @@ const FACES = Array.from({ length: DOTS }, (_, i) =>
 );
 
 // ── The loop ────────────────────────────────────────────────────────────
-const CYCLE = 16; // seconds for out → hold → back
-const OUT_F = 0.36; // fraction of the cycle spent pushing in…
-const HOLD_F = 0.28; // …holding at the close-up (label plays here)…
+const CYCLE = 14; // seconds for out → hold → back
+const OUT_F = 0.41; // fraction of the cycle spent pushing in…
+const HOLD_F = 0.185; // …holding at the close-up (~2.6s, label plays here)…
 // …and the remainder pulling back out.
 const SPIN_UP_TO = 0.35; // fraction of each leg spent cranking
 const START_SPEED = 0.06; // rev/s the leg opens on
@@ -87,16 +87,13 @@ const SPREAD_START = 0.72; // leg position where the spacing starts growing
 const ACK_AT = 0.3; // s: the avatar's pip
 const DOTS_AT = 0.35; // s: the "…" container pops in
 const POP_S = 0.2; // s: pop-in duration (slight overshoot)
-const RESOLVE_AT = 1.4; // s: dots resolve into the sentence
+const RESOLVE_AT = 1.0; // s: dots resolve into the sentence
 const DOT_PERIOD = 0.9; // s: one wave through the three dots
 // Blueprint 3488-1842: the crest face's neighbours sit at ±38.3% of the
 // banner width (their centres), lower on the arc. Their blur comes from
 // the side scrims (gradient-masked backdrop-filters), not the avatars.
 const NEIGHBOUR_X = (206 - 48) / 412;
 
-// The shudder when the zoom lands — a subtle settle, more tremor than thud.
-const SHUDDER_AMP = 2; // px, before the decay envelope
-const SHUDDER_DECAY = 9; // higher = settles faster (~0.5s tail)
 
 /** Hermite ramp between two edges — 0 below edge0, 1 above edge1, eased. */
 function smoothstep(edge0: number, edge1: number, x: number) {
@@ -195,14 +192,12 @@ export default function LandingPageAnimations() {
     ro.observe(ring);
     ro.observe(banner);
 
-    const place = (angle: number, scale: number, sx = 0, sy = 0) => {
+    const place = (angle: number, scale: number) => {
       // The ring is laid out at MAX_SCALE (see the CSS), so the on-screen
       // scale is scale/MAX_SCALE — always ≤ 1. Scaling down instead of up
       // keeps the avatar bitmaps rasterized at close-up resolution.
       const v = scale / MAX_SCALE;
-      // sx/sy is the arrival shudder — screen pixels, applied after the
-      // crest offset so the zoom doesn't amplify it.
-      ring.style.transform = `translateY(${baseR * v}px) translate(${sx.toFixed(2)}px, ${sy}px) rotate(${angle}deg) scale(${v})`;
+      ring.style.transform = `translateY(${baseR * v}px) rotate(${angle}deg) scale(${v})`;
       // Fed to the CSS on each avatar: the counter-rotation that keeps
       // faces upright while the wheel turns.
       ring.style.setProperty("--lpa-spin", `${angle}deg`);
@@ -218,7 +213,6 @@ export default function LandingPageAnimations() {
     let last = performance.now();
     let phase = 0;
     let angle = 0;
-    let shudderT = -1; // <0 = not shuddering
     let prevTau = -1; // hold-local time last frame; <0 = not holding
     let steer = 0; // 0 = free; else the speed ratio that lands on centre
     let steerTarget = 0; // the sector-aligned angle the coast lands on
@@ -278,7 +272,6 @@ export default function LandingPageAnimations() {
         textEl.textContent = "";
         if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
         pipEl = avatarEls[k] ?? null;
-        shudderT = 0;
       }
       prevTau = tau;
 
@@ -304,20 +297,6 @@ export default function LandingPageAnimations() {
             `rotate(${a.toFixed(3)} 144.115 144.115)`,
           );
           avatarEls[j].style.setProperty("--lpa-da", `${a.toFixed(3)}deg`);
-        }
-      }
-
-      // The arrival shudder — a decaying two-axis wobble as the hold lands.
-      let sx = 0;
-      let sy = 0;
-      if (shudderT >= 0) {
-        shudderT += dt;
-        const envelope = Math.exp(-SHUDDER_DECAY * shudderT);
-        if (envelope < 0.01) {
-          shudderT = -1;
-        } else {
-          sx = SHUDDER_AMP * envelope * Math.sin(38 * shudderT);
-          sy = SHUDDER_AMP * 0.6 * envelope * Math.cos(29 * shudderT);
         }
       }
 
@@ -378,7 +357,7 @@ export default function LandingPageAnimations() {
       label.style.opacity = cOp.toFixed(3);
       label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px) scale(${cScale.toFixed(3)})`;
 
-      place(angle, scale, sx, sy);
+      place(angle, scale);
       raf = requestAnimationFrame(frame);
     };
 

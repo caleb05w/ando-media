@@ -87,7 +87,7 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 0.32em;
+  min-height: calc(var(--u) * 14);
   font-size: calc(var(--u) * 10);
   line-height: calc(var(--u) * 14);
   color: #24211f;
@@ -108,13 +108,24 @@
   display: none;
 }
 
-/* The three dots — the live typing indicator. Centred alone during the
-   "…" phase, trailing the sentence after the resolve; each pulses on a
-   phase-offset wave written per frame. */
+/* The three dots — the live typing indicator. Absolutely positioned so
+   the SENTENCE is what centres under the face (the text+dots group
+   centring as a unit sat the sentence ~half the dots' width off the
+   optical centre). Centred alone during the "…" phase, trailing just off
+   the sentence's right after the resolve. */
 .lpa-label-dots {
+  position: absolute;
+  left: calc(100% + 0.32em);
+  top: 50%;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 0.18em;
+}
+
+.lpa-label-text:empty + .lpa-label-dots {
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .lpa-label-dots i {

@@ -74,9 +74,11 @@ const MAX_SCALE = 48 / 11.52;
 // As the camera closes in, spacing between avatars grows until the crest
 // face's neighbours sit just past the banner's edges — the close-up is one
 // person. The exact multiple is computed from the banner's measured width.
-const SPREAD_START = 0.86; // leg position where the parting starts — the
-// rotation is spent by then (~0.15° remains), so the spread reads as a
-// clean parting on a stationary wheel instead of fighting the spin
+const SPREAD_START = 0.45; // leg position where the parting begins — early,
+// woven into the zoom. On the approach its progress is tied to the wheel's
+// own remaining travel, so faces part only as (and as fast as) the wheel
+// moves; on screen the zoom's expansion carries them the same direction,
+// and the parting is never a separate event.
 
 // ── The label ───────────────────────────────────────────────────────────
 // The typing indicator starts on the approach, not at the landing: as the
@@ -85,8 +87,6 @@ const SPREAD_START = 0.86; // leg position where the parting starts — the
 // already read-ready when the wheel parks. The departure motion is what
 // removes it.
 const LABEL_AT_H = 0.8; // leg position (approach) where the label starts
-const POP_S = 0.2; // s: pop-in duration (slight overshoot)
-const RISE_S = 0.5; // s: the rise from below, riding the zoom's tail
 const RISE_PX = 26; // px the label climbs while fading in
 const RESOLVE_AT = 0.9; // s after the label starts: dots → sentence
 const DOT_PERIOD = 0.9; // s: one wave through the three dots
@@ -269,6 +269,7 @@ export default function LandingPageAnimations() {
     let steerExtra = 0; // extra speed factor, eased in via the steer ramp
     let steerTarget = 0; // the sector-aligned angle the coast lands on
     let labelT = -1; // seconds since the label sequence started; <0 = off
+    let spreadRem0 = -1; // wheel travel remaining when the parting began
     let pendingText = ""; // this visit's sentence, applied at the resolve
     let pipEl: SVGImageElement | null = null; // the crest face, for the pip
     let lastSpread = 1; // last spacing multiple written to the dots
@@ -350,11 +351,29 @@ export default function LandingPageAnimations() {
       // The spread — each dot eases from its rotating position toward its
       // FINAL spot in the landing composition (spacing widened around the
       // landing crest, clamped at the wheel's bottom so far dots never
-      // wrap into view). Interpolating positions, not multiplying the live
-      // angle: the old anchor moved with the wheel, so mid-approach the
-      // spread growth could out-pace the dying rotation and visibly pull
-      // dots backwards — the stutter. Visible dots now move forward only.
-      const sMix = smoothstep(SPREAD_START, 1, h);
+      // wrap into view). On the approach, progress is the fraction of the
+      // wheel's own remaining travel already covered — the parting moves
+      // only as the wheel moves, so it dissolves into the zoom instead of
+      // reading as its own event. The return contracts on the leg's ease.
+      let sMix: number;
+      if (tau >= 0) {
+        sMix = 1;
+      } else if (phase < OUT_F) {
+        if (h < SPREAD_START || steerTarget <= angle) {
+          sMix = h >= SPREAD_START ? 1 : 0;
+          spreadRem0 = -1;
+        } else {
+          if (spreadRem0 < 0) spreadRem0 = steerTarget - angle;
+          sMix = smoothstep(
+            0,
+            1,
+            1 - (steerTarget - angle) / Math.max(spreadRem0, 1e-3),
+          );
+        }
+      } else {
+        sMix = smoothstep(SPREAD_START, 1, h);
+        spreadRem0 = -1;
+      }
       if (sMix > 0.0005 || lastSpread > 0.0005) {
         lastSpread = sMix;
         for (let j = 0; j < dotGroups.length; j++) {
@@ -385,22 +404,22 @@ export default function LandingPageAnimations() {
         );
       }
 
-      // Container: fades in while RISING from below, riding the zoom's
-      // tail into its resting spot — up by the time the wheel parks. The
-      // departure fade takes it back down with the pull-out.
+      // Container: rises from below ON THE ZOOM'S OWN PROGRESS — its
+      // velocity profile is the zoom's tail, so it decelerates into place
+      // with the same momentum as everything else and parks exactly as
+      // the wheel does. The departure fade takes it back down with the
+      // pull-out.
       let cOp = 0;
       let cDy = RISE_PX;
-      let cScale = 1;
       if (labelT >= 0) {
-        const u = Math.min(1, labelT / POP_S);
-        const rise = smoothstep(0, RISE_S, labelT);
-        cOp = u;
-        cScale = 1 + 0.04 * Math.sin(u * Math.PI) - 0.08 * (1 - u) * (1 - u);
-        cDy = (1 - rise) * RISE_PX;
-        if (tau < 0 && phase > OUT_F) {
+        if (tau >= 0 || phase < OUT_F) {
+          const rise = smoothstep(LABEL_AT_H, 1, h);
+          cOp = smoothstep(LABEL_AT_H, LABEL_AT_H + 0.05, h);
+          cDy = (1 - rise) * RISE_PX;
+        } else {
           // Return leg: the camera leaving is what removes the label.
           const e = smoothstep(0.9, 0.985, h);
-          cOp = Math.min(cOp, e);
+          cOp = e;
           cDy = (1 - e) * 6;
         }
       }
@@ -425,7 +444,7 @@ export default function LandingPageAnimations() {
       // The label sits centred beneath the crest face (blueprint: 12u gap,
       // 20u/28u text).
       label.style.opacity = cOp.toFixed(3);
-      label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px) scale(${cScale.toFixed(3)})`;
+      label.style.transform = `translateX(-50%) translateY(${cDy.toFixed(1)}px)`;
 
       place(angle, scale);
       const ph = playheadRef.current;

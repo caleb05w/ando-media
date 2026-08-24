@@ -1,0 +1,139 @@
+/* /landing-page-animations — the banner stage and the dot-wheel geometry,
+   off the Ando Brand storyboard (Figma e4gEqJUqBMec19AI1BhLEc / 3446-2571).
+
+   The storyboard's frame is 412×152 with a 288.23px ring of 36 dots whose
+   centre sits below the banner — only the crest of the wheel shows. All
+   sizes here are that frame's values scaled through --u (banner height /
+   152), so the geometry tracks the storyboard at any banner size.
+
+   Only geometry and chrome live here. The motion — angular velocity
+   integrated to an angle, scale coupled to the slow-down — is written per
+   frame from page.tsx. */
+
+.lpa-field {
+  /* The grey placeholder the banner floats on. */
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The banner — 0.9× the original 100vw × 35vh strip, centered in the field
+   on both axes. Clipped: the wheel lives mostly below the bottom edge. */
+.lpa-banner {
+  --u: calc(31.5vh / 152);
+  /* The ring is laid out at its CLOSE-UP size — 288.23 × the zoom ceiling
+     (keep in sync with MAX_SCALE in page.tsx) — and the frame loop scales
+     it DOWN from there. Scaling down keeps the avatar bitmaps rasterizing
+     at full size; laying out small and scaling up rasterizes the faces at
+     dot size and they smear. */
+  --lpa-max: 3.8;
+  --lpa-ring-d: calc(var(--u) * 288.23 * var(--lpa-max));
+  --lpa-crest: calc(var(--u) * 34);
+  position: relative;
+  width: 90vw;
+  height: 31.5vh;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* The wheel. Laid out so its untransformed centre sits exactly on the crest
+   line; the frame loop pushes it down by (ring radius × scale) so the top
+   dot stays pinned at --lpa-crest while the wheel grows beneath the banner.
+   transform is written per frame — nothing animates on its own. */
+.lpa-ring {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--lpa-crest) - var(--lpa-ring-d) / 2);
+  width: var(--lpa-ring-d);
+  height: var(--lpa-ring-d);
+  margin-left: calc(var(--lpa-ring-d) / -2);
+  will-change: transform;
+}
+
+/* The dots live inside one SVG in the storyboard's 288.23 coordinate
+   space, so the viewBox scales the whole ring with the element and the
+   dot/ring ratio can never drift from the Figma asset. */
+.lpa-ring-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Each dot is an avatar, clipped to the storyboard's circle. The rotation
+   cancels the ring's spin plus this dot's own offset (--lpa-da, set
+   inline), so faces stay upright while they orbit; --lpa-spin is written
+   per frame on .lpa-ring from the page's rAF loop. */
+.lpa-avatar {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(calc((var(--lpa-spin, 0deg) + var(--lpa-da, 0deg)) * -1));
+}
+
+/* The crest label — "{name} is {verb}" (Figma 3446-2775: 20px text against
+   a 48px avatar, #24211f). Centred beneath the top face at its close-up
+   size: the dot's visual radius at full zoom is 11.52 × 3.8 / 2 storyboard
+   units, and the text scales with the same ratio the pill uses (20/48 of
+   the avatar). Text and opacity are written per frame from the rAF loop. */
+.lpa-label {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--u) * (34 + 11.52 * 3.8) + 14px);
+  transform: translateX(-50%);
+  font-size: calc(var(--u) * 11.52 * 3.8 * (20 / 48));
+  color: #24211f;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The dissolve — the storyboard's Rectangle 1: the bottom half of the
+   banner backdrop-blurred and washed to white, so dots blur out as they
+   sink and sharpen as they rise. */
+.lpa-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(74 / 152 * 100%);
+  pointer-events: none;
+}
+
+/* Progressive blur — four stacked backdrop-filter bands, each masked to
+   fade in lower than the last. Backdrop filters compound (each band blurs
+   the output of the ones painted before it), so sharpness rolls off from
+   0 at the scrim's top edge to ~4× the band blur at the bottom, instead of
+   one flat blur switching on. */
+.lpa-scrim-blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(3px);
+}
+
+.lpa-scrim-blur:nth-child(1) {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+}
+
+.lpa-scrim-blur:nth-child(2) {
+  mask-image: linear-gradient(to bottom, transparent 25%, black 55%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 25%, black 55%);
+}
+
+.lpa-scrim-blur:nth-child(3) {
+  mask-image: linear-gradient(to bottom, transparent 50%, black 80%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 50%, black 80%);
+}
+
+.lpa-scrim-blur:nth-child(4) {
+  mask-image: linear-gradient(to bottom, transparent 75%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 75%, black 100%);
+}
+
+/* The white wash rides on top of the blur stack — the storyboard's
+   Rectangle 1 gradient, kept as-is. */
+.lpa-scrim-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 6.76%, #ffffff);
+}

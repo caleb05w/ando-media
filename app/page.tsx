@@ -24,6 +24,14 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/landing-page-animations",
+    week: "2026-08-17",
+    title: "Landing page animations",
+    tag: "(Motion)",
+    brief:
+      "Scaffold for the landing page motion studies — a 35vh full-bleed white banner on a grey field, holding the band the animations get built into.",
+  },
+  {
     href: "/agent-typing-experience",
     week: "2026-08-17",
     title: "Agent typing experience",

@@ -173,7 +173,7 @@ function PhoneGlyph() {
       <path
         d="M5.1 2.5l1.5 2.1-1.2 1.3a8.9 8.9 0 002.7 2.7l1.3-1.2 2.1 1.5c.4.3.5.9.1 1.3l-.9.9c-.5.5-1.2.7-1.9.4C6.3 10.4 3.6 7.7 2.5 5.2c-.3-.7-.1-1.4.4-1.9l.9-.9c.4-.4 1-.3 1.3.1z"
         fill="none"
-        stroke="#22C55E"
+        stroke="var(--ct-green)"
         strokeWidth="1.1"
         strokeLinejoin="round"
       />
@@ -235,7 +235,7 @@ function Pile({ items }: { items: React.ReactNode[] }) {
       {items.map((item, i) => (
         <span
           key={i}
-          className="ct-pop -ml-[4px] flex size-[20px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1b1b1b] first:ml-0"
+          className="ct-pop -ml-[4px] flex size-[20px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--ct-disc-ring)] first:ml-0"
           style={{ animationDelay: `${i * 70}ms` }}
         >
           {item}
@@ -307,7 +307,7 @@ function SlackDisc() {
 
 function NotionDisc() {
   return (
-    <span className="flex size-full items-center justify-center bg-white">
+    <span className="flex size-full items-center justify-center bg-[color:var(--ct-disc-paper)]">
       <svg width="11" height="11" viewBox="0 0 14 14" aria-hidden>
         <path
           d="M4.4 10.4V3.6l5.2 6.8V3.9"
@@ -324,7 +324,7 @@ function NotionDisc() {
 
 function DriveDisc() {
   return (
-    <span className="flex size-full items-center justify-center bg-white">
+    <span className="flex size-full items-center justify-center bg-[color:var(--ct-disc-paper)]">
       <svg width="11" height="11" viewBox="0 0 14 14" aria-hidden>
         <path d="M5.1 1.9h3.8l4 7H9z" fill="#FBBC04" />
         <path d="M5.1 1.9L1.1 8.9l1.9 3.2 4-7z" fill="#34A853" />
@@ -377,7 +377,7 @@ function ContextRing({ filled, total }: { filled: number; total: number }) {
         cy="7"
         r={r}
         fill="none"
-        stroke="rgba(255,255,255,0.2)"
+        stroke="var(--ct-track)"
         strokeWidth="1.5"
       />
       <circle
@@ -385,7 +385,7 @@ function ContextRing({ filled, total }: { filled: number; total: number }) {
         cy="7"
         r={r}
         fill="none"
-        stroke="#22C55E"
+        stroke="var(--ct-green)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeDasharray={c}
@@ -410,14 +410,14 @@ function CheckDisc() {
         cy="7"
         r="6"
         fill="none"
-        stroke="#22C55E"
+        stroke="var(--ct-green)"
         strokeWidth="1.5"
         className="ct-fill"
       />
       <path
         d="M4.1 7.2l2.1 2.1 3.9-4.5"
         fill="none"
-        stroke="#1b1b1b"
+        stroke="var(--ct-check-ink)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -433,10 +433,12 @@ function ContextTrace({
   vt,
   open,
   onToggle,
+  theme = "dark",
 }: {
   vt: number;
   open: boolean;
   onToggle: () => void;
+  theme?: "dark" | "light";
 }) {
   const done = vt >= T.done;
   const arrived = SOURCES.filter((s) => vt >= s.arrive);
@@ -466,7 +468,9 @@ function ContextTrace({
               : "avatar-back";
 
   return (
-    <div className="w-[360px] rounded-[14px] border border-[#58524E] bg-[#1b1b1b]">
+    <div
+      className={`ct-${theme} w-[360px] rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
+    >
       {/* The rail rides ABOVE the line: sources queue overhead and drain
           downward into the agent as they're read. */}
       <div className="ct-drawer" data-open={railOpen}>
@@ -475,7 +479,7 @@ function ContextTrace({
               no trace line in this direction. */}
           <div className="ml-[15px] mt-3 flex flex-col pr-[15px]">
             {arrived.length === 0 ? (
-              <div className="flex h-7 items-center text-[14px] leading-5 text-[#8a8a8a]">
+              <div className="flex h-7 items-center text-[14px] leading-5 text-[color:var(--ct-muted)]">
                 Gathering context…
               </div>
             ) : (
@@ -493,7 +497,7 @@ function ContextTrace({
                     key={s.key}
                     className={`ct-row ct-row-in flex h-7 items-center ${
                       ingesting ? "ct-ingest" : ""
-                    } ${reading ? "text-white" : "text-[#8a8a8a]"}`}
+                    } ${reading ? "text-[color:var(--ct-text)]" : "text-[color:var(--ct-muted)]"}`}
                   >
                     <span
                       className={`flex size-4 shrink-0 items-center justify-center transition-opacity duration-300 ${
@@ -554,7 +558,7 @@ function ContextTrace({
           )}
         </span>
         {done ? (
-          <span className="min-w-0 flex-1 truncate text-[14px] leading-5 text-white">
+          <span className="min-w-0 flex-1 truncate text-[14px] leading-5 text-[color:var(--ct-text)]">
             {statusLine(vt)}
           </span>
         ) : (
@@ -564,7 +568,7 @@ function ContextTrace({
         )}
         <span
           data-open={railOpen}
-          className="ct-chevron shrink-0 text-[#8a8a8a] group-hover:text-white"
+          className="ct-chevron shrink-0 text-[color:var(--ct-chevron)] group-hover:text-[color:var(--ct-text)]"
         >
           <ChevronGlyph />
         </span>
@@ -575,6 +579,34 @@ function ContextTrace({
 
 /* ---------------------------------- page ----------------------------------- */
 
+function SunGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
+      <circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M8 1.2v1.8M8 13v1.8M1.2 8H3M13 8h1.8M3.2 3.2l1.3 1.3M11.5 11.5l1.3 1.3M12.8 3.2l-1.3 1.3M4.5 11.5l-1.3 1.3"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MoonGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
+      <path
+        d="M13.2 9.8A6 6 0 116.2 2.8a4.7 4.7 0 007 7z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function AgentContextTrace() {
   const speedRef = useRef(1);
   const { vt } = useVirtualTime(speedRef);
@@ -582,10 +614,25 @@ export default function AgentContextTrace() {
   // asked, and puts itself away when everything's ingested. The chevron
   // is the manual override.
   const [open, setOpen] = useState(true);
+  const [theme, setTheme] = useState<"dark" | "light">("light");
+  const light = theme === "light";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white">
-      <ContextTrace vt={vt % T.cycle} open={open} onToggle={() => setOpen((o) => !o)} />
+    <main className="flex min-h-screen items-center justify-center bg-[#fafaf9]">
+      <button
+        type="button"
+        aria-label={light ? "Switch to dark mode" : "Switch to light mode"}
+        onClick={() => setTheme(light ? "dark" : "light")}
+        className="fixed right-6 top-6 flex size-9 items-center justify-center rounded-full border border-[#ebe9e8] bg-white text-[#58524e] transition-colors hover:text-[#1a1817]"
+      >
+        {light ? <MoonGlyph /> : <SunGlyph />}
+      </button>
+      <ContextTrace
+        theme={theme}
+        vt={vt % T.cycle}
+        open={open}
+        onToggle={() => setOpen((o) => !o)}
+      />
     </main>
   );
 }

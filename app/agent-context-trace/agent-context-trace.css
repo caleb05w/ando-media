@@ -1,0 +1,220 @@
+/* /agent-context-trace — the working trace's context drawer. Classes are
+   ct- prefixed so they never collide with the aw- family, but the values
+   are lifted straight from it: the flyout's dark register (#1b1b1b card,
+   #8a8a8a muted, white/10 hairlines), the 2.2s shimmer tempo, and the
+   220–300ms cubic-bezier(0.2, 0, 0, 1) settle. */
+
+/* Thinking shimmer — same recipe as .aw-shimmer-dark (Linear's
+   "Analyzing stack trace…" treatment), same 2.2s clock. */
+@keyframes ct-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.ct-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.5) 35%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.5) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ct-shimmer 2.2s linear infinite;
+}
+
+/* The drawer opens by grid-row: 0fr -> 1fr animates the track, and the
+   inner overflow-hidden row clips mid-flight. Content is never measured,
+   so rows can keep arriving while the drawer is closed. */
+.ct-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+.ct-drawer[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.ct-drawer > div {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* A source arriving on the rail: the row fades in while its space opens —
+   the same quick breath the flyout rows take. */
+@keyframes ct-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ct-row-in {
+  animation: ct-row-in 260ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Queued -> active is color alone, so attention shifts without the list
+   ever jostling. */
+.ct-row {
+  transition: color 400ms cubic-bezier(0.2, 0, 0.2, 1);
+  transform-origin: left center;
+}
+
+/* Ingestion: a struck row folds straight DOWN into the running trace
+   layer — y only, x pinned, no scale. The queue stacks upward with the
+   next-to-read row at the bottom, so every fold is this same short
+   26px drop off the rail's end into the line; then the emptied row
+   height closes and the rows above settle down. */
+@keyframes ct-ingest {
+  0% {
+    height: 28px;
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 0.2;
+  }
+  100% {
+    height: 0;
+    opacity: 0;
+    transform: translateY(26px);
+  }
+}
+/* One phase: the slot closes WHILE the row sinks — height, travel, and
+   fade share the same 450ms, so the container shrinks in step with the
+   item instead of holding its space and snapping shut after. */
+.ct-ingest {
+  animation: ct-ingest 450ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+  overflow: hidden;
+}
+
+/* Cross-out: the strike draws across the label the moment reading
+   finishes — the beat BEFORE the fold, so done-then-filed reads as two
+   honest steps instead of one vanish. */
+.ct-strike {
+  position: relative;
+}
+.ct-strike::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: ct-strike-draw 240ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+@keyframes ct-strike-draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Richer context populating: while a source is being read, its detail
+   (the call's facepile, etc.) pops in piece by piece — a small bloom
+   per item, staggered at the call site. */
+@keyframes ct-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.ct-pop {
+  animation: ct-pop 260ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+/* The seat handoff: whatever's leaving the agent's seat (avatar out,
+   check out) shrinks away so the next occupant can pop in. Defined
+   after ct-pop so the exit wins when both classes are present. */
+@keyframes ct-shrink {
+  to {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+.ct-shrink {
+  animation: ct-shrink 160ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+
+/* The context ring absorbs each landing item — the arc grows on the
+   fold's touchdown, easing in the settle family. Opacity keeps the
+   round linecap's zero-progress nub hidden. */
+.ct-ring {
+  transition:
+    stroke-dashoffset 360ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 200ms;
+}
+
+/* Completion morph, step 1: the finished ring thickens inward until it
+   reads as a solid 14px disc. The radius shrinks WHILE the stroke
+   grows (outer edge r + sw/2 stays exactly 7), so the fill is always a
+   circle — never a square clip. */
+@keyframes ct-fill-in {
+  from {
+    r: 6;
+    stroke-width: 1.5;
+  }
+  to {
+    r: 3.5;
+    stroke-width: 7;
+  }
+}
+.ct-fill {
+  animation: ct-fill-in 240ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+
+/* Step 2: the check draws through the filled disc — the same
+   stroke-draw gesture as the strike, delayed until the fill lands. */
+.ct-seal {
+  stroke-dasharray: 10;
+  stroke-dashoffset: 10;
+  animation: ct-seal-draw 280ms cubic-bezier(0.2, 0, 0, 1) 180ms forwards;
+}
+@keyframes ct-seal-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Chevron turn: closed points right (more behind this); open points up,
+   toward where the rail unfolds. */
+.ct-chevron {
+  transition:
+    transform 280ms cubic-bezier(0.2, 0, 0, 1),
+    color 150ms;
+}
+.ct-chevron[data-open="true"] {
+  transform: rotate(-90deg);
+}
+
+/* Reduced motion: loops go still, one-shot transitions stay. */
+@media (prefers-reduced-motion: reduce) {
+  .ct-shimmer {
+    animation: none;
+    background-image: none;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .ct-row-in,
+  .ct-ingest,
+  .ct-pop,
+  .ct-fill,
+  .ct-seal,
+  .ct-shrink,
+  .ct-strike::after {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}

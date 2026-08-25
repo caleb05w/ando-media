@@ -24,6 +24,14 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/agent-context-trace",
+    week: "2026-08-24",
+    title: "Agent context trace",
+    tag: "(Prototype)",
+    brief:
+      "The working indicator with a context drawer — profile and shimmering thought line as shipped, plus a chevron that opens a hairline rail showing where context is being grabbed: sources arrive as the agent reaches them, hold bright while read, then check off and recede.",
+  },
+  {
     href: "/agent-typing-experience",
     week: "2026-08-17",
     title: "Agent typing experience",

@@ -7,18 +7,15 @@
 import { useState } from "react";
 
 import { ITERATIONS, WorldBall } from "./world-ball";
-import { WorldCrowd } from "./world-crowd";
 
-// The engine's arrangements, plus the original flat bubble — the
-// /claim packing — kept as an iteration of its own.
-const STEPS: { id: string; label: string; render: () => React.ReactNode }[] = [
-  ...ITERATIONS.map((iteration) => ({
-    id: iteration.id,
-    label: iteration.label,
-    render: () => <WorldBall items={iteration.items} mode={iteration.mode} />,
-  })),
-  { id: "bubble", label: "the bubble", render: () => <WorldCrowd /> },
-];
+// The engine's arrangements. The flat bubble that used to sit at 3
+// was retired to /the-library; slot 3 is reserved for the Brand-file
+// take (Brand 3772-11750) once it lands.
+const STEPS: { id: string; label: string; render: () => React.ReactNode }[] = ITERATIONS.map((iteration) => ({
+  id: iteration.id,
+  label: iteration.label,
+  render: () => <WorldBall items={iteration.items} mode={iteration.mode} />,
+}));
 
 export function WorldStepper() {
   const [at, setAt] = useState(0);

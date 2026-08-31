@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { FooterGlobe } from "../affiliate/footer-globe";
 import { ClaimHandle } from "./claim-handle";
+import { UseCards } from "./use-cards";
 import { WorldStepper } from "./world-stepper";
 
 // The affiliate world's sections. The page is a claiming surface:
@@ -188,6 +189,19 @@ export function WorldView() {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* the uses — the world's day as printed ephemera: a meishi, a
+            pharmacy card, a recipe, a sachet. One use case each, in the
+            members' own words. */}
+        <section aria-labelledby="the-uses" className="pt-20 md:pt-24">
+          <ContentHeading id="the-uses">The uses</ContentHeading>
+          <Text className="mt-4" color="secondary" size={TextSize.Small}>
+            What a working world does all day — printed small enough to keep.
+          </Text>
+          <div className="mt-10">
+            <UseCards />
+          </div>
         </section>
 
         {/* the threshold — your name, then the horizon */}

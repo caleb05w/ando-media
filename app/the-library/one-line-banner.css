@@ -1,0 +1,439 @@
+/* The one-line hero — the solo banner's grammar, carried over from the
+   retired /comms-banner exploration. One message on stage at a time; the
+   thread's history is a facepile, not a stack. Costs ~150px where the
+   stacked take cost 300+.
+
+   Every resting style is a base rule; the hidden state is the class
+   (.is-hidden), so a starved compositor can delay the choreography but
+   never collapse the layout. */
+
+.hl-banner {
+  position: relative;
+  width: 100vw;
+  height: 150px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A fixed measure sized to the widest line, centred as a block, with
+   every line left-anchored inside it — so the avatar never changes x
+   between speakers. Centring each line individually made the anchor hop
+   ~60px when Ando's longer sentence landed. */
+.hl-lines {
+  position: relative;
+  width: min(568px, calc(100vw - 40px));
+  height: 86px;
+  margin: 0 auto;
+  /* The slot: lines roll through it vertically, with a shallow 3D tip so
+     the swap reads as a card turning, not a teleport. */
+  perspective: 420px;
+}
+
+.hl-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    opacity 480ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 560ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* The reel, two slots deep: current in the bottom slot, the previous
+   line dimmed in the top one; each turn moves both up a notch. */
+.hl-line.is-current {
+  opacity: 1;
+  transform: translateY(48px);
+}
+
+.hl-line.is-prev {
+  opacity: 0.5;
+  transform: translateY(0);
+}
+
+.hl-line.is-past {
+  opacity: 0;
+  transform: translateY(-24px) rotateX(42deg);
+  transition:
+    opacity 300ms cubic-bezier(0.4, 0, 1, 1),
+    transform 360ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.hl-line.is-future {
+  opacity: 0;
+  transform: translateY(80px) rotateX(-42deg);
+}
+
+/* ── Typing, then sent ────────────────────────────────────────────────
+   Each line rolls in as face + name + dots — the person is typing — and
+   the text wipes in when the message "sends". Resting state is the sent
+   line: text visible, dots gone, so nothing depends on the animation
+   having run. */
+/* The primitive bubble: a quiet rounded ground under every message —
+   the one piece of chat furniture the words actually need. The dots live
+   inside it (display-gated, so a sent line reserves nothing). */
+.hl-msg {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  /* Near-square, with the bottom-left corner pinched a step tighter —
+     the primitive nod toward the speaker without drawing a tail. */
+  border-radius: 12px 12px 12px 8px;
+  background: #f5f5f4;
+  transition: background-color 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* While Tadao is only working — status, not speech — there is no bubble.
+   The bubble belongs to messages; it arrives with the words. */
+.hl-line.is-musing .hl-msg {
+  background: transparent;
+}
+
+.hl-dots {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 0 2px;
+}
+
+.hl-line.is-typing .hl-dots {
+  display: flex;
+}
+
+.hl-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #b5afaa;
+  animation: hl-blink 1.25s infinite both;
+}
+
+.hl-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.hl-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes hl-blink {
+  0%,
+  76%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  28% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+/* The send, for the ellipsis line only: the sentence wipes out of the
+   dots' position, quick — a message landing, not a reveal ceremony.
+   Typewriter lines need no send animation; their text is already there
+   by the time it sends. */
+.hl-line.is-sent .hl-text {
+  animation: hl-send 340ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* ── Ando's arrival ───────────────────────────────────────────────────
+   The live Stage from /agent-typing-experience sits in the avatar slot.
+   The svg is larger than the slot (the resolved face is 19.2 of its 32
+   crop units — 44px renders the face at ~26px, matching the humans),
+   centred so the wave's excursions breathe around the slot. */
+.hl-stagewrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+.hl-stagewrap svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* The primitive thinking indicator: "thinking…" with a shimmer riding
+   through it — the working-trace register at whisper size. Sits where
+   the message will land; the send wipe replaces it. */
+.hl-think {
+  display: none;
+  font-size: 15px;
+  line-height: 24px;
+  background: linear-gradient(90deg, #a8a29e 38%, #58524e 50%, #a8a29e 62%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hl-shimmer 2.2s linear infinite;
+}
+
+.hl-think.is-on {
+  display: inline-block;
+}
+
+@keyframes hl-shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/* The reaction — humans accepting the agent's move, at chip price. It
+   lives in the tray under the line, next to the facepile, and its count
+   ticks up one beat at a time: people reacting, not a badge. */
+.hl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #f5f5f4;
+  font-size: 12px;
+  line-height: 16px;
+  color: #58524e;
+  flex: none;
+  transform-origin: left center;
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 300ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.hl-chip.is-hidden {
+  opacity: 0;
+  transform: scale(0.55);
+}
+
+.hl-chip b {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  /* Keyed on the count, so every increment remounts and pops. */
+  animation: hl-count-pop 260ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+/* The exhale: the chip leaves the way it came — a quick shrink, timed to
+   trail the line by a beat, so the clear reads as one gesture (message
+   rolls out, then its residue disperses) instead of a blink. */
+.hl-banner.is-out .hl-chip {
+  transition:
+    opacity 260ms 80ms cubic-bezier(0.4, 0, 1, 1),
+    transform 260ms 80ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+@keyframes hl-count-pop {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The caret riding the typewriter's edge. */
+.hl-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: #1a1817;
+  animation: hl-caret-blink 900ms step-end infinite;
+}
+
+@keyframes hl-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes hl-send {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 -4px);
+    transform: translateX(-5px);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 -4px 0 -4px);
+    transform: none;
+  }
+}
+
+.hl-face {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+/* Name and text share one line-height so their baselines can't wobble
+   against each other (they measured 1px apart when 22px met 24px). */
+.hl-name {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: #1a1817;
+}
+
+.hl-name.is-agent {
+  color: #2563eb;
+}
+
+.hl-text {
+  font-size: 17px;
+  line-height: 24px;
+  color: #1a1817;
+}
+
+/* Small viewports: the nowrap line would overflow, so the type steps
+   down and the sentence may take a second line. */
+@media (max-width: 600px) {
+  .hl-lines {
+    height: 120px;
+  }
+
+  .hl-line {
+    height: 52px;
+  }
+
+  .hl-line.is-current {
+    transform: translateY(64px);
+  }
+
+  .hl-line.is-future {
+    transform: translateY(108px) rotateX(-42deg);
+  }
+
+  .hl-solo .hl-lines {
+    height: 56px;
+  }
+
+  .hl-solo .hl-line.is-future {
+    transform: translateY(58px) rotateX(-42deg);
+  }
+
+  .hl-line {
+    white-space: normal;
+    align-items: flex-start;
+  }
+
+  .hl-face {
+    margin-top: 0;
+  }
+
+  .hl-name {
+    font-size: 14px;
+    line-height: 21px;
+  }
+
+  .hl-text {
+    font-size: 15px;
+    line-height: 21px;
+  }
+}
+
+/* The thread's memory: who has already spoken, plus the 👍 when it
+   lands. Centred under the line so the hero stays symmetric. */
+.hl-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 24px;
+  margin-top: 14px;
+}
+
+.hl-trail {
+  display: flex;
+  align-items: center;
+}
+
+.hl-tslot {
+  width: 0;
+  overflow: visible;
+  transition: width 420ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hl-tslot.is-in {
+  width: 15px;
+}
+
+.hl-tslot img {
+  /* The slot is narrower than the face (that's the overlap), and
+     preflight's img { max-width: 100% } clamps to the slot — squeezing
+     the circles into ovals. Opt out. */
+  max-width: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 320ms cubic-bezier(0.2, 0, 0, 1),
+    transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.hl-tslot.is-in img {
+  opacity: 0.92;
+  transform: scale(1);
+}
+
+/* ── Solo variant: one slot, tray underneath ────────────────────────── */
+.hl-solo .hl-lines {
+  height: 40px;
+}
+
+.hl-solo .hl-line.is-current {
+  transform: translateY(2px);
+}
+
+.hl-solo .hl-line.is-future {
+  transform: translateY(42px) rotateX(-42deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-line,
+  .hl-chip,
+  .hl-tslot,
+  .hl-tslot img {
+    transition: none !important;
+  }
+  .hl-line.is-sent .hl-text,
+  .hl-caret,
+  .hl-think,
+  .hl-chip b,
+  .hl-dots span {
+    animation: none;
+  }
+  .hl-dots {
+    opacity: 0 !important;
+  }
+}

@@ -1,0 +1,102 @@
+/* The Ando hive, shelved in /the-library.
+   Same paper as the workspace diagram: paper-grey ground, dot-grid, one blue
+   accent spent on the hive and its threads. */
+
+.hive {
+  --sva-bg: #f5f6f8;
+  --sva-line-grey: #a3abba;
+  --sva-ring-grey: #e2e5eb;
+  --sva-text-faint: #b6bcc8;
+  --sva-text-dim: #8a92a1;
+  --sva-ink: #1b212c;
+  --sva-blue: #2563eb;
+
+  min-height: 100vh;
+  background-color: var(--sva-bg);
+  background-image: radial-gradient(circle, rgba(27, 33, 44, 0.05) 1px, transparent 1px);
+  background-size: 13px 13px;
+  color: var(--sva-ink);
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.hive-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+}
+
+.hive-half {
+  flex: 1;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hive-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Construction ───────────────────────────────────────────────────── */
+
+.sva-datum {
+  stroke: #c9ced8;
+  stroke-width: 1;
+  stroke-dasharray: 14 5 2 5;
+}
+
+.sva-center-mark {
+  stroke: var(--sva-text-dim);
+  stroke-width: 1;
+}
+
+/* ── The hive ───────────────────────────────────────────────────────── */
+
+.sva-ring {
+  stroke: var(--sva-ring-grey);
+  stroke-width: 1;
+}
+
+/* The workplace: one dotted grey line — a drawn boundary, lightly held. */
+.sva-workplace {
+  stroke: var(--sva-line-grey);
+  stroke-width: 1.5;
+  stroke-dasharray: 0.1 6;
+  stroke-linecap: round;
+}
+
+.sva-trail {
+  stroke: var(--sva-blue);
+  stroke-width: 1;
+  /* stroke-opacity set per frame from depth — near trails hold, far fade */
+}
+
+/* Threads between wanderers who are currently together. */
+.sva-link {
+  stroke: var(--sva-blue);
+  stroke-width: 1;
+  /* stroke-opacity set per frame from 3D distance and depth */
+}
+
+/* The congregation: one species, every dot on its own errand. */
+.sva-dot {
+  fill: var(--sva-blue);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+
+.hive-footer {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--sva-text-faint);
+  padding: 0 40px 20px;
+}

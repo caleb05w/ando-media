@@ -479,7 +479,10 @@ function rosterFor(discs: Disc[]): string[] {
   });
 }
 
-export function WorldCrowd() {
+// `bench` keeps the workbench furniture — the dashed wall and the
+// measured caption with the heads dial. Production embeds (the duet
+// hero) take the crowd bare.
+export function WorldCrowd({ bench = true }: { bench?: boolean }) {
   const [count, setCount] = useState(DEFAULT_N);
   const { discs, R, fit, spacing } = useMemo(() => solveCrowd(count), [count]);
   const PAD = 10;
@@ -492,16 +495,18 @@ export function WorldCrowd() {
   return (
     <div>
       <div className="relative mx-auto w-full" style={{ aspectRatio: "1 / 1" }}>
-        <span
-          aria-hidden
-          className="absolute rounded-full border border-dashed border-[#d5d9e1]"
-          style={{
-            left: pct(box / 2 - R),
-            top: pct(box / 2 - R),
-            width: pct(R * 2),
-            height: pct(R * 2),
-          }}
-        />
+        {bench ? (
+          <span
+            aria-hidden
+            className="absolute rounded-full border border-dashed border-[#d5d9e1]"
+            style={{
+              left: pct(box / 2 - R),
+              top: pct(box / 2 - R),
+              width: pct(R * 2),
+              height: pct(R * 2),
+            }}
+          />
+        ) : null}
         {discs.map((d, i) => (
           <span
             key={`${count}-${people[i]}-${i}`}
@@ -523,7 +528,9 @@ export function WorldCrowd() {
         ))}
       </div>
       {/* bench instrumentation — the rules measured, the count dialled */}
-      <div className="mt-3 flex items-center justify-center gap-4 font-mono text-[10px] uppercase leading-4 tracking-[0.08em] text-text-tertiary">
+      <div
+        className={`mt-3 items-center justify-center gap-4 font-mono text-[10px] uppercase leading-4 tracking-[0.08em] text-text-tertiary ${bench ? "flex" : "hidden"}`}
+      >
         <span>circle fit · {fit}%</span>
         <span>spacing · {spacing}%</span>
         <label className="flex items-center gap-1.5">

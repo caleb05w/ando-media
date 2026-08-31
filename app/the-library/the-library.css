@@ -19,7 +19,10 @@
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  /* Proximity, not mandatory: mandatory snapping swallows small wheel
+     ticks (the card snaps straight back), which reads as a dead
+     scroll. Proximity still settles on a card once it is near one. */
+  scroll-snap-type: x proximity;
   /* Center the snapped card; neighbours peek in from the edges. */
   padding-inline: max(24px, calc((100vw - var(--lib-card-w)) / 2));
   scrollbar-width: none;

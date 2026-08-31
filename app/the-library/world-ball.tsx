@@ -143,7 +143,9 @@ const HALO_CUM: number[] = (() => {
 })();
 
 // Where share m of the crowd sits on the page. Spinning shifts m; the
-// pattern itself never moves.
+// pattern itself never moves. The lookup interpolates INSIDE the
+// sample bin — snapping to the 400 samples made slow travel hop
+// visibly from point to point.
 function haloPoint(m: number): [number, number] {
   const mm = m - Math.floor(m);
   const target = mm * HALO_CUM[HALO_S];
@@ -154,7 +156,11 @@ function haloPoint(m: number): [number, number] {
     if (HALO_CUM[mid] < target) lo = mid + 1;
     else hi = mid;
   }
-  const th = -Math.PI / 2 + (lo / HALO_S) * Math.PI * 2;
+  const at = Math.max(0, lo - 1);
+  const c0 = HALO_CUM[at];
+  const c1 = HALO_CUM[at + 1];
+  const frac = c1 > c0 ? (target - c0) / (c1 - c0) : 0;
+  const th = -Math.PI / 2 + ((at + frac) / HALO_S) * Math.PI * 2;
   const x0 = Math.cos(th) * HALO_A;
   const y0 = Math.sin(th) * HALO_B;
   const ct = Math.cos(HALO_TILT);
@@ -186,9 +192,39 @@ export const ITERATIONS: { id: string; label: string; mode: WorldMode; items: Wo
   { id: "halo", label: "the halo", mode: "wheel", items: HALO_ITEMS },
 ];
 
-export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: WorldItem[]; mode?: WorldMode }) {
+export function WorldBall({
+  items = BALL_ITEMS,
+  mode = "ball",
+  drift = 0,
+  onHover,
+  onPick,
+  onCrown,
+  zoomable = true,
+}: {
+  items?: WorldItem[];
+  mode?: WorldMode;
+  /** Idle roll, radians/second — the world turns gently on its own.
+      A drag or throw takes over; the drift resumes as momentum dies.
+      Ignored under prefers-reduced-motion. */
+  drift?: number;
+  /** A face under the pointer (null when the pointer leaves it). */
+  onHover?: (person: string | null) => void;
+  /** A face chosen — clicks that were really drags are swallowed. */
+  onPick?: (person: string) => void;
+  /** Wheel mode only: fires when a new face crosses the crown (the
+      ring's topmost point) — the cadence follows the spin. */
+  onCrown?: (person: string) => void;
+  /** Scroll-to-zoom. Off in shelf embeds so the wheel keeps scrolling the page. */
+  zoomable?: boolean;
+}) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const dragDistRef = useRef(0);
+  const onCrownRef = useRef(onCrown);
+
+  useEffect(() => {
+    onCrownRef.current = onCrown;
+  });
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -196,6 +232,7 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
     if (!viewport || !scene) return;
     const els = Array.from(scene.children) as HTMLElement[];
     const zCache = new Int32Array(els.length).fill(-1);
+    const idleDrift = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : drift;
 
     const rot = { yaw: YAW0, pitch: PITCH0, roll: 0 };
     const vel = { yaw: 0, pitch: 0, roll: 0 };
@@ -217,6 +254,8 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
     // are skipped, and the loop sleeps once everything settles.
     const drawn = { yaw: NaN, pitch: NaN, roll: NaN, zoom: NaN, width: NaN };
 
+    let lastCrown = -1;
+
     const render = () => {
       const w = width;
       // The wheel's ring runs wider than the ball — the dots are
@@ -226,19 +265,25 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
       // shrink and tuck in — the disc reads full and round, dense at
       // the middle, quiet at the edge.
       const persp = w * 1.4;
+      let topI = -1;
+      let topSy = Number.POSITIVE_INFINITY;
 
       for (let i = 0; i < els.length; i++) {
         let sx: number;
         let sy: number;
         let s: number;
         if (mode === "wheel") {
-          // The ring stands still; the crowd travels it — a throw
-          // carries everyone along the path, bunching through the
-          // dense runs, stretching across the gaps.
+          // The ring stands still; the crowd travels it — a throw (or
+          // the idle drift) carries everyone along the path, bunching
+          // through the dense runs, stretching across the gaps.
           const [hx, hy] = haloPoint((i + 0.5) / N + rot.roll / (Math.PI * 2));
           sx = hx * r * zoom;
           sy = hy * r * zoom;
           s = zoom;
+          if (sy < topSy) {
+            topSy = sy;
+            topI = i;
+          }
         } else {
           const v = rotate(items[i].base, rot.yaw, rot.pitch);
           const z = v[2] * r * zoom;
@@ -253,6 +298,10 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
           }
         }
         els[i].style.transform = `translate(-50%, -50%) translate3d(${sx}px, ${sy}px, 0) scale(${s})`;
+      }
+      if (mode === "wheel" && topI >= 0 && topI !== lastCrown) {
+        lastCrown = topI;
+        onCrownRef.current?.(items[topI].person);
       }
       drawn.yaw = rot.yaw;
       drawn.pitch = rot.pitch;
@@ -273,11 +322,12 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
       const dt = clamp((now - lastFrame) / 1000, 0.001, 0.05);
       lastFrame = now;
 
-      // Momentum from a throw, and nothing more — no idle motion.
+      // Momentum from a throw, plus the idle drift — the world keeps
+      // gently turning on its own when one is set.
       if (!drag) {
         rot.yaw += vel.yaw * dt;
         rot.pitch = clamp(rot.pitch + vel.pitch * dt, -1.1, 1.1);
-        rot.roll += vel.roll * dt;
+        rot.roll += (vel.roll + idleDrift) * dt;
         const decay = Math.exp(-dt * 3.2);
         vel.yaw *= decay;
         vel.pitch *= decay;
@@ -286,7 +336,10 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
       zoom += (zoomT - zoom) * Math.min(1, dt * 9);
 
       const still =
-        !drag && Math.abs(vel.yaw) + Math.abs(vel.pitch) + Math.abs(vel.roll) < 0.002 && Math.abs(zoomT - zoom) < 0.001;
+        !drag &&
+        idleDrift === 0 &&
+        Math.abs(vel.yaw) + Math.abs(vel.pitch) + Math.abs(vel.roll) < 0.002 &&
+        Math.abs(zoomT - zoom) < 0.001;
       if (still) {
         vel.yaw = 0;
         vel.pitch = 0;
@@ -332,6 +385,7 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
         rect,
         t: performance.now(),
       };
+      dragDistRef.current = 0;
       vel.yaw = 0;
       vel.pitch = 0;
       vel.roll = 0;
@@ -361,6 +415,7 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
         vel.yaw = vel.yaw * 0.7 + ((dx * k) / dt) * 0.3;
         vel.pitch = vel.pitch * 0.7 + ((-dy * k) / dt) * 0.3;
       }
+      dragDistRef.current += Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
       drag.x = e.clientX;
       drag.y = e.clientY;
       drag.t = now;
@@ -392,7 +447,9 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
     viewport.addEventListener("pointermove", onPointerMove);
     viewport.addEventListener("pointerup", onPointerEnd);
     viewport.addEventListener("pointercancel", onPointerEnd);
-    viewport.addEventListener("wheel", onWheel, { passive: false });
+    // A non-zoomable embed never touches the wheel — scrolling passes
+    // straight through to the page or shelf around it.
+    if (zoomable) viewport.addEventListener("wheel", onWheel, { passive: false });
 
     wake(); // the first frame places everyone, then the loop sleeps
 
@@ -403,9 +460,9 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
       viewport.removeEventListener("pointermove", onPointerMove);
       viewport.removeEventListener("pointerup", onPointerEnd);
       viewport.removeEventListener("pointercancel", onPointerEnd);
-      viewport.removeEventListener("wheel", onWheel);
+      if (zoomable) viewport.removeEventListener("wheel", onWheel);
     };
-  }, [items, mode]);
+  }, [items, mode, drift, zoomable]);
 
   return (
     <div
@@ -418,11 +475,14 @@ export function WorldBall({ items = BALL_ITEMS, mode = "ball" }: { items?: World
       <div className="absolute inset-0 opacity-0" ref={sceneRef}>
         {items.map((item, i) => (
           <div
-            className="absolute left-1/2 top-1/2 will-change-transform"
+            className={`awb-item absolute left-1/2 top-1/2 will-change-transform ${onPick ? "cursor-pointer" : ""}`}
             key={`${item.person}-${i}`}
+            onClick={onPick ? () => dragDistRef.current <= 6 && onPick(item.person) : undefined}
+            onMouseEnter={onHover ? () => onHover(item.person) : undefined}
+            onMouseLeave={onHover ? () => onHover(null) : undefined}
             style={{ width: `${(item.size / DESIGN) * 100}%` }}
           >
-            <span className="awb-enter block" style={{ animationDelay: `${item.delay}s` }}>
+            <span className="awb-enter awb-face block" style={{ animationDelay: `${item.delay}s` }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 alt=""

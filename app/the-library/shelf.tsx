@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // The shelf itself — client-side only for the one bit of state the page has:
 // which way the canvases are laid out. Carousel is the Figma reference view
 // (full-bleed row of white canvases on the grey ground, scroll-snapped);
 // list is a two-up grid for reading the whole set at once. A single icon
 // button toggles between them, always showing the view it would switch to.
+// The carousel hides its scrollbar, so a plain mouse wheel is its only
+// handle: vertical wheel is translated to horizontal travel.
 
 export type Piece = {
   label: string;
@@ -58,6 +60,22 @@ function CarouselIcon() {
 export function LibraryShelf({ pieces }: { pieces: Piece[] }) {
   const [view, setView] = useState<View>("carousel");
   const next: View = view === "carousel" ? "grid" : "carousel";
+  const shelfRef = useRef<HTMLDivElement>(null);
+
+  // The wheel is the shelf's handle: a vertical tick travels the row.
+  // Non-passive so the page doesn't bounce while the shelf moves;
+  // trackpads already scrolling sideways pass through untouched.
+  useEffect(() => {
+    const el = shelfRef.current;
+    if (!el || view !== "carousel") return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [view]);
 
   return (
     <>
@@ -90,6 +108,7 @@ export function LibraryShelf({ pieces }: { pieces: Piece[] }) {
             ? "lib-shelf lib-shelf--carousel mt-12"
             : "lib-shelf lib-shelf--grid mt-12"
         }
+        ref={shelfRef}
       >
         {pieces.map((piece) => (
           <section key={piece.label} className="lib-piece">

@@ -7,8 +7,9 @@ import { NumbersDeck } from "./numbers-deck";
 import OneLineBanner from "./one-line-banner";
 import { LibraryShelf, type Piece } from "./shelf";
 import { TypingShowcase } from "./typing-showcase";
+import { UseCards } from "./use-cards";
 import WorkspaceDiagram from "./workspace-diagram";
-import { WorldCrowd } from "./world-crowd";
+import { WorldCard } from "./world-card";
 import "./the-library.css";
 
 // /the-library — the homepage's media components on one shelf, each inside
@@ -100,12 +101,18 @@ const PIECES: Piece[] = [
   },
   {
     label: "08",
-    title: "World bubble",
-    home: "was /affiliate-world’s iteration 3 — the packed crowd, retired from the stepper for the new take",
+    title: "The world",
+    home: "the bubble and the ball on one canvas — toggle in the corner; the ball lives on whole at /claim",
+    render: <WorldCard />,
+  },
+  {
+    label: "09",
+    title: "The uses",
+    home: "was /affiliate-world’s ephemera shelf — the day printed small, off the page for the profile panel",
     render: (
       <div className="lib-card lib-card--canvas">
-        <div className="w-full max-w-[300px]">
-          <WorldCrowd />
+        <div className="origin-center scale-[0.6]">
+          <UseCards />
         </div>
       </div>
     ),

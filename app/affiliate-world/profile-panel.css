@@ -1,0 +1,85 @@
+/* The sheet's arrival — in from the right on the house ease — and
+   its exit, the same road home. The scrim breathes with it. */
+@keyframes awp-in {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes awp-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+.awp-panel {
+  animation: awp-in 0.32s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.awp-panel--out {
+  animation: awp-out 0.26s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+/* The scrim — 20% black over the page while a profile is open. */
+@keyframes awp-dim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes awp-dim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.awp-dim {
+  background: rgba(0, 0, 0, 0.2);
+  animation: awp-dim-in 0.32s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.awp-dim--out {
+  animation: awp-dim-out 0.26s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+/* The boot — the world switches on a beat after the sheet lands. */
+@keyframes awp-boot {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.awp-boot {
+  animation: awp-boot 0.4s cubic-bezier(0.2, 0, 0, 1) 0.18s backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .awp-panel,
+  .awp-panel--out,
+  .awp-dim,
+  .awp-dim--out,
+  .awp-boot {
+    animation: none;
+  }
+}

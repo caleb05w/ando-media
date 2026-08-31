@@ -21,6 +21,22 @@
   cursor: grabbing;
 }
 
+/* Faces are doors — under the pointer one grows to meet it and steps
+   in front of its neighbours (the !important outranks the frame
+   loop's inline z-index). The procession holds meanwhile, so a moving
+   face can be caught. */
+.awb-item .awb-face {
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.awb-item:hover .awb-face {
+  transform: scale(1.24);
+}
+
+.awb-item:hover {
+  z-index: 6000 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .awb-enter {
     animation: none;

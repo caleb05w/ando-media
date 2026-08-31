@@ -481,8 +481,9 @@ function rosterFor(discs: Disc[]): string[] {
 
 // `bench` keeps the workbench furniture — the dashed wall and the
 // measured caption with the heads dial. Production embeds (the duet
-// hero) take the crowd bare.
-export function WorldCrowd({ bench = true }: { bench?: boolean }) {
+// hero) take the crowd bare. `onPick` makes the faces doors: click
+// one, and the caller opens that person's profile.
+export function WorldCrowd({ bench = true, onPick }: { bench?: boolean; onPick?: (person: string) => void }) {
   const [count, setCount] = useState(DEFAULT_N);
   const { discs, R, fit, spacing } = useMemo(() => solveCrowd(count), [count]);
   const PAD = 10;
@@ -510,7 +511,8 @@ export function WorldCrowd({ bench = true }: { bench?: boolean }) {
         {discs.map((d, i) => (
           <span
             key={`${count}-${people[i]}-${i}`}
-            className="aw-enter absolute"
+            className={`aw-enter aw-item absolute ${onPick ? "cursor-pointer" : ""}`}
+            onClick={onPick ? () => onPick(people[i]) : undefined}
             style={{
               left: pct(d.x - d.size / 2 + box / 2),
               top: pct(d.y - d.size / 2 + box / 2),
@@ -518,12 +520,25 @@ export function WorldCrowd({ bench = true }: { bench?: boolean }) {
               animationDelay: enterDelay(i),
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/avatars/${people[i]}.png`}
-              alt=""
-              className="aspect-square w-full max-w-none rounded-full object-cover shadow-[0_0_0_0.5px_rgba(22,25,29,0.08)]"
-            />
+            {/* the stroll — each face walks a small circle around its
+                packed spot, its pace, phase, and direction hashed from
+                its seat so no two neighbours ever sync up */}
+            <span
+              className="aw-orbit block"
+              style={{
+                animationDirection: i % 2 ? "reverse" : "normal",
+                ["--aw-orbit-t" as string]: `${11 + (i % 5) * 2.6}s`,
+                ["--aw-orbit-d" as string]: `${-(i * 1.7)}s`,
+                ["--aw-orbit-r" as string]: `${2 + (i % 3)}px`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/avatars/${people[i]}.png`}
+                alt=""
+                className="aspect-square w-full max-w-none rounded-full object-cover shadow-[0_0_0_0.5px_rgba(22,25,29,0.08)]"
+              />
+            </span>
           </span>
         ))}
       </div>

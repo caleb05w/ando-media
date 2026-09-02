@@ -1,0 +1,175 @@
+/**
+ * Motion - durations, easings, staggers
+ *
+ * The brand motion signature (measured from lue.studio/contact, Jun 2026):
+ * every entrance animates the same three channels - opacity 0->1, blur->0,
+ * and a small transform (translateY 16-20px / scale 1.1) - on the spring
+ * curve below. Exits run the same channels faster, blurring UP (to 12px at
+ * the strongest) so dismissals read as evaporation. Micro-interactions sit
+ * on a strict short scale with asymmetric press: in at `press` (50ms), out
+ * at `hover` (200ms).
+ *
+ * Durations are plain vars, not a theme namespace (Tailwind v4 has none for
+ * duration): consume as `duration-(--duration-press)` in CSS, or
+ * `var(--duration-press)` / matching literals in JS `motion` configs.
+ *   --duration-press      50ms   press in (release uses hover's 200ms)
+ *   --duration-select    150ms   selection / small state flips
+ *   --duration-hover     200ms   hover, press release
+ *   --duration-progress  300ms   progress fills, small layout shifts
+ *   --duration-exit      600ms   blur-up + fade exits
+ *   --duration-enter    1000ms   blur-down + fade entrances
+ *   --duration-finale   1500ms   end-screen entrances (deliberately slow)
+ *
+ * Staggers compound on top: 25ms per char/word, 100ms per block, 200ms per
+ * section. Blur tiers by element size - 4px chars, 8px buttons, 10px text
+ * blocks, 12px exits - which Tailwind's default blur-xs/sm/md already cover.
+ *
+ * `static` because the duration/stagger vars have no utility namespace:
+ * without it Tailwind tree-shakes them until something uses them, and JS
+ * motion configs reading the vars at runtime would get nothing.
+ */
+
+@theme static {
+  /* Durations */
+  --duration-press: 50ms;
+  --duration-select: 150ms;
+  --duration-hover: 200ms;
+  --duration-progress: 300ms;
+  --duration-exit: 600ms;
+  --duration-enter: 1000ms;
+  --duration-finale: 1500ms;
+
+  /* Staggers (animation/transition delays, multiplied by index) */
+  --stagger-char: 25ms;
+  --stagger-block: 100ms;
+  --stagger-section: 200ms;
+
+  /* The signature curve for opacity/blur tweens: a baked spring with -4.2%
+   * anticipation at 20% and +4.2% overshoot at 79%. On opacity the
+   * out-of-range parts clamp to a subtle hold-then-snap; on blur they read
+   * as a focus "breath". */
+  --ease-spring: linear(
+    0,
+    -0.021 7%,
+    -0.036 13%,
+    -0.042 20%,
+    -0.031 27%,
+    0.02 33%,
+    0.13 39%,
+    0.3 45%,
+    0.51 51%,
+    0.71 57%,
+    0.86 63%,
+    0.96 69%,
+    1.021 74%,
+    1.042 79%,
+    1.034 85%,
+    1.015 92%,
+    1
+  );
+
+  /* Back-out for scale pops (overshoots ~10%, no anticipation); the curve
+   * form-progress's check pops in with. */
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Damped horizontal shake for rejected submits; ease-in-out smooths each
+ * direction reversal. A custom utility (not an `--animate-*` token) so the
+ * reduced-motion opt-out is baked in - consumers don't need to remember
+ * `motion-reduce:animate-none`. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-8px);
+  }
+  30% {
+    transform: translateX(7px);
+  }
+  45% {
+    transform: translateX(-5px);
+  }
+  60% {
+    transform: translateX(3px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+@utility animate-shake {
+  animation: shake 400ms ease-in-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Believer-card foliage drift: a slow two-axis wander on one pre-blurred,
+ * 50%-opacity layer. Animates only `transform` (x) + `translate` (y) so the blur
+ * rasterises once and the compositor just moves it. Incommensurate periods keep
+ * it from repeating; reduced-motion holds the rest crop. */
+@keyframes believer-drift-x {
+  0%,
+  100% {
+    transform: translateX(-25px);
+  }
+  50% {
+    transform: translateX(25px);
+  }
+}
+
+@keyframes believer-drift-y {
+  0%,
+  100% {
+    translate: 0 -62px;
+  }
+  50% {
+    translate: 0 62px;
+  }
+}
+
+@utility animate-believer-drift {
+  animation:
+    believer-drift-x 24s ease-in-out infinite,
+    believer-drift-y 37s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* In-progress status text: a light band sweeps across the glyphs (ported from
+ * the Ando hero's `.status-shimmer`). A grayscale gradient clipped to the text;
+ * apply to a span whose content is the "...ing" label. Reduced motion holds the
+ * settled grey with no sweep. */
+@keyframes text-shimmer {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+
+@utility animate-text-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.45) 35%,
+    rgba(0, 0, 0, 0.14) 50%,
+    rgba(0, 0, 0, 0.45) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-shimmer 1.8s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    color: rgba(0, 0, 0, 0.45);
+    background: none;
+  }
+}

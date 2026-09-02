@@ -1,0 +1,51 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+
+<Meta title="Foundations/Effects/Docs" />
+
+# Effects
+
+Shadow and focus-ring tokens, defined in `src/styles/effects/effects.css`.
+
+## Shadows
+
+The brand is intentionally flat. Its one measured elevation is the Download app-icon tile (`0 3px 4px / 20% black`), exposed as `shadow-sm`; `shadow-md` extends it for transient overlays. Both recolour from the single `--color-shadow-default` token, so elevation reads consistently.
+
+<table>
+  <thead>
+    <tr>
+      <th>Utility</th>
+      <th>Value</th>
+      <th>When to use</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>shadow-sm</code></td>
+      <td><code>0 3px 4px / 20%</code></td>
+      <td>Resting elevation - the app-icon tile; surfaces that lift slightly (<code>Surface variant="elevated"</code>)</td>
+    </tr>
+    <tr>
+      <td><code>shadow-md</code></td>
+      <td><code>0 2px 4px, 0 10px 24px / 20%</code> (layered)</td>
+      <td>Transient overlays - menus, popovers, dialogs, toasts</td>
+    </tr>
+  </tbody>
+</table>
+
+```tsx
+{/* Tailwind utility */}
+<div className="rounded-3xl bg-surface-primary shadow-sm p-8" />
+
+{/* CSS variable directly */}
+<div style={{ boxShadow: 'var(--shadow-md)' }} />
+```
+
+## Focus ring
+
+One keyboard-focus indicator shared across interactive components, applied with the `focus-ring` utility. It uses an `outline` (not a box-shadow), so it is never clipped by `overflow:hidden`, follows the element's `border-radius`, and survives forced-colors mode. It paints only on `:focus-visible` (keyboard), driven by `--color-focus-ring` (which tracks `--color-text-strong`).
+
+```tsx
+<button type="button" className="focus-ring rounded-lg ...">
+  Save
+</button>
+```

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Agentation } from "agentation";
 import { DialRoot } from "dialkit";
+import { FramedFlag } from "./framed-flag";
 import "./globals.css";
 import "dialkit/styles.css";
 
@@ -31,6 +32,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <FramedFlag />
         {children}
         {/* Agentation — annotate any view and copy structured feedback for
             coding agents. Mounted here so every route gets the toolbar. Ships

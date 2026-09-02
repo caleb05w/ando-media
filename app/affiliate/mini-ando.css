@@ -1,0 +1,24 @@
+/* Message arrival, per the production message list (ando
+   apps/web message-list): plain rows mount with no height tween — the
+   thread reflows instantly — and the arriving row itself plays the
+   agent-row-in grammar from agent-live-trace.css: opacity + a 3px
+   rise, 200ms, cubic-bezier(0.2, 0, 0, 1). */
+@keyframes mini-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.mini-msg-in {
+  animation: mini-msg-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-msg-in {
+    animation: none;
+  }
+}

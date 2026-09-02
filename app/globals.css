@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* --- Landing page UI (copied from Ando-Corporation/new-landing-page @ codex/new-style) --- */
+@import "../landing-ui/design-system/styles/main.css";
+@import "./../landing-ui/ando-hero/styles/ando-hero.css";
+/* @source can't resolve bare package names, so point at the copied UI source. */
+@source "../landing-ui";
+
+/* Laptop band variant used by the landing page layout. */
+@custom-variant laptop (@media (min-width: 1024px) and (max-width: 1600px));
+
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -67,6 +77,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Inside a homepage thumbnail iframe (html[data-framed], set by the layout's
+   inline script) the dev chrome would read as a stray dot at 1/4 scale — hide
+   Agentation's toolbar and DialKit's panel there. */
+[data-framed] [data-agentation-root],
+[data-framed] .dialkit-root {
+  display: none !important;
 }
 
 /* Tailwind's preflight sets `cursor: default` on buttons, so every control has
@@ -550,4 +568,136 @@ button:not(:disabled),
   .glyph-shoot { opacity: 0.4; }
   /* Without the loop the ghosted square needs its resting state back. */
   .glyph-ghost { opacity: 0.4; }
+}
+
+/* mini ando: a chosen story's world loads in. The brand entrance
+   signature — opacity, blur→0 (block tier, 10px), and a small rise —
+   on the spring, at the ladder's enter duration. */
+@keyframes mini-world-in {
+  /* A new channel is a new world — it fades in whole from nothing,
+     but quick: the small scale settle, no rise, no heavy blur. */
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+.mini-world-in {
+  /* Half the enter ladder — the world replays on every scene switch,
+     so the full 1000ms read as lag by the third click. */
+  animation: mini-world-in 500ms var(--ease-spring, cubic-bezier(0.2, 0, 0, 1)) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Without the loop the world is simply present. */
+  .mini-world-in { animation: none; }
+}
+
+/* ── the stats deck's own glyphs (affiliate page) ──────────────────────
+   Same grammar as the sync deck's set: one story per keyframe, the rest
+   state baked into the percentage ratios, staggers dialled via --i. */
+:root {
+  --stat-react-duration: 3.8s;
+  --stat-react-stagger: 0.26s;
+  --stat-crowd-duration: 4.6s;
+  --stat-crowd-stagger: 0.6s;
+  --stat-traffic-duration: 2.9s;
+  --stat-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Reactions — each emoji pops up the way a reaction lands under a
+   message: small, an overshoot, settle. The row holds, then clears
+   together and the queue starts again. */
+@keyframes stat-react {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  7% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+  12% {
+    transform: scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  86%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* The crowd — a teammate square murmurs awake briefly, then rests. The
+   staggers keep the row twinkling at random-feeling intervals while
+   Sara's square (no animation) never dims. */
+@keyframes stat-crowd {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  8%,
+  20% {
+    opacity: 0.85;
+  }
+  34% {
+    opacity: 0.18;
+  }
+}
+
+/* Traffic — the busiest channel takes two quick hits, then the room
+   settles. Most of the cycle is stillness; the burst is the story. */
+@keyframes stat-traffic {
+  0%,
+  30%,
+  100% {
+    transform: scale(1);
+  }
+  6% {
+    transform: scale(1.24);
+  }
+  12% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.18);
+  }
+}
+
+.stat-react {
+  animation: stat-react var(--stat-react-duration) var(--stat-ease) infinite;
+  animation-delay: calc(var(--i, 0) * var(--stat-react-stagger));
+  /* Emojis are invisible until their first landing. */
+  opacity: 0;
+}
+
+.stat-crowd {
+  opacity: 0.18;
+  animation: stat-crowd var(--stat-crowd-duration) var(--stat-ease) infinite;
+  animation-delay: calc(var(--i, 0) * var(--stat-crowd-stagger));
+}
+
+.stat-traffic {
+  animation: stat-traffic var(--stat-traffic-duration) var(--stat-ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-react,
+  .stat-crowd,
+  .stat-traffic {
+    animation: none;
+  }
+  /* Without the loop the reaction row reads as fully landed. */
+  .stat-react { opacity: 1; }
+  /* Without the loop the crowd rests at its murmur. */
+  .stat-crowd { opacity: 0.3; }
 }

@@ -1,0 +1,100 @@
+/* The landing app scales its oversized 1728px canvas to 87.5% across the
+   laptop band; without this the page renders at native size and reads far too
+   big between 1024 and 1600px. Ported from the source app's globals.css and
+   scoped to this route so the rest of ando-media is unaffected. `zoom`
+   reflows the box, unlike transform: scale. */
+@media (min-width: 1024px) and (max-width: 1600px) {
+  .landing-root {
+    zoom: 0.875;
+  }
+
+  /* The sticky in-page TOC opts out of the body zoom, keeping native scale. */
+  .landing-root [data-native-zoom] {
+    zoom: calc(1 / 0.875);
+  }
+}
+
+/* The diagram is authored as a full-page workbench (min-height: 100vh), which
+   is far too tall once it sits inside the prose column. Embedded it only needs
+   to be a band: 50vh, floored at 30rem so it stays readable on short
+   viewports. Scoped to .landing-diagram so /slack-vs-ando keeps its
+   standalone full-viewport presentation. */
+
+.landing-diagram .sva {
+  height: 50vh;
+  min-height: 30rem;
+}
+
+/* stretch so the half inherits a definite height (the stage centres on the
+   cross axis by default, which would leave it content-sized), and min-height: 0
+   so both levels may shrink below their content. */
+.landing-diagram .sva-stage {
+  align-items: stretch;
+  min-height: 0;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.landing-diagram .sva-half {
+  min-height: 0;
+  justify-content: center;
+}
+
+/* With a definite parent height the drawing takes the room that is left;
+   viewBox + the default preserveAspectRatio scale it to fit rather than
+   letting it overflow the band. */
+.landing-diagram .sva-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+/* The agent cards under the drawing (jam card + the four teammate cards) read
+   as a second thing to parse next to the prose, so the embed shows the loop
+   alone. Hidden rather than removed: the component keeps rendering and
+   animating them for /slack-vs-ando, and this reverses in one line. */
+.landing-diagram .sva-ui {
+  display: none;
+}
+
+/* Paper-grey is right for the standalone workbench, but against the prose the
+   band reads as a panel bolted onto the page. Embedded, the diagram carries no
+   ground at all — no fill, no dot-grid — the loop draws straight on the page.
+   (--sva-bg stays white for any rule that derives from it.) */
+.landing-diagram .sva {
+  --sva-bg: #fff;
+  background: none;
+  /* The workbench's blue-family greys assume the paper ground; on bare
+     white they wash out. The embed re-inks them in the site's warm
+     neutral ramp — friendlier, and actually visible — while the blues
+     stay untouched. */
+  --sva-ring-grey: #d9d6d4;
+  --sva-line-grey: #b5afaa;
+  --sva-text-faint: #b5afaa;
+  --sva-text-dim: #8a827b;
+}
+
+/* The context trace ships as a full-screen workbench (min-h-screen on its own
+   <main>). Embedded it gets a bare canvas: no chrome of its own — the media
+   sits directly on the page — just centering and enough height for the
+   drawer to open without the band jumping. */
+.landing-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22rem;
+  padding: 32px 24px;
+}
+
+/* The hero banner is authored as a full-bleed 100vw strip; here it sits
+   in the page's media band, so it takes the wrapper's width instead.
+   Height and choreography come with the component. */
+.landing-hero-banner .hl-banner {
+  width: 100%;
+  background: transparent;
+}
+
+/* On the hero the banner sits close over the headline. */
+.landing-hero-banner .hl-banner.hl-solo {
+  height: 156px;
+}

@@ -1,0 +1,133 @@
+/*
+ * Ando hero styles. Scoped to the `.ando-hero` root so embedding the hero never
+ * leaks type/letter-spacing onto the host page. The status/reaction loops are
+ * CSS-driven (Motion keyframes proved fragile across render paths), so they live
+ * here as plain classes the components reference by name.
+ *
+ * No `@import "tailwindcss"` here: this partial is meant to be imported INTO a
+ * stylesheet that already pulls in Tailwind (the app/Storybook globals). The
+ * `@source` below (relative to this file) lets that root scan the hero's source
+ * so its arbitrary-value utilities get emitted.
+ */
+
+@source "../**/*.{ts,tsx}";
+
+.ando-hero {
+  /* Own stacking context so the sky-grid overlay's mix-blend-mode: soft-light
+   * blends only against the hero's own backdrop (the WebGL sky + this root's
+   * fill), never leaking past a transparent/unpainted canvas into host page
+   * content. */
+  isolation: isolate;
+  /* Inherit the host's --font-sans (the design system binds Geist there); fall
+   * back to the self-hosted Geist face / system stack. */
+  font-family: var(--font-sans, "Geist", system-ui, -apple-system, sans-serif);
+  letter-spacing: -0.0025em; /* -0.25% across all hero text */
+  background: rgba(
+    0,
+    0,
+    0,
+    0.04
+  ); /* the faux-desktop backdrop behind the window */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* macOS titlebar uses the system font, not Geist */
+.font-titlebar {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    sans-serif;
+}
+
+/* Agent status-row loops - CSS-driven so they run in any render path */
+@keyframes status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes status-wiggle {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translate(2.5px, -2px) rotate(-8deg);
+  }
+  50% {
+    transform: translate(-2px, 2px) rotate(6deg);
+  }
+  75% {
+    transform: translate(1.5px, -1.5px) rotate(-4deg);
+  }
+}
+.status-spin {
+  animation: status-spin 0.75s linear infinite;
+}
+.status-wiggle {
+  animation: status-wiggle 1.6s ease-in-out infinite;
+}
+
+/* Reaction emoji burst - CSS-driven so re-renders can't stall it.
+   Single transform segment 0→100%: one continuous decelerating glide, fading out at the end. */
+@keyframes emoji-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3) rotate(0deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--bx), var(--by)) scale(1.2) rotate(var(--br));
+  }
+}
+.emoji-burst {
+  animation: emoji-burst 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-spin,
+  .status-wiggle {
+    animation: none;
+  }
+  .emoji-burst {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Shimmer for in-progress agent statuses: a light band sweeps the text */
+.status-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.45) 35%,
+    rgba(0, 0, 0, 0.14) 50%,
+    rgba(0, 0, 0, 0.45) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: status-shimmer 1.8s linear infinite;
+}
+@keyframes status-shimmer {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-shimmer {
+    animation: none;
+    color: rgba(0, 0, 0, 0.45);
+    background: none;
+  }
+}

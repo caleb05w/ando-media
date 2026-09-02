@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Retired explorations, kept out of the app and the toolchain.
+    "archive/**",
   ]),
 ]);
 

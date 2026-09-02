@@ -1,0 +1,126 @@
+/**
+ * Color Tokens - Ando
+ *
+ * Derived from the Ando Brand editorial frames, with a warm near-white canvas,
+ * charcoal reading text, and restrained neutral supporting colors.
+ *
+ * The brand is a neutral system: a white / off-white surface base, with text,
+ * borders and subtle fills expressed almost entirely through BLACK ALPHA on
+ * light surfaces and WHITE ALPHA on the few dark surfaces (dark buttons/cards).
+ * It is light-only - the source frames define no dark theme, so no dark-mode
+ * token values are declared here.
+ *
+ * Follows the Tailwind v4 CSS-first @theme approach and mirrors the structure
+ * of moment's colors.css (alpha vars -> primitives -> semantic tokens).
+ *
+ * Keep in sync with ./tokens.ts (Storybook documentation + Tailwind safelist).
+ */
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant light (&:not(.dark *));
+
+:root {
+  /* Alpha steps observed across the 5 frames. Shared by the opacity (black)
+     and opacity-inverted (white) primitive scales below. */
+  --alpha-1: 1%;
+  --alpha-2: 2%;
+  --alpha-4: 4%;
+  --alpha-6: 6%;
+  --alpha-8: 8%;
+  --alpha-10: 10%;
+  --alpha-20: 20%;
+  --alpha-40: 40%;
+  --alpha-50: 50%;
+  --alpha-60: 60%;
+  --alpha-75: 75%;
+  --alpha-80: 80%;
+}
+
+@theme {
+  /* ============================================================ *
+   * PRIMITIVES
+   * ============================================================ */
+
+  /* Opacity Scale (black alpha) - the working neutral ramp: text, borders,
+     dividers and subtle fills on light surfaces. */
+  --color-opacity-1: oklch(0 0 0 / var(--alpha-1));
+  --color-opacity-2: oklch(0 0 0 / var(--alpha-2));
+  --color-opacity-4: oklch(0 0 0 / var(--alpha-4));
+  --color-opacity-6: oklch(0 0 0 / var(--alpha-6));
+  --color-opacity-8: oklch(0 0 0 / var(--alpha-8));
+  --color-opacity-10: oklch(0 0 0 / var(--alpha-10));
+  --color-opacity-20: oklch(0 0 0 / var(--alpha-20));
+  --color-opacity-40: oklch(0 0 0 / var(--alpha-40));
+  --color-opacity-50: oklch(0 0 0 / var(--alpha-50));
+  --color-opacity-60: oklch(0 0 0 / var(--alpha-60));
+  --color-opacity-80: oklch(0 0 0 / var(--alpha-80));
+
+  /* Opacity Inverted Scale (white alpha) - text and fills on dark surfaces
+     (dark buttons, dark investor cards). */
+  --color-opacity-inverted-20: oklch(1 0 0 / var(--alpha-20));
+  --color-opacity-inverted-40: oklch(1 0 0 / var(--alpha-40));
+  --color-opacity-inverted-75: oklch(1 0 0 / var(--alpha-75));
+  --color-opacity-inverted-80: oklch(1 0 0 / var(--alpha-80));
+
+  /* Tonal Scale (opaque) - solid surfaces. 10-40 are the light surfaces; 100
+     is opaque black (a few headings + logo art). The mid-range is intentionally
+     absent: the brand expresses mid greys via the black-alpha scale above, not
+     opaque greys. */
+  --color-tonal-10: #fcfcfc;
+  --color-tonal-20: oklch(0.985 0.003 106.4); /* #fafaf8 */
+  --color-tonal-30: oklch(0.989 0.012 101.5); /* #fdfcf3 */
+  --color-tonal-40: #f0f0f0;
+  --color-tonal-100: oklch(0 0 0); /* #000000 */
+
+  /* ============================================================ *
+   * SEMANTIC TOKENS
+   * ============================================================ */
+
+  /* Text */
+  --color-text-primary: #282828; /* headings, primary body */
+  --color-text-secondary: #676767; /* captions, supporting text */
+  --color-text-tertiary: var(--color-opacity-40); /* body, meta, inactive nav */
+  --color-text-strong: var(--color-tonal-100); /* opaque-black headings */
+  --color-text-inverse: var(--color-tonal-10); /* labels on dark surfaces */
+  --color-text-inverse-strong: var(--color-opacity-inverted-80);
+  --color-text-inverse-secondary: var(--color-opacity-inverted-75);
+  --color-text-inverse-tertiary: var(--color-opacity-inverted-40);
+
+  /* Icon */
+  --color-icon-primary: var(--color-opacity-80);
+  --color-icon-secondary: var(--color-opacity-40);
+  --color-icon-inverse: var(--color-tonal-10);
+
+  /* Surface */
+  --color-surface-primary: var(--color-tonal-10); /* page + cards (#fcfcfc) */
+  --color-surface-secondary: var(--color-tonal-20); /* sections, footer */
+  --color-surface-tertiary: var(--color-tonal-30); /* paper tint */
+  --color-surface-quaternary: var(--color-tonal-40); /* hero container */
+  --color-surface-inverse: #242424; /* dark buttons/cards */
+  --color-surface-subtle: var(--color-opacity-2); /* faint strip tint */
+  --color-surface-hover: var(--color-opacity-4); /* hover / chip fill */
+  --color-surface-pressed: var(--color-opacity-6); /* pressed / pill fill */
+  --color-surface-inverse-subtle: var(
+    --color-opacity-inverted-20
+  ); /* on dark */
+
+  /* Border */
+  --color-border-subtle: var(--color-opacity-8); /* hairline outline */
+  --color-border-default: var(--color-opacity-10); /* dividers, card edges */
+  --color-border-strong: var(--color-opacity-20); /* image container edge */
+
+  /* Status - the waitlist form frames (May 2026 Brand Assets, "form - for
+     claude") introduce a green/red pair for validation + step progress. No
+     ramp: the brand uses exactly these literal values. */
+  --color-border-success: oklch(0.808 0.155 147.2); /* #75db84 valid input */
+  --color-border-danger: oklch(0.704 0.187 23.2); /* #ff6666 invalid input */
+  /* The active/focus accent. Unlike the success/danger pair (pre-flattened
+     60%-over-white solids used at full opacity), this is the full #51a6f5: the
+     focus stroke applies it at /60, the glow ring at /20, the caret solid. */
+  --color-border-active: oklch(0.707 0.142 249); /* #51a6f5 active input */
+  --color-text-danger: oklch(0.704 0.187 23.2); /* #ff6666 error message */
+  --color-surface-success: oklch(0.734 0.238 143.7); /* #09cc29 check fill */
+
+  /* Shadow */
+  --color-shadow-default: oklch(0 0 0 / var(--alpha-20)); /* elevation */
+}

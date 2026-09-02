@@ -1,0 +1,19 @@
+/**
+ * Controls - shared form-control geometry
+ *
+ * TextField, Select, and MultiSelect share one pill height (the off-scale
+ * 45px / 66px-at-md), which read as one family but each keep their own class
+ * lists (Select/MultiSelect duplicate their styles on purpose, to stay
+ * independently editable). These tokens single-source the one magic number so
+ * the three controls can't drift out of sync; the inset (px-4 / md:px-6) stays
+ * inline since it's already on Tailwind's spacing scale.
+ *
+ * Referenced as `h-[var(--height-field)] md:h-[var(--height-field-md)]`. The
+ * `--height-*` names aren't a Tailwind utility namespace, so these emit only as
+ * custom properties (no generated utilities).
+ */
+
+@theme {
+  --height-field: 45px;
+  --height-field-md: 66px;
+}

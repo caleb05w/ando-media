@@ -122,17 +122,20 @@ function CreditLine({ onOpen }: { onOpen: (person: string) => void }) {
   );
 }
 
-/* The duet's right-hand column — the statement and the claim, shared
-   by both iterations. */
+/* The core copy — one title, one body, spoken by both iterations. */
+const HERO_TITLE = "Become an Ando affiliate";
+const HERO_BODY =
+  "The most agent-pilled startups are building their working worlds here. Claim your handle: it holds your name, and your place in line.";
+
+/* The duet's right-hand column — the statement and the claim. */
 function JoinColumn() {
   return (
     <div className="flex max-w-[440px] flex-col items-center text-center md:items-start md:text-left">
       <Heading as="h1" size={{ base: TextSize.XXL, md: TextSize.XXL2 }} weight="regular">
-        Join the Ando world.
+        {HERO_TITLE}
       </Heading>
       <Text className="mt-6" color="secondary" size={TextSize.Small}>
-        The most agent-pilled startups are building their working worlds here. Claim your handle: it holds your name,
-        and your place in line.
+        {HERO_BODY}
       </Text>
       <div className="mt-8">
         <ClaimHandle />
@@ -157,37 +160,45 @@ export function WorldStepper() {
         key="duet"
       >
         <div className="w-full max-w-[364px] shrink-0">
-          <WorldCrowd bench={false} onPick={setProfile} />
+          <WorldCrowd bench={false} onPick={setProfile} selected={profile} />
         </div>
         <JoinColumn />
       </div>
     ) : (
       /* the halo — the claim lives inside the ring, never covered;
          the rotating credit sits UNDER the halo, pointing into a
-         world */
-      <div className="flex flex-col items-center" key="halo">
-        <div className="relative w-[calc(100vw-40px)] max-w-[680px] py-6 md:py-10">
-          <WorldBall
-            drift={0.05}
-            items={ITERATIONS.find((candidate) => candidate.id === step.id)!.items}
-            mode={ITERATIONS.find((candidate) => candidate.id === step.id)!.mode}
-            onPick={setProfile}
-          />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="pointer-events-auto flex max-w-[340px] flex-col items-center text-center">
-              <Heading as="h1" size={TextSize.XL} weight="regular">
-                Become an affiliate
-              </Heading>
-              <Text className="mt-2 max-w-[250px]" color="secondary" size={TextSize.XS}>
-                The most agent-pilled startups are building their working worlds here.
-              </Text>
-              <div className="mt-5">
+         world. The ring sizes to the viewport's HEIGHT as well as its
+         width, so the credit and the numerals always stay in reach;
+         below md the ring can't hold the copy, so the centre stacks
+         beneath it instead of overlaying. */
+      <div className="ws-halo flex flex-col items-center" key="halo">
+        <div className="relative w-[calc(100vw-40px)] py-4 md:max-w-[clamp(480px,calc(100svh-230px),680px)] md:py-6">
+          <div className="ws-halo-settle mx-auto max-w-[420px] md:max-w-none">
+            <WorldBall
+              drift={0.05}
+              items={ITERATIONS.find((candidate) => candidate.id === step.id)!.items}
+              mode={ITERATIONS.find((candidate) => candidate.id === step.id)!.mode}
+              onPick={setProfile}
+            />
+          </div>
+          <div className="pointer-events-none mt-4 flex items-center justify-center md:absolute md:inset-0 md:mt-0">
+            <div className="pointer-events-auto flex max-w-[400px] flex-col items-center text-center">
+              {/* the words first, then the pill — each on its own beat */}
+              <div className="ws-halo-copy flex flex-col items-center">
+                <Heading as="h1" size={TextSize.XL} weight="regular">
+                  {HERO_TITLE}
+                </Heading>
+                <Text className="mt-2 max-w-[280px]" color="secondary" size={TextSize.XS}>
+                  {HERO_BODY}
+                </Text>
+              </div>
+              <div className="ws-halo-cta mt-5 w-full max-w-[340px]">
                 <ClaimHandle />
               </div>
             </div>
           </div>
         </div>
-        <div className="mt-1">
+        <div className="ws-halo-credit mt-4 md:-mt-2">
           <CreditLine onOpen={setProfile} />
         </div>
       </div>

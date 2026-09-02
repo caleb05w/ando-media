@@ -1,0 +1,1204 @@
+/* /comms-banner — the 305px website banner, third take.
+
+   Traditional workspace communication, and only that: message rows the
+   way every chat tool draws them — avatar, name, time, text — floating
+   on a plain white banner. No sidebar, no channel header, no member
+   chips: the first take died of chrome, the second of abstraction. The
+   conversation IS the banner.
+
+   Every resting style is a base rule; the hidden state is the class
+   (.is-hidden), so a starved compositor can delay the choreography but
+   never collapse the layout. */
+
+.cb-field {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 0 96px;
+}
+
+/* Iteration tags — the only text on the field, kept at whisper volume. */
+.cb-tag {
+  width: min(600px, calc(100vw - 48px));
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a8a29e;
+  margin: 40px 0 10px;
+}
+
+.cb-tag:first-child {
+  margin-top: 0;
+}
+
+.cb-banner {
+  position: relative;
+  width: 100vw;
+  height: 305px;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The conversation column — one measure, centred. */
+.cb-thread {
+  width: min(600px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 700ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cb-thread.is-out {
+  opacity: 0;
+}
+
+/* A row's slot grows from nothing, pushing the column open the way a
+   real message pushes a chat down. grid-template-rows transitions,
+   so the resting state is the plain 1fr rule. */
+.cb-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 420ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cb-slot.is-hidden {
+  grid-template-rows: 0fr;
+}
+
+.cb-slot-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cb-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 420ms 90ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 420ms 90ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.cb-slot.is-hidden .cb-row {
+  opacity: 0;
+  transform: translateY(4px);
+  transition-delay: 0ms;
+}
+
+.cb-face {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  flex: none;
+  object-fit: cover;
+  margin-top: 1px;
+}
+
+.cb-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cb-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.cb-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #1a1817;
+}
+
+.cb-name.is-agent {
+  color: #2563eb;
+}
+
+.cb-time {
+  font-size: 11.5px;
+  line-height: 16px;
+  color: #a8a29e;
+}
+
+.cb-text {
+  font-size: 14.5px;
+  line-height: 21px;
+  color: #1a1817;
+  overflow-wrap: break-word;
+}
+
+/* The reaction — a human accepting the agent's move, at chip price. */
+.cb-react {
+  padding-top: 5px;
+}
+
+.cb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #f5f5f4;
+  font-size: 12px;
+  line-height: 16px;
+  color: #58524e;
+  transform-origin: left center;
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 300ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.cb-chip.is-hidden {
+  opacity: 0;
+  transform: scale(0.55);
+}
+
+.cb-chip b {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-thread,
+  .cb-slot,
+  .cb-row,
+  .cb-chip {
+    transition: none !important;
+  }
+}
+
+/* ── 02 · the typing indicator ─────────────────────────────────────────
+   A reserved line under the thread, so appearing and resolving never
+   reflows the rows above it. */
+.cb-typing {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  height: 20px;
+  padding-left: 38px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #a8a29e;
+  opacity: 1;
+  transition: opacity 260ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cb-typing.is-hidden {
+  opacity: 0;
+}
+
+.cb-dots span {
+  display: inline-block;
+  animation: cb-blink 1.4s infinite both;
+}
+
+.cb-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.cb-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes cb-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* ── 03 · the read ─────────────────────────────────────────────────────
+   Selection sweep: the phrases the agent connects highlight left to
+   right, the way a person drags a highlighter — background-size is the
+   sweep, so the text itself never moves. */
+.cb-mark {
+  background-image: linear-gradient(rgba(37, 99, 235, 0.13), rgba(37, 99, 235, 0.13));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  border-radius: 3px;
+  padding: 1px 2px;
+  margin: -1px -2px;
+  box-decoration-break: clone;
+  transition: background-size 550ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cb-mark.is-lit {
+  background-size: 100% 100%;
+}
+
+/* ── 04 · the follow-through ───────────────────────────────────────────
+   The thread gets a fixed stage and grows bottom-up, so the morning
+   messages push the afternoon out under a soft top fade — time passing,
+   in chat physics. */
+.cb-thread.is-anchored {
+  height: 268px;
+  justify-content: flex-end;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent 0, black 17%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 17%);
+}
+
+.cb-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 6px;
+}
+
+.cb-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #eeedec;
+}
+
+.cb-divider-label {
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #a8a29e;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-typing,
+  .cb-mark {
+    transition: none !important;
+  }
+  .cb-dots span {
+    animation: none;
+  }
+  /* Held frame: the indicator line is not part of the finished state. */
+  .cb-typing {
+    opacity: 0;
+  }
+}
+
+
+/* ── 05 · the structure ────────────────────────────────────────────────
+   Orthogonal frame on white. Columns are the library's blue-grey line;
+   the beam — the agent — is the one blue member. Messages keep the chat
+   register (photo, bold name, ink text) and simply stand at columns. */
+
+.st-stage {
+  position: relative;
+  width: min(1000px, calc(100vw - 48px));
+  height: 100%;
+  opacity: 1;
+  transition: opacity 700ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.st-stage.is-out {
+  opacity: 0;
+}
+
+.st-col {
+  position: absolute;
+  top: 26px;
+  height: 206px;
+  width: 1px;
+  background: #d6dae2;
+  transform-origin: top;
+  transform: scaleY(1);
+  transition: transform 620ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.st-col.is-hidden {
+  transform: scaleY(0);
+}
+
+.st-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 232px;
+  height: 1px;
+  background: #2563eb;
+  transform-origin: left;
+  transform: scaleX(1);
+  transition: transform 750ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.st-beam.is-hidden {
+  transform: scaleX(0);
+}
+
+/* Bearing points — where the beam meets its columns. */
+.st-joint {
+  position: absolute;
+  top: 230.5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: #2563eb;
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 240ms cubic-bezier(0.2, 0, 0, 1),
+    transform 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.st-joint.is-hidden {
+  opacity: 0;
+  transform: scale(0.3);
+  transition-delay: 0ms !important;
+}
+
+.st-msg {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 250px;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 420ms 240ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 420ms 240ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.st-msg.is-hidden {
+  opacity: 0;
+  transform: translateY(4px);
+  transition-delay: 0ms;
+}
+
+.st-face {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  object-fit: cover;
+  margin-right: 2px;
+  align-self: center;
+}
+
+.st-msg .cb-meta {
+  align-items: center;
+}
+
+.st-msg .cb-name {
+  font-size: 13px;
+}
+
+.st-msg .cb-time {
+  font-size: 11px;
+}
+
+.st-text {
+  font-size: 13.5px;
+  line-height: 19px;
+  color: #1a1817;
+  white-space: nowrap;
+}
+
+/* ── 06 · the foundation ───────────────────────────────────────────────
+   The section cut. Ground line + hatched poché across the full banner;
+   piles drive down from the messages; the facts Ando holds sit on small
+   plates in the earth. Its reply surfaces through the ground. */
+
+.fd-earth {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 208px;
+  bottom: 0;
+  border-top: 1px solid #c9ced8;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(27, 33, 44, 0.05) 0,
+    rgba(27, 33, 44, 0.05) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+}
+
+.fd-stage {
+  position: relative;
+  width: min(680px, calc(100vw - 48px));
+  height: 100%;
+  opacity: 1;
+  transition: opacity 700ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fd-stage.is-out {
+  opacity: 0;
+}
+
+.fd-rows {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.fd-row {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 5px 0;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 420ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 460ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fd-row .st-face {
+  width: 22px;
+  height: 22px;
+  grid-row: 1 / span 2;
+  align-self: start;
+  margin-top: 2px;
+}
+
+.fd-row .cb-name {
+  font-size: 13px;
+}
+
+.fd-row .cb-time {
+  font-size: 11px;
+}
+
+.fd-text {
+  grid-column: 2;
+  font-size: 13.5px;
+  line-height: 18px;
+  color: #1a1817;
+}
+
+.fd-row.is-hidden {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* Ando comes up from the poché, not down from the sky. */
+.fd-row.is-rising {
+  transition:
+    opacity 520ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 640ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fd-row.is-rising.is-hidden {
+  transform: translateY(44px);
+}
+
+.fd-pile {
+  position: absolute;
+  width: 1px;
+  background: #c9ced8;
+  transform-origin: top;
+  transform: scaleY(1);
+  transition: transform 520ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fd-pile.is-hidden {
+  transform: scaleY(0);
+}
+
+/* Section labels — the facts, on plates in the earth. */
+.fd-note {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  background: #ffffff;
+  border: 1px solid #e2e5eb;
+  border-radius: 3px;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #8f99b0;
+  opacity: 1;
+  transition: opacity 380ms 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fd-note.is-hidden {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+/* Once the reply has surfaced, the notes have been spent. */
+.fd-note.is-spent {
+  opacity: 0.45;
+}
+
+/* ── 07 · the light ────────────────────────────────────────────────────
+   Concrete. Rows arrive barely lit; Ando's arrival floods the room. */
+
+.lt-take {
+  background: #161719;
+}
+
+.lt-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    720px 280px at 50% 42%,
+    rgba(255, 255, 255, 0.1),
+    transparent 70%
+  );
+  opacity: 1;
+  transition: opacity 1100ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.lt-glow.is-hidden {
+  opacity: 0;
+}
+
+.lt-thread .cb-row {
+  transition:
+    opacity 900ms cubic-bezier(0.2, 0, 0, 1),
+    transform 420ms 90ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.lt-thread.is-dim .cb-slot:not(.is-hidden) .cb-row {
+  opacity: 0.36;
+}
+
+.lt-take .cb-name {
+  color: #f2f2f0;
+}
+
+.lt-take .cb-name.is-agent {
+  color: #8ab0ff;
+}
+
+.lt-take .cb-time {
+  color: #6d6d6b;
+}
+
+.lt-take .cb-text {
+  color: #e6e6e3;
+}
+
+.lt-take .cb-chip {
+  background: #26272a;
+  color: #c9c9c6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-stage,
+  .st-col,
+  .st-beam,
+  .st-joint,
+  .st-msg,
+  .fd-stage,
+  .fd-row,
+  .fd-pile,
+  .fd-note,
+  .lt-glow,
+  .lt-thread .cb-row {
+    transition: none !important;
+  }
+}
+
+/* ── 08 · the return ───────────────────────────────────────────────────
+   Lines inside Ando's message get their own slots, so the catch-up
+   composes itself line by line without the row jumping. */
+
+.rt-line {
+  padding-bottom: 3px;
+}
+
+/* ── 09 · the subtraction ──────────────────────────────────────────────
+   The pile: compressed rows, real grammar at texture scale. Dimmed a
+   step — this is the noise the reader already knows, not content. */
+
+.sb-noise {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+}
+
+.sb-noise img {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  object-fit: cover;
+  opacity: 0.85;
+}
+
+.sb-noise-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #6f6a66;
+  flex: none;
+}
+
+.sb-noise-text {
+  font-size: 12px;
+  line-height: 16px;
+  color: #8a847f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The tally — one quiet line naming the absence. */
+.sb-tally {
+  padding: 10px 0 0 38px;
+  font-family: var(--font-geist-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #b0aba6;
+  opacity: 1;
+  transition: opacity 500ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.sb-tally.is-hidden {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-tally {
+    transition: none !important;
+  }
+}
+
+/* ── 10 · the candidate ────────────────────────────────────────────────
+   Banner scale: a step larger than the product's own rows, because this
+   is read across a landing page, not inside an app. Everything else is
+   the shared grammar. */
+
+.ez-take .cb-thread {
+  width: min(660px, calc(100vw - 48px));
+}
+
+.ez-take .cb-face {
+  width: 30px;
+  height: 30px;
+}
+
+.ez-take .cb-row {
+  gap: 13px;
+  padding: 10px 0;
+}
+
+.ez-take .cb-name {
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.ez-take .cb-time {
+  font-size: 12px;
+}
+
+.ez-take .cb-text {
+  font-size: 16px;
+  line-height: 23px;
+}
+
+.ez-take .cb-typing {
+  padding-left: 43px;
+  font-size: 13px;
+}
+
+/* Hero variant: rows enter from the side, not the bottom — the slot
+   still opens vertically (chat physics for the column), but the row
+   itself slides in from the left, which reads livelier at hero scale. */
+.ez-take .cb-row {
+  transition:
+    opacity 440ms 60ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 520ms 60ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ez-take .cb-slot.is-hidden .cb-row {
+  opacity: 0;
+  transform: translateX(-36px);
+  transition-delay: 0ms;
+}
+
+/* ── the one-line hero ─────────────────────────────────────────────────
+   One message on stage at a time; the thread's history is a facepile,
+   not a stack. Costs ~150px where the stacked take cost 300+. */
+
+.hl-banner {
+  position: relative;
+  width: 100vw;
+  height: 150px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A fixed measure sized to the widest line, centred as a block, with
+   every line left-anchored inside it — so the avatar never changes x
+   between speakers. Centring each line individually made the anchor hop
+   ~60px when Ando's longer sentence landed. */
+.hl-lines {
+  position: relative;
+  width: min(568px, calc(100vw - 40px));
+  height: 86px;
+  margin: 0 auto;
+  /* The slot: lines roll through it vertically, with a shallow 3D tip so
+     the swap reads as a card turning, not a teleport. */
+  perspective: 420px;
+}
+
+.hl-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    opacity 480ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 560ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* The reel, two slots deep: current in the bottom slot, the previous
+   line dimmed in the top one; each turn moves both up a notch. */
+.hl-line.is-current {
+  opacity: 1;
+  transform: translateY(48px);
+}
+
+.hl-line.is-prev {
+  opacity: 0.5;
+  transform: translateY(0);
+}
+
+.hl-line.is-past {
+  opacity: 0;
+  transform: translateY(-24px) rotateX(42deg);
+  transition:
+    opacity 300ms cubic-bezier(0.4, 0, 1, 1),
+    transform 360ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.hl-line.is-future {
+  opacity: 0;
+  transform: translateY(80px) rotateX(-42deg);
+}
+
+
+
+/* ── Typing, then sent ────────────────────────────────────────────────
+   Each line rolls in as face + name + dots — the person is typing — and
+   the text wipes in when the message "sends". Resting state is the sent
+   line: text visible, dots gone, so nothing depends on the animation
+   having run. */
+/* The primitive bubble: a quiet rounded ground under every message —
+   the one piece of chat furniture the words actually need. The dots live
+   inside it (display-gated, so a sent line reserves nothing). */
+.hl-msg {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  /* Near-square, with the bottom-left corner pinched a step tighter —
+     the primitive nod toward the speaker without drawing a tail. */
+  border-radius: 12px 12px 12px 8px;
+  background: #f5f5f4;
+  transition: background-color 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* While Tadao is only working — status, not speech — there is no bubble.
+   The bubble belongs to messages; it arrives with the words. */
+.hl-line.is-musing .hl-msg {
+  background: transparent;
+}
+
+.hl-dots {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 0 2px;
+}
+
+.hl-line.is-typing .hl-dots {
+  display: flex;
+}
+
+.hl-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #b5afaa;
+  animation: hl-blink 1.25s infinite both;
+}
+
+.hl-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.hl-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes hl-blink {
+  0%,
+  76%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  28% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+/* The send, for the ellipsis line only: the sentence wipes out of the
+   dots' position, quick — a message landing, not a reveal ceremony.
+   Typewriter lines need no send animation; their text is already there
+   by the time it sends. */
+.hl-line.is-sent .hl-text {
+  animation: hl-send 340ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* ── Ando's arrival ───────────────────────────────────────────────────
+   The live Stage from /agent-typing-experience sits in the avatar slot.
+   The svg is larger than the slot (the resolved face is 19.2 of its 32
+   crop units — 44px renders the face at ~26px, matching the humans),
+   centred so the wave's excursions breathe around the slot. */
+.hl-stagewrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+.hl-stagewrap svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* The primitive thinking indicator: "thinking…" with a shimmer riding
+   through it — the working-trace register at whisper size. Sits where
+   the message will land; the send wipe replaces it. */
+.hl-think {
+  display: none;
+  font-size: 15px;
+  line-height: 24px;
+  background: linear-gradient(90deg, #a8a29e 38%, #58524e 50%, #a8a29e 62%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hl-shimmer 2.2s linear infinite;
+}
+
+.hl-think.is-on {
+  display: inline-block;
+}
+
+@keyframes hl-shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/* The reaction, appended to the message itself. */
+.hl-chip {
+  margin-left: 10px;
+  flex: none;
+}
+
+/* The caret riding the typewriter's edge. */
+.hl-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: #1a1817;
+  animation: hl-caret-blink 900ms step-end infinite;
+}
+
+@keyframes hl-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes hl-send {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 -4px);
+    transform: translateX(-5px);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 -4px 0 -4px);
+    transform: none;
+  }
+}
+
+
+.hl-face {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+/* Name and text share one line-height so their baselines can't wobble
+   against each other (they measured 1px apart when 22px met 24px). */
+.hl-name {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: #1a1817;
+}
+
+.hl-name.is-agent {
+  color: #2563eb;
+}
+
+.hl-text {
+  font-size: 17px;
+  line-height: 24px;
+  color: #1a1817;
+}
+
+/* Small viewports: the nowrap line would overflow, so the type steps
+   down and the sentence may take a second line. */
+@media (max-width: 600px) {
+  .hl-lines {
+    height: 120px;
+  }
+
+  .hl-line {
+    height: 52px;
+  }
+
+  .hl-line.is-current {
+    transform: translateY(64px);
+  }
+
+  .hl-line.is-future {
+    transform: translateY(108px) rotateX(-42deg);
+  }
+
+  .hl-solo .hl-lines {
+    height: 56px;
+  }
+
+  .hl-solo .hl-line.is-future {
+    transform: translateY(58px) rotateX(-42deg);
+  }
+
+  .hl-line {
+    white-space: normal;
+    align-items: flex-start;
+  }
+
+  .hl-face {
+    margin-top: 0;
+  }
+
+  .hl-name {
+    font-size: 14px;
+    line-height: 21px;
+  }
+
+  .hl-text {
+    font-size: 15px;
+    line-height: 21px;
+  }
+}
+
+/* The thread's memory: who has already spoken, plus the 👍 when it
+   lands. Centred under the line so the hero stays symmetric. */
+.hl-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 24px;
+  margin-top: 14px;
+}
+
+.hl-trail {
+  display: flex;
+  align-items: center;
+}
+
+.hl-tslot {
+  width: 0;
+  overflow: visible;
+  transition: width 420ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hl-tslot.is-in {
+  width: 15px;
+}
+
+.hl-tslot img {
+  /* The slot is narrower than the face (that's the overlap), and
+     preflight's img { max-width: 100% } clamps to the slot — squeezing
+     the circles into ovals. Opt out. */
+  max-width: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 320ms cubic-bezier(0.2, 0, 0, 1),
+    transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.hl-tslot.is-in img {
+  opacity: 0.92;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-line,
+  .hl-tslot,
+  .hl-tslot img {
+    transition: none !important;
+  }
+  .hl-line.is-sent .hl-text,
+  .hl-caret,
+  .hl-think,
+  .hl-dots span {
+    animation: none;
+  }
+  .hl-dots {
+    opacity: 0 !important;
+  }
+}
+
+/* ── the archive shelf ─────────────────────────────────────────────────
+   Everything below this rule is a retired take, kept running so the
+   whole exploration stays comparable against the live one. */
+.cb-archive {
+  width: min(1100px, 92vw);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 84px 0 4px;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #a8a29e;
+}
+
+.cb-archive-line {
+  flex: 1;
+  height: 1px;
+  background: #e2e0dd;
+}
+
+/* ── Solo variant: one slot, tray underneath ──────────────────────────ss */
+.hl-solo .hl-lines {
+  height: 40px;
+}
+
+.hl-solo .hl-line.is-current {
+  transform: translateY(2px);
+}
+
+.hl-solo .hl-line.is-future {
+  transform: translateY(42px) rotateX(-42deg);
+}
+
+/* ── The nav toggle — which interaction the hero shows ────────────────
+   A quiet segmented control; prototype furniture, so it stays small. */
+.bm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #f0efee;
+  margin-left: 10px;
+}
+
+.bm-btn {
+  height: 24px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #58524e;
+  transition: background-color 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bm-btn.is-on {
+  background: #ffffff;
+  color: #1a1817;
+  box-shadow: 0 1px 2px rgba(15, 13, 13, 0.08);
+}
+
+/* ── Clearing, per variant ─────────────────────────────────────────────
+   The stack clears the way chat scrolls away: rows collapse top-down on
+   a cascade, drifting up as they go, instead of scrunching at once. */
+.cb-thread.is-clearing .cb-slot.is-hidden .cb-row {
+  transform: translateY(-6px);
+}
+
+.cb-thread.is-clearing .cb-slot:nth-child(2),
+.cb-thread.is-clearing .cb-slot:nth-child(2) .cb-row {
+  transition-delay: 80ms;
+}
+
+.cb-thread.is-clearing .cb-slot:nth-child(3),
+.cb-thread.is-clearing .cb-slot:nth-child(3) .cb-row {
+  transition-delay: 160ms;
+}
+
+.cb-thread.is-clearing .cb-slot:nth-child(4),
+.cb-thread.is-clearing .cb-slot:nth-child(4) .cb-row {
+  transition-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-thread.is-clearing .cb-slot,
+  .cb-thread.is-clearing .cb-slot .cb-row {
+    transition-delay: 0ms;
+  }
+}

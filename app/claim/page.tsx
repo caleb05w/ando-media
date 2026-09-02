@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { WorldBall } from "../affiliate-world/world-ball";
+import { WorldBall } from "../the-library/world-ball";
 
 // /claim — for now, only the world itself: the ball, centred, and
 // nothing else. The statement and the claim field are parked; the

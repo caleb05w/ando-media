@@ -1,0 +1,19 @@
+/* Design-system style entry point. Aggregates the partials; the consuming
+ * app/Storybook is the only place that @import "tailwindcss". */
+
+@import "./fonts.css";
+@import "./typography.css";
+@import "./icon.css";
+@import "./colors/colors.css";
+@import "./effects/effects.css";
+@import "./radius/radius.css";
+@import "./motion.css";
+@import "./hit-area.css";
+@import "./layout.css";
+@import "./controls.css";
+@import "./footer.css";
+
+@source "../components/**/*.{ts,tsx}";
+/* Foundation token stories apply real utilities (rounded-*, shadow-*); scan
+ * them so those utilities are emitted for the Storybook docs. */
+@source "../styles/**/*.{ts,tsx}";

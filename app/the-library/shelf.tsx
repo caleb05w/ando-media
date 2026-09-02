@@ -111,9 +111,15 @@ export function LibraryShelf({ pieces }: { pieces: Piece[] }) {
         ref={shelfRef}
       >
         {pieces.map((piece) => (
-          <section key={piece.label} className="lib-piece">
-            {piece.render}
-            <div className="mt-[10px] flex min-w-0 items-baseline gap-[10px] px-[4px]">
+          <section key={piece.label} className="lib-piece group">
+            {/* the render crosses the server boundary ownerless; as a
+                direct array sibling of the caption, React asks it for a
+                key it cannot carry. Sole child of a layout-transparent
+                div, it needs none. */}
+            <div className="contents">{piece.render}</div>
+            {/* the caption keeps its line so the shelf doesn't reflow;
+                it only surfaces while the pointer is on the piece */}
+            <div className="mt-[10px] flex min-w-0 items-baseline gap-[10px] px-[4px] opacity-0 transition-opacity ease-fast group-hover:opacity-100">
               <span className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-[#a8a29e]">
                 {piece.label}
               </span>

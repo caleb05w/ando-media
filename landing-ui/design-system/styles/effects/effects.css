@@ -1,0 +1,94 @@
+/**
+ * Effects - shadows + focus ring
+ *
+ * Shadows: the brand is flat - its measured elevations are the Download
+ * app-icon tile (0 3px 4px / 20% black, `shadow-sm`) and the waitlist dialog
+ * (0 1px 4px / 5% black, `shadow-md`). `shadow-xs` is a separate, fainter
+ * floating shadow (5% black) for popovers.
+ *
+ * Focus ring: one keyboard-focus indicator shared across interactive
+ * components. Uses an `outline` (not box-shadow) so it is never clipped by
+ * `overflow:hidden`, follows the element's `border-radius`, and survives
+ * forced-colors mode. Gated on `:focus-visible` (keyboard only).
+ *
+ * Input ring (`input-ring`): the shadcn-style stroke + focus glow for pill
+ * inputs, both drawn as box-shadow layers (not a CSS border) so the stroke
+ * animates 1px->2px and the glow fades in with no reflow, no content shift,
+ * and no seam between stroke and glow. Colours read from `--input-accent` /
+ * `--input-stroke` so one expression serves the active / success / error
+ * states.
+ */
+
+@theme {
+  /* `xs` is the faint floating shadow used by popovers (5% black). */
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+
+  /* Elevation. Both are exact measured brand values. `md` (the dialog's drop
+   * shadow, measured in the waitlist frames) is FAINTER than `sm` despite the
+   * larger tier name - the brand keeps even its topmost overlay nearly flat. */
+  --shadow-sm: 0 3px 4px 0 var(--color-shadow-default);
+  --shadow-md: 0 1px 4px 0 oklch(0 0 0 / 0.05);
+
+  /* Focus ring */
+  --focus-ring-width: 1px;
+  --focus-ring-offset: 2px;
+  --color-focus-ring: var(--color-text-strong);
+}
+
+@utility focus-ring {
+  outline: var(--focus-ring-width) solid transparent;
+
+  &:focus-visible {
+    outline-color: var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+/* Same indicator, but on a container whose focusable element lives inside it
+ * (e.g. the TextArea box around its inner <textarea>). `:has(:focus-visible)`
+ * keeps the keyboard-only gating of `focus-ring`. */
+@utility focus-ring-within {
+  outline: var(--focus-ring-width) solid transparent;
+
+  &:has(:focus-visible) {
+    outline-color: var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+/* Animated colour focus glow for pill inputs (see header). The accent defaults
+ * to the active blue; the consumer reassigns `--input-accent` per state (e.g.
+ * `data-[invalid]:[--input-accent:var(--color-border-danger)]`). The ring fades
+ * in over `--duration-select` alongside the border-colour change; the rest
+ * shadow is transparent/0-spread so the transition grows it cleanly. */
+@utility input-ring {
+  /* `--input-accent` is the focus base (its /60 + /20 give the active stroke +
+   * glow). `--input-stroke` / `--input-stroke-width` are the resting stroke,
+   * which a state can override at higher specificity to keep its colour while
+   * active (e.g. success stays green on focus). The glow only paints on focus.
+   * Two layers at all times so `box-shadow` interpolates instead of snapping. */
+  --input-accent: var(--color-border-active);
+  --input-stroke: var(--color-border-default);
+  --input-stroke-width: 1px;
+  --input-glow: transparent;
+  --input-glow-width: 2px;
+  box-shadow:
+    0 0 0 var(--input-stroke-width) var(--input-stroke),
+    0 0 0 calc(var(--input-stroke-width) + var(--input-glow-width))
+    var(--input-glow);
+  transition: box-shadow var(--duration-select, 150ms) ease;
+
+  /* `:focus-within` (not `:focus`) so one utility serves both focusable
+   * controls (TextField input, Select trigger - where it behaves exactly like
+   * `:focus`) and container controls whose focus lives on an inner element
+   * (the TextArea box around its `<textarea>`). */
+  &:focus-within {
+    --input-stroke: color-mix(in oklab, var(--input-accent) 60%, transparent);
+    --input-stroke-width: 2px;
+    --input-glow: color-mix(in oklab, var(--input-accent) 20%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

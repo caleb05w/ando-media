@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +23,39 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ],
+      "@repo/design-system-ui/lib/*": [
+        "./landing-ui/design-system/lib/*"
+      ],
+      "@repo/design-system-ui/assets/*": [
+        "./landing-ui/design-system/assets/*"
+      ],
+      "@repo/design-system-ui/*": [
+        "./landing-ui/design-system/components/*"
+      ],
+      "@repo/ando-hero-ui/*": [
+        "./landing-ui/ando-hero/*"
+      ],
+      "@/components/*": [
+        "./landing-ui/components/*"
+      ],
+      "@/lib/*": [
+        "./landing-ui/lib/*"
+      ],
+      "#components/*": [
+        "./landing-ui/design-system/components/*"
+      ],
+      "#lib/*": [
+        "./landing-ui/design-system/lib/*"
+      ],
+      "@repo/ando-hero-ui": [
+        "./landing-ui/ando-hero/index.ts"
+      ],
+      "@/app/*": [
+        "./app/landing-page/*"
+      ]
     }
   },
   "include": [
@@ -30,5 +66,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "archive"
+  ]
 }

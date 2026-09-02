@@ -33,23 +33,23 @@
   animation: aw-orbit var(--aw-orbit-t, 13s) linear var(--aw-orbit-d, 0s) infinite;
 }
 
-/* Faces are doors — under the pointer one grows to meet it and steps
-   in front of its neighbours, and its stroll pauses so it can be
-   caught. */
-.aw-item img {
-  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1);
-}
-
-.aw-item:hover img {
-  transform: scale(1.16);
-}
-
-.aw-item:hover {
-  z-index: 60;
-}
-
+/* Faces are doors — under the pointer the stroll pauses so one can
+   be caught. */
 .aw-item:hover .aw-orbit {
   animation-play-state: paused;
+}
+
+/* The open world's seats — the accent ring (the page's one blue).
+   An outline with an offset, not a shadow stack: the gap between face
+   and ring stays transparent, so it dims with the page under the
+   sheet's scrim instead of glowing white through it. */
+.aw-item--picked img {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.aw-item--picked {
+  z-index: 50;
 }
 
 @media (prefers-reduced-motion: reduce) {

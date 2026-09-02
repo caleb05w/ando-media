@@ -1,0 +1,65 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+
+<Meta title="Foundations/Radius/Docs" />
+
+# Radius
+
+Corner-radius scale measured from the May 2026 brand frames. Tailwind v4's default radius scale already matches the brand, so `src/styles/radius/radius.css` only adds the one tier Tailwind lacks - `--radius-4xl` (32px).
+
+## Scale
+
+<table>
+  <thead>
+    <tr>
+      <th>Utility</th>
+      <th>Size</th>
+      <th>When to use</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>rounded-md</code></td>
+      <td>6px</td>
+      <td>Keycaps, small controls</td>
+    </tr>
+    <tr>
+      <td><code>rounded-lg</code></td>
+      <td>8px</td>
+      <td>Nav items</td>
+    </tr>
+    <tr>
+      <td><code>rounded-2xl</code></td>
+      <td>16px</td>
+      <td>Media / image containers</td>
+    </tr>
+    <tr>
+      <td><code>rounded-3xl</code></td>
+      <td>24px</td>
+      <td>Cards, panels, hero chrome - the workhorse surface radius</td>
+    </tr>
+    <tr>
+      <td><code>rounded-4xl</code></td>
+      <td>32px</td>
+      <td>App-icon tiles, large feature chrome</td>
+    </tr>
+    <tr>
+      <td><code>rounded-full</code></td>
+      <td>pill</td>
+      <td>Fully rounded pills - badges, buttons</td>
+    </tr>
+  </tbody>
+</table>
+
+```tsx
+{/* Tailwind utility */}
+<div className="rounded-3xl bg-surface-primary border border-border-subtle p-8" />
+
+{/* CSS variable directly */}
+<div style={{ borderRadius: 'var(--radius-3xl)' }} />
+```
+
+`Surface` exposes the surface radii through its `radius` prop: `sm` (16px), `md` (24px, default), `lg` (32px).
+
+## Don't use arbitrary values
+
+Reach for a token, not `rounded-[22px]`. The scale is intentionally narrow so adjacent surfaces compose without visual noise. If no token fits, raise the scale rather than the callsite.

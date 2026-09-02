@@ -1,0 +1,14 @@
+/*
+ * SVG Quality Optimizations
+ * These settings prioritize visual quality for SVG rendering:
+ * - geometricPrecision: Ensures smooth curves and accurate paths
+ * - optimizeLegibility: Improves text appearance with proper kerning
+ */
+@layer base {
+  svg,
+  svg * {
+    shape-rendering: geometricPrecision;
+    text-rendering: optimizeLegibility;
+    image-rendering: smooth; /* Only Firefox/Safari */
+  }
+}

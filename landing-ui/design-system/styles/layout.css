@@ -1,0 +1,68 @@
+/**
+ * Layout - shared page frame + section rhythm
+ *
+ * Every full-width route section repeats two patterns: a centered frame capped
+ * at the 1536px design canvas with gutters that ramp by breakpoint, and a
+ * 64/96px vertical rhythm. These were copy-pasted as `CONTENT_FRAME` strings
+ * across the app (home, about, careers, legal, hero); collecting them here
+ * keeps the canvas width and gutter ramp in one place.
+ *
+ * The breakpoints below mirror Tailwind's default screens (sm 40rem, md 48rem,
+ * lg 64rem, xl 80rem, 2xl 96rem) - the repo doesn't customize them. Plain
+ * `@media` is used rather than `@variant` because the CSS toolchain (Biome)
+ * can't parse a `2xl` token inside `@variant`.
+ *
+ * Site chrome uses this same frame so header, page content, and footer share
+ * exact left and right edges at every viewport width.
+ */
+
+@theme {
+  /* The design canvas: page content is centered and capped at this width.
+   * Exposed as `max-w-canvas` via Tailwind's `--container-*` namespace. */
+  --container-canvas: 1536px;
+  --container-reading: 640px;
+}
+
+/* Centered content frame: caps at the canvas and ramps the side gutters
+ * 20 -> 32 -> 48 -> 64 -> 128px (no md step, matching the rest of the site). */
+@utility content-frame {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--container-canvas);
+  padding-inline: --spacing(5);
+
+  @media (width >= 40rem) {
+    padding-inline: --spacing(8);
+  }
+  @media (width >= 64rem) {
+    padding-inline: --spacing(12);
+  }
+  @media (width >= 80rem) {
+    padding-inline: --spacing(16);
+  }
+  @media (width >= 96rem) {
+    padding-inline: --spacing(32);
+  }
+}
+
+/* Near-full-bleed frame: same canvas, holds the wide 32px gutter from sm up
+ * (card/collage sections that run close to the edges). */
+@utility wide-frame {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--container-canvas);
+  padding-inline: --spacing(5);
+
+  @media (width >= 40rem) {
+    padding-inline: --spacing(8);
+  }
+}
+
+/* Editorial section rhythm: 80px stacked, 128px from md up. */
+@utility section-y {
+  padding-block: --spacing(20);
+
+  @media (width >= 48rem) {
+    padding-block: --spacing(32);
+  }
+}

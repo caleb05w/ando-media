@@ -1,0 +1,27 @@
+/* The center app-icon tile's inner frame: a 2px transparent (top) -> white
+ * (bottom) gradient border drawn on an `::after` pseudo-element via the
+ * padding/border-box mask trick, so it follows `border-radius` and sits as a
+ * ring on the edges (it does not fill the interior) over the textured fill. */
+.tileFrame {
+  position: relative;
+}
+
+.tileFrame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, transparent, #fff) border-box;
+  /* Punch out the interior so only the 2px border shows. The `mask` shorthand
+   * resets `mask-composite`, so it MUST precede the composite. */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}

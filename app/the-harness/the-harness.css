@@ -1,0 +1,163 @@
+/* /the-harness — the ring as the singular inflection point.
+
+   Redrawn in the workspace diagram's language after the Ando-Brand
+   inspo board: paper-grey drafting ground with the faint blue dot-grid,
+   hairline geometry you can barely see, one blue accent sweeping the
+   rim, and tiny jewel dots for everything that moves. The pen is a
+   needle, not a marker.
+
+   The scene fades in once (ring, then lines, then traffic) and rests in
+   motion — the crawl is the resting state, so there is no loop reset. */
+
+.hn-field {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 0 96px;
+}
+
+.hn-tag {
+  width: min(680px, calc(100vw - 48px));
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a8a29e;
+  margin: 40px 0 10px;
+}
+
+.hn-tag:first-child {
+  margin-top: 0;
+}
+
+/* The drafting ground — the workspace diagram's paper, verbatim. */
+.hn-banner {
+  position: relative;
+  width: 100vw;
+  height: 580px;
+  background-color: #f5f6f9;
+  background-image: radial-gradient(circle, rgba(37, 99, 235, 0.055) 1px, transparent 1px);
+  background-size: 13px 13px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hn-svg {
+  width: min(640px, calc(100vw - 48px));
+  height: auto;
+  overflow: visible;
+}
+
+/* ── The ink ──────────────────────────────────────────────────────────
+   Hairlines throughout; presence is carried by opacity, and the draw-in
+   is a fade, not a flourish. */
+
+.hn-ring {
+  fill: none;
+  stroke: #e4e8f3;
+  stroke-width: 1.2;
+  opacity: 1;
+  transition: opacity 900ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hn-ring.is-hidden {
+  opacity: 0;
+}
+
+/* The accent — one blue sweep across the near rim, fading at both ends
+   the way the diagram's orbit does. */
+.hn-accent {
+  fill: none;
+  stroke-width: 1.4;
+  opacity: 1;
+  transition: opacity 1100ms 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hn-accent.is-hidden {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+.hn-line {
+  fill: none;
+  stroke: #aeb9d2;
+  stroke-width: 1;
+  stroke-opacity: 0.35;
+  opacity: 1;
+  transition: opacity 800ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hn-line.is-hidden {
+  opacity: 0;
+}
+
+/* The far half of the surface reads through the atmosphere. */
+.hn-line.is-far {
+  stroke-opacity: 0.16;
+}
+
+/* A line with traffic on it is lit — the work's own color; the empty
+   lines stay grey. Far lit lines keep the atmospheric discount. */
+.hn-line.is-lit {
+  stroke: #4172ea;
+  stroke-opacity: 0.42;
+}
+
+.hn-line.is-far.is-lit {
+  stroke-opacity: 0.18;
+}
+
+/* The singular point — the quiet core at dead centre. */
+.hn-core {
+  fill: #9aa6c0;
+  opacity: 1;
+  transition: opacity 700ms 400ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hn-core.is-hidden {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+/* The traffic — jewel dots. SMIL owns the motion; CSS only gates
+   visibility so the drawing settles before the traffic is seen. */
+.hn-dot {
+  transition: opacity 900ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hn-dot.is-hidden {
+  opacity: 0 !important;
+}
+
+/* The caption, in the diagram's own voice. */
+.hn-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 17px;
+  color: #8f99b0;
+  opacity: 1;
+  transition: opacity 700ms 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.hn-caption.is-hidden {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hn-ring,
+  .hn-accent,
+  .hn-line,
+  .hn-core,
+  .hn-dot,
+  .hn-caption {
+    transition: none !important;
+  }
+}

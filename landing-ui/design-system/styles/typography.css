@@ -1,0 +1,77 @@
+/*
+ * Typography tokens. Editorial system from the August 2026 Brand frames:
+ * Test Signifier (display), Suisse Intl with a Geist fallback (body/UI), and
+ * Geist Mono (mono).
+ * @font-face lives in ./fonts.css; families below resolve the app's next/font
+ * vars first, then fall back to the self-hosted faces. Keep sizes/leading in sync with
+ * components/text/styles.ts.
+ */
+
+@theme inline {
+  /* `inline` emits the var(--font-*) references into the utilities so the app's
+   * next/font vars resolve at runtime. */
+  --font-sans:
+    "Suisse Intl Local", var(--font-geist-sans, "Geist"), ui-sans-serif,
+    system-ui, sans-serif;
+  --font-display:
+    var(--font-test-signifier, "Test Signifier"), Georgia, "Times New Roman",
+    serif;
+  --font-mono:
+    var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo,
+    monospace;
+}
+
+@theme {
+  /* Font sizes (rem @ 16px root). Tailwind v4's `--<size>--line-height`
+   * convention pairs a line-height with each text-size-* utility, so changing
+   * `size` keeps its line-height and `leading-*` stays an optional override. */
+  --text-size-2xs: 0.625rem; /* 10px */
+  --text-size-2xs--line-height: 0.75rem; /* 12px */
+  --text-size-xs: 0.75rem; /* 12px */
+  --text-size-xs--line-height: 1.125rem; /* 18px */
+  --text-size-sm: 0.875rem; /* 14px */
+  --text-size-sm--line-height: 1.3125rem; /* 21px */
+  --text-size-md: 1rem; /* 16px */
+  --text-size-md--line-height: 1.5rem; /* 24px */
+  --text-size-lg: 1.125rem; /* 18px */
+  --text-size-lg--line-height: 1.6875rem; /* 27px */
+  --text-size-xl: 1.25rem; /* 20px */
+  --text-size-xl--line-height: 1.875rem; /* 30px */
+  --text-size-2xl: 1.5rem; /* 24px */
+  --text-size-2xl--line-height: 1.875rem; /* 30px */
+  /* Mobile display/hero step, between 2xl and 3xl (the iPhone hero is 28px). */
+  --text-size-2-5xl: 1.75rem; /* 28px */
+  --text-size-2-5xl--line-height: 2.1rem; /* 33.6px (1.2) */
+  --text-size-3xl: 2rem; /* 32px */
+  --text-size-3xl--line-height: 2.2rem; /* 35.2px */
+  --text-size-4xl: 3rem; /* 48px */
+  --text-size-4xl--line-height: 3rem; /* 48px */
+  --text-size-5xl: 3.75rem; /* 60px */
+  --text-size-5xl--line-height: 3.75rem; /* 60px */
+  --text-size-6xl: 4.5rem; /* 72px */
+  --text-size-6xl--line-height: 4.5rem; /* 72px */
+
+  /* Long-form / legal body (the Terms page sets 16px to 200%). */
+  --leading-relaxed: 2;
+
+  /* Letter spacing: the editorial frames use optical kerning with no added
+   * tracking; uppercase eyebrow remains +0.04em. */
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.04em;
+}
+
+/* Global type + text-rendering defaults; Suisse Intl falls back to Geist. */
+@layer base {
+  html {
+    font-family:
+      "Suisse Intl Local", var(--font-geist-sans, "Geist"), ui-sans-serif,
+      system-ui, sans-serif;
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "kern" 1;
+  }
+}

@@ -83,3 +83,26 @@
     animation: none;
   }
 }
+
+/* Walking between worlds — the page inside the sheet steps in from
+   the direction of travel while the sheet itself stays put. */
+@keyframes awp-swap {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.awp-swap {
+  animation: awp-swap 0.28s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .awp-swap {
+    animation: none;
+  }
+}

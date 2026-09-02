@@ -6,8 +6,9 @@ import { Stepper, weekLabel, weekRange } from "./stepper";
 
 // / — directory of every page in the app, split across two shelves behind a
 // floating switcher: Projects (prototypes and experiments) and Slides (dated
-// decks). Rows are styled after the Ando onboarding cards in
-// /caleb-slides/ando-mockups — grey rounded card, title over brief, chevron.
+// decks). Each card carries a live thumbnail of its route — the page itself
+// rendered in a scaled-down iframe — so a visitor can tell projects apart
+// without reading. Titles stay under five words, briefs under twelve.
 
 type Entry = {
   href: string;
@@ -24,169 +25,191 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
-    href: "/agent-context-trace",
+    href: "/affiliate-world",
+    week: "2026-08-31",
+    title: "Affiliate world",
+    tag: "Prototype",
+    brief: "The bubble map, the members, and claiming your @handle.",
+  },
+  {
+    href: "/claim",
+    week: "2026-08-31",
+    title: "Claim your handle",
+    tag: "Prototype",
+    brief: "The username claim alone — bubble map, statement, field.",
+  },
+  {
+    href: "/slack-disintegration",
     week: "2026-08-24",
-    title: "Agent context trace",
-    tag: "(Prototype)",
-    brief:
-      "The working indicator with a context drawer — profile and shimmering thought line as shipped, plus a chevron that opens a hairline rail showing where context is being grabbed: sources arrive as the agent reaches them, hold bright while read, then check off and recede.",
+    title: "Slack disintegration",
+    tag: "Motion",
+    brief: "Slack becomes the little Ando computer — dust, mosaic, or grid reveal.",
+  },
+  {
+    href: "/affiliate",
+    week: "2026-08-24",
+    title: "Affiliate page",
+    tag: "Prototype",
+    brief: "ando.so/@sara — a personal invite page, P0.",
+  },
+  {
+    href: "/the-harness",
+    week: "2026-08-24",
+    title: "The harness",
+    tag: "Motion",
+    brief: "Ando as a ring — every line of work threads through it.",
+  },
+  {
+    href: "/the-library",
+    week: "2026-08-24",
+    title: "The library",
+    tag: "Reference",
+    brief: "The homepage media components, all on one shelf.",
+  },
+  {
+    href: "/landing-page",
+    week: "2026-08-24",
+    title: "Ando home page",
+    tag: "Reference",
+    brief: "The live marketing site on the real design system.",
   },
   {
     href: "/landing-page-animations",
     week: "2026-08-17",
-    title: "Landing page animations",
-    tag: "(Motion)",
-    brief:
-      "Scaffold for the landing page motion studies — a 35vh full-bleed white banner on a grey field, holding the band the animations get built into.",
+    title: "Landing animations",
+    tag: "Motion",
+    brief: "Scaffold band for the landing page motion studies.",
   },
   {
     href: "/agent-typing-experience",
     week: "2026-08-17",
-    title: "Agent typing experience",
-    tag: "(Motion)",
-    brief:
-      "The typing indicator becoming an agent — five keepers in three takes (v1 shares one spring-and-shudder arrival; v2 tailors each profile arrival to its morph; v3 tones the same principles down for at-scale use), an archive of retired studies, and a live 1:1 library grid for comparing them. Built from the Agent trace storyboard.",
+    title: "Agent typing",
+    tag: "Motion",
+    brief: "Typing indicator morphs into an agent — five keepers.",
   },
   {
     href: "/inline-multi-select",
     week: "2026-08-17",
     title: "Inline multi-select",
-    tag: "(Prototype)",
-    brief:
-      "An agent-rendered choice card inside the Ando channel — single-select answers with a custom input, per-intent follow-up flows (scheduled events, web research, apps), and the Notion connect card from the onboarding exploration.",
+    tag: "Prototype",
+    brief: "Agent choice cards with per-intent follow-up flows.",
   },
   {
     href: "/trace-canvas",
     week: "2026-08-17",
-    title: "Inline trace — blank canvas",
-    tag: "(Sandbox)",
-    brief:
-      "This week's working copy of the inline agent trace on a blank message canvas — no sidebars, just the interfaces. A floating switcher flips between #channel, DM (with Tadao), and Thread (channel + 400px thread panel side by side, the small-screen check). Each surface keeps its own transcript; the agent machinery rides along in all three.",
+    title: "Trace canvas",
+    tag: "Sandbox",
+    brief: "Inline agent trace on channel, DM, and thread.",
   },
   {
     href: "/app-empty-state",
     week: "2026-08-10",
     title: "App empty state",
-    tag: "(Motion)",
-    brief:
-      "The “No apps connected yet” card with a live icon carousel — five apps take turns popping up through the slot on a shared tilt, hanging mid-air, then rotating back level and sinking behind the fade. Storyboarded in August Sprints.",
+    tag: "Motion",
+    brief: "Empty apps card with a live icon carousel.",
   },
   {
     href: "/loading-state-ideation",
     week: "2026-08-10",
-    title: "Loading state ideation",
-    tag: "(Motion)",
-    brief:
-      "The baseline board for rethinking how Ando says “working” — the shipped spinner ported exactly from packages/ui at every size and in context, the skeleton alternative, and the spec any replacement has to beat.",
+    title: "Loading states",
+    tag: "Motion",
+    brief: "The shipped spinner, skeletons, and the spec to beat.",
   },
   {
     href: "/trace-test",
     week: "2026-08-10",
     title: "Trace test",
-    tag: "(Sandbox)",
-    brief:
-      "A working copy of Sticky inline agent presence — same shell and agent layer, kept separate so ideas can be tried without disturbing the shipped route.",
+    tag: "Sandbox",
+    brief: "Scratch copy of sticky agent presence for experiments.",
   },
   {
     href: "/agent-inline-trace",
     week: "2026-08-10",
-    title: "Sticky inline agent presence",
-    tag: "(Prototype)",
-    brief:
-      "A tiny live agent face rides the sentence that invoked it — hover for labeled Stop / Restart / Clear, click to summon it in the Active agents panel — and docks onto the corner rail whenever its message scrolls away. Unseen completions stay railed until you view the answer, stopped agents park in place, Esc cancels your latest send, and the Agents panel sets response time.",
+    title: "Sticky agent presence",
+    tag: "Prototype",
+    brief: "A live agent face rides the message that invoked it.",
   },
   {
     href: "/ando-draft-messages",
     week: "2026-08-03",
     title: "Suggested drafts",
-    tag: "(Prototype)",
-    brief:
-      "The draft-suggestion form factor from July Sprints — a capped list above the composer where the index badge becomes a return glyph on the active row, the chevron expands and the row body stages. Arrow keys move, enter stages, escape unwinds.",
+    tag: "Prototype",
+    brief: "Keyboard-first draft suggestions above the composer.",
   },
   {
     href: "/animation-audit",
     week: "2026-08-03",
     title: "Animation audit",
-    tag: "(Motion)",
-    brief:
-      "Every animation in the Ando repo on one page, playing at the timing its real consumers use — frequency, easing, duration, delay, and what it is applied to. Extracted from the codebase, not written by hand.",
+    tag: "Motion",
+    brief: "Every Ando animation, playing at its real timing.",
   },
   {
     href: "/bubble-murmuration",
     week: "2026-08-03",
     title: "Login explorations",
-    tag: "(Motion)",
-    brief:
-      "The Ando login screen with the Convergence logo treatment — #, @, and / chips fly in and dock on a dashed rail around the icon tile, then the formation turns and breathes as one. UI untouched; only the logo moves.",
-  },
-  {
-    href: "/slack-sync-cards",
-    week: "2026-07-20",
-    title: "Slack sync cards",
-    tag: "(WIP)",
-    brief:
-      "The post-sync Wrapped deck — frosted glass cards built from Figma, arrow keys to move between slides, and a fun fact tucked behind an eye toggle.",
+    tag: "Motion",
+    brief: "Logo chips fly in, dock, and breathe as one.",
   },
   {
     href: "/agents",
     week: "2026-07-27",
     title: "Agents directory",
-    tag: "(WIP)",
-    brief:
-      "The agents table from July Sprints with a Table / Cards switch — rows become tiles with a status-dot avatar, channel chips, connected apps, and working toggles.",
+    tag: "WIP",
+    brief: "The agents table with a table / cards switch.",
+  },
+  {
+    href: "/slack-sync-cards",
+    week: "2026-07-20",
+    title: "Slack sync cards",
+    tag: "WIP",
+    brief: "Post-sync Wrapped deck in frosted glass.",
   },
   {
     href: "/agent-flyout",
     week: "2026-07-20",
     title: "Agent flyout",
-    tag: "(Prototype)",
-    brief:
-      "Active agents compress above the composer, then fly out into per-agent detail — four iterations (v2 rollup, rows, cards, console) with working / needs-input / failed / success states, stop CTAs, and tool traces.",
-  },
-  {
-    href: "/multi-select",
-    week: "2026-07-13",
-    title: "Message multi-select",
-    tag: "(Prototype)",
-    brief:
-      "Drag across messages to block-select them, Notion-style — corner checkmarks, shift-click ranges, edge auto-scroll, and an A/B toggle for the action bar.",
+    tag: "Prototype",
+    brief: "Compressed agent chips fly out into per-agent detail.",
   },
   {
     href: "/channel",
     week: "2026-07-20",
     title: "Channel view",
-    tag: "(Demo)",
-    brief:
-      "The #design channel with agent handoff — drag to multi-select messages, Send to Agent to spawn agents that work or fail (tracked in a bottom-right stack), plus a working composer.",
+    tag: "Demo",
+    brief: "The #design channel with drag-select and agent handoff.",
   },
   {
     href: "/agent-working",
     week: "2026-07-20",
     title: "Agent working",
-    tag: "(Prototype)",
-    brief:
-      "@mention an agent to spawn a run — inline session chips, ringed corner presence, an Active/Complete flyout with stop and rerun, and a tool-call trace modal.",
+    tag: "Prototype",
+    brief: "@mention an agent to spawn and track a run.",
   },
   {
     href: "/agent-interactions",
     week: "2026-07-20",
     title: "Agent motion studies",
-    tag: "(Motion)",
-    brief:
-      "Sixteen looping motion studies for the agent working, completion, and failure states — Dynamic Island, watchOS-breathe, and Chrome-downloads inspired.",
+    tag: "Motion",
+    brief: "Sixteen looping studies of working, done, and failed.",
+  },
+  {
+    href: "/multi-select",
+    week: "2026-07-13",
+    title: "Message multi-select",
+    tag: "Prototype",
+    brief: "Drag across messages to block-select them, Notion-style.",
   },
   {
     href: "/automation-test",
     week: "2026-06-29",
     title: "Create automation",
-    brief:
-      "Automation modal with natural-language scheduling — combobox, parser, invalid states, and compound schedules.",
+    brief: "Automation modal with natural-language scheduling.",
   },
   {
     href: "/week2",
     week: "2026-06-08",
     title: "Split-flap calendar",
-    brief: "Countdown calendar with a split-flap board and 3D sky scene.",
+    brief: "Countdown calendar: split-flap board and 3D sky.",
   },
 ];
 
@@ -195,8 +218,7 @@ const SLIDES: Entry[] = [
     href: "/caleb-slides",
     title: "Caleb slides",
     date: "July 31, 2026",
-    brief:
-      "A showcase deck — every insight card as its own slide, a full-page grid of the whole set, then the channel, DM, and OAuth mockups. Arrow keys move between slides on the insight-deck swap.",
+    brief: "Every insight card as a slide, plus product mockups.",
   },
 ];
 
@@ -207,34 +229,49 @@ const TABS = [
 
 type Tab = (typeof TABS)[number][0];
 
+/** The route itself, rendered small. A 400%-sized iframe scaled to 1/4 shows
+ *  each page at a ~1300px desktop viewport inside a card-width thumbnail.
+ *  Inert on purpose — clicks belong to the card link, not the preview. */
+function EntryCanvas({ href }: { href: string }) {
+  return (
+    <div className="pointer-events-none relative aspect-[16/10] overflow-hidden rounded-[6px] bg-white shadow-[0px_0px_0px_1px_rgba(81,76,71,0.08)]">
+      <iframe
+        src={href}
+        title=""
+        aria-hidden
+        tabIndex={-1}
+        loading="lazy"
+        className="absolute left-0 top-0 h-[400%] w-[400%] origin-top-left scale-[0.25] border-0 bg-white"
+      />
+    </div>
+  );
+}
+
 function EntryCard({ entry }: { entry: Entry }) {
   return (
     <Link
       href={entry.href}
-      className="flex items-center gap-[16px] rounded-[10px] bg-[#f5f5f4] p-[16px] transition-colors ease-fast hover:bg-[#efeeec]"
+      className="flex flex-col gap-[10px] rounded-[10px] bg-[#f5f5f4] p-[10px] transition-colors ease-fast hover:bg-[#efeeec]"
     >
-      <div className="min-w-0 flex-1 text-[14px] leading-[20px]">
-        <p className="font-medium text-[#1a1817]">
-          {entry.title}
+      <EntryCanvas href={entry.href} />
+      <div className="min-w-0 px-[4px] pb-[4px] text-[13px] leading-[18px]">
+        <p className="flex items-baseline gap-[8px]">
+          <span className="truncate font-medium text-[#1a1817]">
+            {entry.title}
+          </span>
           {entry.tag ? (
-            <span className="ml-[8px] font-normal text-[#ea580c]">
+            <span className="shrink-0 font-mono text-[10px] uppercase leading-[16px] tracking-[0.04em] text-[#8a827b]">
               {entry.tag}
             </span>
           ) : null}
+          {entry.date ? (
+            <span className="ml-auto shrink-0 font-mono text-[10px] leading-[16px] text-[#8a827b]">
+              {entry.date}
+            </span>
+          ) : null}
         </p>
-        <p className="mt-[2px] text-[#58524e]">{entry.brief}</p>
+        <p className="mt-[2px] truncate text-[#58524e]">{entry.brief}</p>
       </div>
-      {entry.date ? (
-        <p className="shrink-0 font-mono text-[11px] leading-[16px] text-[#8a827b]">
-          {entry.date}
-        </p>
-      ) : null}
-      {/* Same exported chevron the Ando cards use. */}
-      <img
-        alt=""
-        src="/caleb-slides/chevron-right.svg"
-        className="size-[18px] shrink-0"
-      />
     </Link>
   );
 }
@@ -276,7 +313,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 justify-center bg-white">
-      <main className="w-full max-w-xl px-6 pb-20">
+      <main className="w-full max-w-3xl px-6 pb-20">
         <div className="sticky top-0 z-10 flex justify-center pt-10 pb-6">
           <div className="inline-flex items-center gap-[2px] rounded-full bg-white/85 p-[3px] shadow-[0px_0px_0px_1px_rgba(81,76,71,0.12),0px_8px_8px_-4px_rgba(22,25,29,0.03),0px_20px_24px_-4px_rgba(22,25,29,0.08)] backdrop-blur-[20px]">
             {TABS.map(([value, label]) => (
@@ -305,7 +342,7 @@ export default function Home() {
             ariaLabel="Filter projects by week"
           />
         ) : null}
-        <ul className="mt-4 flex flex-col gap-[12px]">
+        <ul className="mt-4 grid grid-cols-1 gap-[16px] sm:grid-cols-2">
           {entries.map((entry) => (
             <li key={entry.href}>
               <EntryCard entry={entry} />

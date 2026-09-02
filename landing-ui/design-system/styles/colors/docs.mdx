@@ -1,0 +1,114 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+
+<Meta title="Foundations/Colors/Docs" />
+
+# Colors
+
+## Token types
+
+### Primitives
+
+Raw values you will rarely use directly. Prefer the semantic tokens below.
+
+- **Opacity (black)** - `--color-opacity-1` through `--color-opacity-80`. The working neutral ramp: text, borders, and subtle fills on light surfaces.
+- **Opacity (white)** - `--color-opacity-inverted-20/40/75/80`. Text and fills on dark surfaces.
+- **Tonal (opaque)** - `--color-tonal-10/20/30/40` (the light surfaces) and `--color-tonal-100` (opaque black). The mid-range is intentionally absent; mid greys come from the black-alpha ramp.
+
+### Semantic tokens
+
+Purpose-driven tokens that reference the primitives. These are what you should reach for.
+
+```css
+/* Text */
+--color-text-primary       /* opacity 80% - headings, primary body */
+--color-text-secondary     /* opacity 60% */
+--color-text-tertiary      /* opacity 40% - body, meta, inactive nav */
+
+/* Surfaces */
+--color-surface-primary    /* #ffffff */
+--color-surface-secondary  /* #fafaf8 - sections, footer */
+--color-surface-inverse    /* black 80% - dark buttons/cards */
+
+/* Borders */
+--color-border-default     /* opacity 10% */
+--color-border-subtle      /* opacity 8% */
+```
+
+## Usage
+
+### With Tailwind
+
+```tsx
+<div className="bg-surface-primary text-text-primary border border-border-default">
+  Content
+</div>
+
+<p className="text-text-tertiary">Last updated on May 1, 2026</p>
+
+{/* Dark button: inverse surface + inverse text */}
+<button className="bg-surface-inverse text-text-inverse">Get access</button>
+```
+
+### With CSS variables
+
+```css
+.card {
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  box-shadow: 0 1px 2px var(--color-shadow-default);
+}
+```
+
+## Choosing the right token
+
+### Text
+
+<table>
+  <thead>
+    <tr><th>Token</th><th>When to use</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>primary</code></td><td>Headings, primary body, active nav (black 80%)</td></tr>
+    <tr><td><code>secondary</code></td><td>Eyebrows and supporting copy (black 60%)</td></tr>
+    <tr><td><code>tertiary</code></td><td>Body paragraphs, metadata, dates, inactive nav (black 40%)</td></tr>
+    <tr><td><code>strong</code></td><td>The rare opaque-black headings and logo art (#000000)</td></tr>
+    <tr><td><code>inverse</code></td><td>Labels on dark surfaces (#ffffff)</td></tr>
+    <tr><td><code>inverse-strong</code> / <code>inverse-secondary</code> / <code>inverse-tertiary</code></td><td>Emphasis, glyphs and muted captions on dark surfaces (white 80 / 75 / 40%)</td></tr>
+  </tbody>
+</table>
+
+Icon tokens (`icon-primary`, `icon-secondary`, `icon-inverse`) mirror the text hierarchy so an icon always matches its label.
+
+### Surface
+
+<table>
+  <thead>
+    <tr><th>Token</th><th>When to use</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>primary</code></td><td>Page background and cards (#ffffff)</td></tr>
+    <tr><td><code>secondary</code></td><td>Sections and the footer (#fafaf8)</td></tr>
+    <tr><td><code>tertiary</code> / <code>quaternary</code></td><td>Paper tint and the hero graphic container</td></tr>
+    <tr><td><code>inverse</code></td><td>Dark buttons and investor cards (black 80%)</td></tr>
+    <tr><td><code>subtle</code> / <code>hover</code> / <code>pressed</code></td><td>Faint tints and interactive overlays (black 2 / 4 / 6%)</td></tr>
+    <tr><td><code>inverse-subtle</code></td><td>Fills layered on a dark surface, e.g. a keycap chip (white 20%)</td></tr>
+  </tbody>
+</table>
+
+### Border
+
+<table>
+  <thead>
+    <tr><th>Token</th><th>When to use</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>subtle</code></td><td>Hairline outlines (black 8%)</td></tr>
+    <tr><td><code>default</code></td><td>Dividers, card and chip edges (black 10%)</td></tr>
+    <tr><td><code>strong</code></td><td>Heavier edges such as the hero image container (black 20%)</td></tr>
+  </tbody>
+</table>
+
+### Shadow
+
+`--color-shadow-default` (black 20%) is the single elevation color observed in the frames (the app-icon drop shadow). Use it as the color inside a `box-shadow`.

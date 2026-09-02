@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
 import AndoHiveDiagram from "./ando-hive-diagram";
+import { BowtieLines, ConeLines, FanLines } from "./construction-lines";
 import { ContextTraceCanvas } from "./context-trace";
 import { FooterGlobeInstrument } from "./footer-globe-instrument";
+import { CoilLines, OrbitLines, RingDialLines, RingLines, RingStackLines, SphereLines } from "./line-arts";
 import { NumbersDeck } from "./numbers-deck";
 import OneLineBanner from "./one-line-banner";
 import { LibraryShelf, type Piece } from "./shelf";
@@ -107,6 +109,96 @@ const PIECES: Piece[] = [
   },
   {
     label: "09",
+    title: "The sphere",
+    home: "line art i — the wireframe dome, riders dimming behind it",
+    render: (
+      <div className="lib-card">
+        <SphereLines />
+      </div>
+    ),
+  },
+  {
+    label: "10",
+    title: "The coil",
+    home: "line art ii — a prolate cycloid, riders looping off the frame",
+    render: (
+      <div className="lib-card">
+        <CoilLines />
+      </div>
+    ),
+  },
+  {
+    label: "11",
+    title: "The orbits",
+    home: "line art iii — precessing rings, riders carried by both motions",
+    render: (
+      <div className="lib-card">
+        <OrbitLines />
+      </div>
+    ),
+  },
+  {
+    label: "12",
+    title: "The ring",
+    home: "line art iv — the hub and its orbit, spokes tracking the swarm",
+    render: (
+      <div className="lib-card">
+        <RingLines />
+      </div>
+    ),
+  },
+  {
+    label: "13",
+    title: "The ring, timed",
+    home: "iteration — the plate gone dark, timecodes ticking with the riders",
+    render: (
+      <div className="lib-card">
+        <RingDialLines />
+      </div>
+    ),
+  },
+  {
+    label: "14",
+    title: "The rings",
+    home: "iteration — three orbits of one system, rays cast through the riders",
+    render: (
+      <div className="lib-card">
+        <RingStackLines />
+      </div>
+    ),
+  },
+  {
+    label: "15",
+    title: "The cone",
+    home: "line art v — circles diminishing to the apex, a thread winding in",
+    render: (
+      <div className="lib-card">
+        <ConeLines />
+      </div>
+    ),
+  },
+  {
+    label: "16",
+    title: "The bowtie",
+    home: "line art vi — two-point perspective, a cursor running the circuit",
+    render: (
+      <div className="lib-card">
+        <BowtieLines />
+      </div>
+    ),
+  },
+  {
+    label: "17",
+    title: "The fan",
+    home: "line art vii — both wings sighting the spine, moiré drifting",
+    render: (
+      <div className="lib-card">
+        <FanLines />
+      </div>
+    ),
+  },
+  {
+    label: "18",
     title: "The uses",
     home: "was /affiliate-world’s ephemera shelf — the day printed small, off the page for the profile panel",
     render: (

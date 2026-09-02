@@ -37,3 +37,84 @@
     animation: none;
   }
 }
+
+/* The halo's arrival — it lands from above scale, easing down to its
+   resting size while the faces draw in along the line. */
+@keyframes ws-halo-settle {
+  0% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  /* the ring is already moving before it can be seen */
+  22% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ws-halo-settle {
+  animation: ws-halo-settle 1.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-halo-settle {
+    animation: none;
+  }
+}
+
+/* The halo's copy waits for the ring to settle, then rises in. */
+@keyframes ws-halo-copy {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ws-halo-copy {
+  animation: ws-halo-copy 0.5s cubic-bezier(0.2, 0, 0, 1) 0.65s both;
+}
+
+/* The ring arrives already populated — the zoom is the entrance, so
+   the per-face stagger stands down here. */
+.ws-halo .awb-enter {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-halo-copy {
+    animation: none;
+  }
+}
+
+/* …and the credit under the ring follows the copy in, a beat later. */
+.ws-halo-credit {
+  animation: ws-halo-copy 0.5s cubic-bezier(0.2, 0, 0, 1) 1s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-halo-credit {
+    animation: none;
+  }
+}
+
+/* The CTA follows the words in, its own beat between copy and credit. */
+.ws-halo-cta {
+  animation: ws-halo-copy 0.5s cubic-bezier(0.2, 0, 0, 1) 0.82s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-halo-cta {
+    animation: none;
+  }
+}

@@ -179,8 +179,10 @@ export function ProfilePanel({
           ×
         </button>
 
-        {/* the page itself scrolls; the walk bar below stays put */}
-        <div className="flex-1 overflow-y-auto px-6 py-8 md:px-10 md:py-10">
+        {/* the page itself scrolls; the walk bar below stays put. Keyed
+            by person: walking remounts the page, so it steps in fresh
+            and the little computer boots again for the new world. */}
+        <div className="awp-swap flex-1 overflow-y-auto px-6 py-8 md:px-10 md:py-10" key={person}>
         {/* who they are */}
         <div className="flex items-start gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -224,9 +226,9 @@ export function ProfilePanel({
         {/* the hall — pinned under the page, a door either side:
             face, name, chevron; no scrolling to find the way out */}
         {onVisit ? (
-          <div className="flex shrink-0 items-center justify-between gap-3 border-t-[0.5px] border-border-subtle bg-white px-4 py-2.5">
+          <div className="flex h-[52px] shrink-0 items-center justify-between gap-3 border-t-[0.5px] border-border-subtle bg-white px-4">
             <button
-              className="group flex min-w-0 items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors ease-fast hover:bg-surface-subtle"
+              className="group flex h-8 min-w-0 items-center gap-2 rounded-full px-2 transition-colors ease-fast hover:bg-surface-subtle"
               onClick={() => onVisit(prevPerson)}
               type="button"
             >
@@ -234,26 +236,26 @@ export function ProfilePanel({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 alt=""
-                className="size-8 shrink-0 rounded-full object-cover shadow-[0_0_0_1px_rgba(28,25,23,0.06)]"
+                className="size-5 shrink-0 rounded-full object-cover shadow-[0_0_0_1px_rgba(28,25,23,0.06)]"
                 src={`/avatars/${prevPerson}.png`}
               />
-              <Text as="span" className="truncate font-medium" size={TextSize.Small}>
-                {profileFor(prevPerson).name}
+              <Text as="span" className="truncate transition-colors ease-fast group-hover:text-text-primary" color="tertiary" size={TextSize.XS}>
+                @{profileFor(prevPerson).handle}
               </Text>
             </button>
             <button
-              className="group flex min-w-0 items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors ease-fast hover:bg-surface-subtle"
+              className="group flex h-8 min-w-0 items-center gap-2 rounded-full px-2 transition-colors ease-fast hover:bg-surface-subtle"
               onClick={() => onVisit(nextPerson)}
               type="button"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 alt=""
-                className="size-8 shrink-0 rounded-full object-cover shadow-[0_0_0_1px_rgba(28,25,23,0.06)]"
+                className="size-5 shrink-0 rounded-full object-cover shadow-[0_0_0_1px_rgba(28,25,23,0.06)]"
                 src={`/avatars/${nextPerson}.png`}
               />
-              <Text as="span" className="truncate font-medium" size={TextSize.Small}>
-                {profileFor(nextPerson).name}
+              <Text as="span" className="truncate transition-colors ease-fast group-hover:text-text-primary" color="tertiary" size={TextSize.XS}>
+                @{profileFor(nextPerson).handle}
               </Text>
               <Chevron />
             </button>

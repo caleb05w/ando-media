@@ -1,0 +1,34 @@
+{
+  "app": "ando-atmospheres",
+  "version": 1,
+  "mode": "sora",
+  "seed": 1247,
+  "params": {
+    "sunX": 1,
+    "sunY": 1,
+    "glow": 1,
+    "warm": 0.12,
+    "coverage": 0.45,
+    "soft": 0.65,
+    "scale": 2.2,
+    "billow": 0,
+    "cirrus": 0.92,
+    "drift": 0.79,
+    "haze": 0,
+    "ev": -0.18,
+    "bloom": 1,
+    "grain": 0.01,
+    "vig": 0
+  },
+  "camera": {
+    "type": 0,
+    "defocus": 0.31,
+    "edge": 0,
+    "highlights": 1,
+    "shutter": 0,
+    "pathSpeed": 0.34,
+    "pathTaper": 0.27,
+    "pathCentered": true
+  },
+  "paths": []
+}

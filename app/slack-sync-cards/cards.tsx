@@ -277,6 +277,9 @@ const GlyphAfterHours = (
   </div>
 );
 
+// The affiliate page's numbers deck borrows the drawing vocabulary.
+export { GlyphCelebrate, GlyphQuiet, GlyphTyping, GlyphVolley };
+
 /* ------------------------------- definitions ------------------------------ */
 
 export type CardDef = {

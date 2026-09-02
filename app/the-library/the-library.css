@@ -2,7 +2,7 @@
 
    Each piece renders inside a white canvas card on the grey page ground,
    after the "Body" frame in the Ando Brand file. The shelf has two layouts —
-   a scroll-snapped carousel and a two-up grid — and the embed treatments
+   a scroll-snapped carousel and a three-up grid — and the embed treatments
    from landing-page/landing-diagrams.css are scoped to .lib-card so the two
    routes can never drift into each other silently. */
 
@@ -41,22 +41,32 @@
 .lib-shelf--grid {
   --lib-card-h: 400px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr), not bare 1fr: a piece with a fixed-width stage
+     must clip inside its card, not grow its track and crush the
+     other columns. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px 16px;
-  max-width: 1200px;
+  max-width: 1560px;
   margin-inline: auto;
   padding-inline: 24px;
 }
 
+@media (max-width: 1279px) {
+  .lib-shelf--grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 767px) {
   .lib-shelf--grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* ── The card ─────────────────────────────────────────────────────────
-   White ground, fixed height, media centered. position: relative gives
-   canvas-corner chrome (the context trace's theme toggle) its anchor. */
+   White ground, square corners, fixed height, media centered.
+   position: relative gives canvas-corner chrome (the context trace's
+   theme toggle) its anchor. */
 
 .lib-card {
   position: relative;
@@ -65,7 +75,6 @@
   justify-content: center;
   height: var(--lib-card-h);
   overflow: hidden;
-  border-radius: 12px;
   background: #fff;
 }
 

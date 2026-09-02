@@ -483,7 +483,17 @@ function rosterFor(discs: Disc[]): string[] {
 // measured caption with the heads dial. Production embeds (the duet
 // hero) take the crowd bare. `onPick` makes the faces doors: click
 // one, and the caller opens that person's profile.
-export function WorldCrowd({ bench = true, onPick }: { bench?: boolean; onPick?: (person: string) => void }) {
+export function WorldCrowd({
+  bench = true,
+  onPick,
+  selected = null,
+}: {
+  bench?: boolean;
+  onPick?: (person: string) => void;
+  /** The person whose world is open — every seat they hold gets the
+      accent ring. */
+  selected?: string | null;
+}) {
   const [count, setCount] = useState(DEFAULT_N);
   const { discs, R, fit, spacing } = useMemo(() => solveCrowd(count), [count]);
   const PAD = 10;
@@ -511,7 +521,9 @@ export function WorldCrowd({ bench = true, onPick }: { bench?: boolean; onPick?:
         {discs.map((d, i) => (
           <span
             key={`${count}-${people[i]}-${i}`}
-            className={`aw-enter aw-item absolute ${onPick ? "cursor-pointer" : ""}`}
+            className={`aw-enter aw-item absolute ${onPick ? "cursor-pointer" : ""} ${
+              selected === people[i] ? "aw-item--picked" : ""
+            }`}
             onClick={onPick ? () => onPick(people[i]) : undefined}
             style={{
               left: pct(d.x - d.size / 2 + box / 2),

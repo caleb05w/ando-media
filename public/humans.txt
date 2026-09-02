@@ -1,0 +1,11 @@
+/* CREDITS */
+
+people who worked on this website
+
+design
+  raghal agarwal · https://www.rghv.ca/
+  aj · https://x.com/ajisadesigner
+  filipe soares · https://filipe.work/
+
+development
+  vova vindar · https://vovavindar.com

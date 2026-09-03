@@ -98,7 +98,7 @@ type MessageRow = Extract<Row, { kind: "message" }>;
  *  and scrubs away with everything after that beat. */
 type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string; /** sent from the Jam panel's thread composer */ thread?: true };
 
-type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; /** the DM the script opens */ dm: Row[]; /** what the room shows */ surface: Surface; /** DM handles gone unread */ unreadDms: string[]; /** the sidebar is in the window (it arrives with the first DM) */ sidebar: boolean; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; /** the DM the script opens */ dm: Row[]; /** what the room shows */ surface: Surface; /** DM handles gone unread */ unreadDms: string[]; /** the sidebar is in the window (it arrives with the first DM) */ sidebar: boolean; typing: Actor | null; /** the typing indicator belongs over the Jam thread's composer */ typingInThread: boolean; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Timing): StageState {
   let scriptedJam: JamCall | null = null;
@@ -261,7 +261,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, thread, dm, surface, unreadDms, sidebar, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
+  return { rows, thread, dm, surface, unreadDms, sidebar, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, typingInThread: last?.kind === "typing" && last.thread === true, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -618,7 +618,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, thread, dm, surface, unreadDms, sidebar, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted, timing), [scene, cursor, sent, mounted, timing]);
+  const { rows, thread, dm, surface, unreadDms, sidebar, typing, typingInThread, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted, timing), [scene, cursor, sent, mounted, timing]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -1009,7 +1009,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             <div aria-hidden className="mt-auto shrink-0" />
             {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
-          <Composer scene={room} typing={typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
+          <Composer scene={room} typing={typingInThread ? null : typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
         </main>
         {jamCall != null && jamCall.endedAt == null && panelOpen ? (
           <>
@@ -1033,6 +1033,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
                 composer={jamPhase === "docked"}
                 scripted={draftInThread ? scriptedDraft : null}
+                typing={typingInThread ? typing : null}
                 onSend={sendThread}
                 threadCount={thread.length}
                 thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" />)}

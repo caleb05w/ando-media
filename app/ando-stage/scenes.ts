@@ -65,7 +65,7 @@ export type Beat =
   | { kind: "logo"; ms: number }
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
-  | { kind: "typing"; who: string; ms: number }
+  | { kind: "typing"; who: string; /** the indicator sits over the Jam thread's composer, not the room's */ thread?: true; ms: number }
   | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; /** Lands in a DM (see the `surface` beat), not the channel. */ room?: "dm"; /** Types out character by character from the moment it lands (an agent writing), instead of arriving whole. */ typed?: true; ms: number }
   /** A DM goes unread in the sidebar. */
   | { kind: "dm-unread"; who: string; ms: number }
@@ -358,7 +358,7 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "j0a", who: "oli", time: "10:41 AM", ms: 0, body: [[{ text: "morning all ☕️" }]] },
     // A first-time viewer needs a moment to see the room before anything
     // moves: a beat on the channel, then your line types at a readable pace.
-    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 2600, body: [[{ text: "deploy went out clean last night 🎉" }]] },
+    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 1600, body: [[{ text: "deploy went out clean last night 🎉" }]] },
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 700, body: [[{ text: "@Sara Du", mention: true }, { text: " hey, wanna jam on this idea I had for our launch vid" }]] },
     { kind: "typing", who: "sara", ms: 800 },
     { kind: "say", id: "j5", who: "sara", time: "11:06 AM", ms: 1900, body: [[{ text: "Sure, calling now!" }]] },
@@ -379,19 +379,14 @@ const JAMS_CUT: Scene = {
     // No line lands while the section is moving (its unfold and its dock
     // take 700ms): a slot pushing up against a bottom edge still coming down
     // reads as a stutter.
-    { kind: "jam-deploy", tab: "transcript", ms: 900 },
-    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 900 },
-    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1800 },
-    // Shot 3 — the room comes back; the panel docks; five more lines, quick.
+    // The back and forth is three seconds flat, from the panel unfolding
+    // to the card: two lines in the unfolded panel, the dock, one more.
+    { kind: "jam-deploy", tab: "transcript", ms: 750 },
+    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 500 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 600 },
+    // Shot 3 — the room comes back; the panel docks; two more lines, quick.
     { kind: "jam-dock", ms: 750 },
-    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 430 },
-    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 400 },
-    { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 450 },
-    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 430 },
-    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 480 },
-    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 430 },
-    { kind: "transcript", who: "caleb", text: "two seconds on the logo, no more", ms: 480 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 1500 },
+    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 400 },
     // Shot 4 — white. The middle line.
     // Rule: a card's dwell covers its hold AND its 0.6s lift, plus a breath,
     // so nothing that follows — the cursor's trip to Thread, the press —
@@ -410,6 +405,7 @@ const JAMS_CUT: Scene = {
     },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },
+    { kind: "typing", who: "sara", thread: true, ms: 1200 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
@@ -514,7 +510,7 @@ export function scriptedDraftAt(scene: Scene, T: Timing, vt: number): string | n
   const prevEnd = next > 0 ? T[beatKey(next - 1)] : 0;
   const room = start - prevEnd - 0.15;
   const hold = Math.min(SEND_HOLD, Math.max(0, room - 0.3));
-  const window = Math.max(0.25, Math.min(room - hold, 0.07 * keyed + 0.5));
+  const window = Math.max(0.25, Math.min(room - hold, 0.013 * keyed + 0.15));
   const from = start - hold - window;
   if (vt < from) return null;
   const total = steps.reduce((sum, step) => sum + step.w, 0);

@@ -8,6 +8,7 @@
 // the production strings; the LiveKit room is the only thing not here.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode, useState } from "react";
+import { TypingIndicator } from "./typing";
 import { Icon } from "./glyph";
 import { Avatar } from "./chrome";
 import { Landing } from "./landing";
@@ -268,7 +269,7 @@ function chaseBottom(list: HTMLDivElement | null, ms = 380) {
 /** Curve and length of every move the panel makes between its phases. */
 export const JAM_MOVE = "700ms cubic-bezier(0.2, 0, 0, 1)";
 
-export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true, thread = null, threadCount = 0, scripted = null, onSend }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean; /** Rows in the Jam's thread, after the join event. */ thread?: ReactNode; threadCount?: number; /** A line the script is typing into the thread composer. */ scripted?: string | null; /** Your own line, sent from the thread composer. */ onSend?: (text: string) => void }) {
+export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true, thread = null, threadCount = 0, scripted = null, typing = null, onSend }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean; /** Rows in the Jam's thread, after the join event. */ thread?: ReactNode; threadCount?: number; /** A line the script is typing into the thread composer. */ scripted?: string | null; /** whoever is typing into the thread — the indicator rides over the composer */ typing?: Actor | null; /** Your own line, sent from the thread composer. */ onSend?: (text: string) => void }) {
   const duration = useCallDuration(call.startedAt, elapsed);
   // transcripts-list.tsx TranscriptAutoFollow: the list stays pinned to the
   // newest segment as they land (and when the tab opens onto a backlog).
@@ -341,7 +342,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                     data-agent-speaking={speaking === actor ? "true" : "false"}
                     initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.7 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
                     animate={{ flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
-                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 420, damping: 22, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
+                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 380, damping: 12, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
                     style={{ transformOrigin: "50% 50%" }}
                   >
                     <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>
@@ -433,7 +434,9 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             it is never shoved: the section and the composer open together. */}
         {/* Only the thread has a composer — the live transcript is read-only. It grows in
             once, when the panel docks; a tab switch shows it in place. */}
-        {composer && tab === "thread" ? <motion.div className="relative z-10 flex flex-col space-y-2 overflow-hidden px-4 pb-4 pt-2" initial={composerGrown ? false : { height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }} onAnimationComplete={() => setComposerGrown(true)}>
+        {composer && tab === "thread" ? <motion.div className={`relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2 ${composerGrown ? "" : "overflow-hidden"}`} initial={composerGrown ? false : { height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }} onAnimationComplete={() => setComposerGrown(true)}>
+          <div className="relative flex flex-col">
+          {typing ? <TypingIndicator actor={typing} /> : null}
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
             {/* The editor is shorter than the room's so the whole box, with its "Also send to" row, is the same height. */}
             <div className="relative min-h-[58px]" data-jam-editor>
@@ -484,6 +487,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                 </span>
               </div>
             </div>
+          </div>
           </div>
         </motion.div> : null}
       </div>

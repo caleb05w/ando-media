@@ -307,7 +307,9 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
     const editor = editorRef.current;
     if (editor) editor.style.height = "";
   }, [draft, onSend]);
-  const tabClass = (active: boolean, extra: string) => `ando-tabs__trigger cursor-pointer border-b-0 pb-0 h-7 px-2 flex items-center rounded-md space-x-0 hover:bg-ando-bg-fill-muted ${active ? "bg-ando-bg-fill-muted border-transparent" : ""} ${extra}`;
+  // The active tab's fill is one shared pill that springs across to whichever tab is pressed.
+  const tabClass = (active: boolean, extra: string) => `ando-tabs__trigger relative cursor-pointer border-b-0 pb-0 h-7 px-2 flex items-center rounded-md space-x-0 hover:bg-ando-bg-fill-muted ${active ? "border-transparent" : ""} ${extra}`;
+  const tabPill = <motion.span aria-hidden layoutId="jam-tab-pill" className="absolute inset-0 rounded-md bg-ando-bg-fill-muted" transition={{ type: "spring", stiffness: 520, damping: 34 }} />;
   return (
     <div className={`${slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
       {/* Docked stage */}
@@ -347,7 +349,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                     transition={you ? { flexGrow: { type: "spring", stiffness: 260, damping: 16, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 300, damping: 15, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
                     style={{ transformOrigin: "50% 50%" }}
                   >
-                    <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>
+                    {/* The ring landing on someone gives their avatar a little pop. */}
+                    <motion.div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`} animate={{ scale: speaking === actor ? [1, 1.1, 1] : 1 }} transition={{ duration: 0.45, times: [0, 0.35, 1], ease: [0.2, 0, 0, 1] }}><Avatar actor={actor} size={64} /></motion.div>
                     <div className="absolute bottom-1 left-1 right-1 flex min-w-0">
                       <div className="flex h-5 min-w-0 max-w-full items-center gap-0.5 overflow-hidden rounded-sm bg-ando-black/25 py-0 pl-1 pr-1 backdrop-blur-[8px]">
                         <span className="flex size-3 items-center justify-center text-ando-fg-white"><Icon name={index === 0 && muted ? "IconMicrophoneOff" : "IconMicrophone"} size={12} fill="filled" /></span>
@@ -382,10 +385,12 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
         <div className="ando-surface-header">
           <div className="ando-tabs__list flex items-center space-x-0 gap-3 border-b-0">
             <button type="button" onClick={() => onTab("thread")} data-jam-tab="thread" className={tabClass(tab === "thread", "text-ando-fg-primary")} data-state={tab === "thread" ? "active" : "inactive"}>
-              <span className="kanso-text-label-12-md inline-flex items-center gap-1.5"><Icon name="IconThread" fill={tab === "thread" ? "filled" : "outlined"} />Thread</span>
+              {tab === "thread" ? tabPill : null}
+              <span className="kanso-text-label-12-md relative inline-flex items-center gap-1.5"><Icon name="IconThread" fill={tab === "thread" ? "filled" : "outlined"} />Thread</span>
             </button>
             <button type="button" onClick={() => onTab("transcript")} data-jam-tab="transcript" className={tabClass(tab === "transcript", "text-ando-rose-600 hover:text-ando-rose-600")} data-state={tab === "transcript" ? "active" : "inactive"}>
-              <span className="kanso-text-label-12-md inline-flex items-center gap-1.5"><Icon name="IconSquareLinesBottom" fill={tab === "transcript" ? "filled" : "outlined"} />Live transcript</span>
+              {tab === "transcript" ? tabPill : null}
+              <span className="kanso-text-label-12-md relative inline-flex items-center gap-1.5"><Icon name="IconSquareLinesBottom" fill={tab === "transcript" ? "filled" : "outlined"} />Live transcript</span>
             </button>
           </div>
         </div>

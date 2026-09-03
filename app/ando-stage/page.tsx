@@ -608,6 +608,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // may have moved or gone (the Join button after you join) — so every move
   // is continuous. The origin is captured when a new cursor beat begins.
   const pointerPos = useRef<{ x: number; y: number } | null>(null);
+  const pressedAt = useRef<number | null>(null);
   const pointerGlide = useRef<{ at: number; origin: { x: number; y: number } } | null>(null);
   // Wall time the current take started.
   const [mounted] = useState(() => Date.now());
@@ -859,7 +860,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       const win = windowRef.current;
       if (win) {
         // The window rises 20px into place, no scale, on a quartic ease-out.
-        const p = 1 - Math.pow(1 - seg(vt, 0.1, 0.5), 4);
+        const p = 1 - Math.pow(1 - seg(vt, 0.15, 0.6), 4);
         win.style.opacity = `${Math.min(1, p * 1.6)}`;
         win.style.transform = `translateY(${20 * (1 - p)}px)`;
       }
@@ -929,6 +930,14 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             return target === "composer" ? { x: r.left + 28, y: r.top + 22 } : { x: r.left + r.width / 2, y: r.top + r.height / 2 };
           };
           const to = aim(pose.to);
+          // The press lands on the control too: a squash that springs back
+          // (stage.css st-press), once per press beat.
+          if (pose.press > 0 && pressedAt.current !== pose.at) {
+            pressedAt.current = pose.at;
+            const selector = pose.to.startsWith("dm:") ? `[data-sidebar-dm="${pose.to.slice(3)}"]` : CURSOR_TARGETS[pose.to as keyof typeof CURSOR_TARGETS];
+            const el = selector ? document.querySelector<HTMLElement>(selector) : null;
+            if (el) { el.classList.remove("st-press"); void el.offsetWidth; el.classList.add("st-press"); el.addEventListener("animationend", () => el.classList.remove("st-press"), { once: true }); }
+          }
           if (to) {
             // New beat: leave from where we are. Scrubbed into a beat cold,
             // the best guess is the previous target's live position, then

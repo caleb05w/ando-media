@@ -63,6 +63,8 @@ export type Beat =
   | { kind: "context"; hold: number; ms: number }
   /** The end: cut to white, the mark bounces in, the wordmark lands beside it. */
   | { kind: "logo"; ms: number }
+  /** Nothing happens for `ms`: room for what the next beat needs before it lands (your typing, a breath). */
+  | { kind: "wait"; ms: number }
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; /** the indicator sits over the Jam thread's composer, not the room's */ thread?: true; ms: number }
@@ -352,13 +354,10 @@ const JAMS_CUT: Scene = {
   surface: { kind: "channel", name: "marketing", members: 9 },
   cast: CAST,
   beats: [
-    // The opening in about two seconds: the link is up, Sara's question
-    // shows her typing, your reply types itself, she asks for the jam.
-    // Already there when we open, so the channel reads lived-in.
-    { kind: "say", id: "j0a", who: "oli", time: "10:41 AM", ms: 0, body: [[{ text: "morning all ☕️" }]] },
-    // A first-time viewer needs a moment to see the room before anything
-    // moves: a beat on the channel, then your line types at a readable pace.
-    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 1600, body: [[{ text: "deploy went out clean last night 🎉" }]] },
+    // The opening: an empty channel, a moment to take the window in, then
+    // your ask types itself and Sara calls. The wait is the room your
+    // typing needs before the line lands (scriptedDraftAt works back from it).
+    { kind: "wait", ms: 1900 },
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 700, body: [[{ text: "@Sara Du", mention: true }, { text: " hey, wanna jam on this idea I had for our launch vid" }]] },
     { kind: "typing", who: "sara", ms: 800 },
     { kind: "say", id: "j5", who: "sara", time: "11:06 AM", ms: 1900, body: [[{ text: "Sure, calling now!" }]] },

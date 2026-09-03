@@ -16,6 +16,7 @@
 // docked from the start and keeps the product's own slide-in.
 
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { animate } from "motion";
 import { JAM_MOVE } from "./jam";
 
 export type JamPhase = "hero" | "deploy" | "docked";
@@ -27,7 +28,9 @@ export const LOWER_DEPLOYED = 250;
 const HERO_SCALE = 1.2;
 /** The entrance: 2rem below the seat, a touch small, transparent. */
 const ENTER_RISE = 32;
-const ENTER_SCALE = 0.95;
+const ENTER_SCALE = 0.92;
+/** The arrival spring (damping ratio ~0.55): it lands, overshoots a hair, settles. */
+const ENTER_SPRING = { type: "spring" as const, stiffness: 240, damping: 17, mass: 1 };
 /** The arrival is quicker than the panel's other moves: the press should feel like it opened the call. */
 const ENTER_MOVE = "420ms cubic-bezier(0.2, 0, 0, 1)";
 /** The sky. The photo at public/ando-stage/sky.jpg when it is there; under
@@ -100,16 +103,25 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     box.style.opacity = "0";
     box.style.transform = `translateY(${ENTER_RISE}px) scale(${heroScale * ENTER_SCALE})`;
     void box.offsetWidth;
+    let spring: { stop: () => void } | null = null;
     const raf = requestAnimationFrame(() => {
-      const now = latest.current;
       if (sky) { sky.style.transition = `opacity ${ENTER_MOVE}`; sky.style.opacity = "1"; }
-      box.style.transition = `transform ${ENTER_MOVE}, opacity ${ENTER_MOVE}`;
+      // The rise and the scale ride one spring, so the panel lands with a
+      // little give — past its seat and back — instead of easing to a stop.
+      // The fade stays on the sky's curve so the two arrive as one (and the
+      // first-frame re-seat, once the row is measured, happens unseen).
+      box.style.transition = `opacity ${ENTER_MOVE}`;
       box.style.opacity = "1";
-      box.style.transform = `translateY(0px) scale(${now?.scale ?? heroScale})`;
-      // Back on the panel's own curve once it has arrived.
-      window.setTimeout(() => { box.style.transition = MOVE; }, 450);
+      spring = animate(0, 1, {
+        ...ENTER_SPRING,
+        onUpdate: (p) => {
+          const target = latest.current?.scale ?? heroScale;
+          box.style.transform = `translateY(${ENTER_RISE * (1 - p)}px) scale(${target * (ENTER_SCALE + (1 - ENTER_SCALE) * p)})`;
+        },
+        onComplete: () => { box.style.transition = MOVE; },
+      });
     });
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); spring?.stop(); };
   }, [row]);
 
   const floating = phase !== "docked";

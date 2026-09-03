@@ -24,7 +24,7 @@ import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
-import { Landing } from "./landing";
+import { Landing, Leaving } from "./landing";
 import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, LINE_EXIT, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, easeInOut, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
@@ -58,7 +58,7 @@ const MAX_IMAGE_HEIGHT = 300;
 type Reaction = { emoji: string; count: number };
 type Run = { run: string; who: Actor; task: string; done: boolean };
 /** An agent's one-line live trace under the message that prompted it. */
-type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | "transcript" | null; done: boolean; tool: string | null; /** the row is the agent's own reply */ onReply: boolean };
+type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | "transcript" | null; done: boolean; tool: string | null; /** the row is the agent's own reply */ onReply: boolean; /** the run has moved on to the reply — the line folds away under the ask */ leaving?: boolean };
 
 
 /** Agent lines type out at this pace once they land (the landing hero: 55 cps; faster here so a recap fits its beat). */
@@ -89,6 +89,8 @@ type Row =
       typedAt?: number;
       /** Already there when the film opens: no entrance. */
       still?: boolean;
+      /** Lands where a typing indicator was: the slot starts at that clearance. */
+      replacesTyping?: boolean;
     };
 
 type MessageRow = Extract<Row, { kind: "message" }>;
@@ -213,19 +215,23 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
       case "typing":
         break;
       case "say": {
-        const row: MessageRow = { ...base(scene.cast[beat.who], beat.time), key: beat.id, body: beat.body, beat: beatKey(index), typedAt: beat.typed ? T[beatKey(index)] : undefined, still: T[beatKey(index)] <= 0.5 };
+        const row: MessageRow = { ...base(scene.cast[beat.who], beat.time), key: beat.id, body: beat.body, beat: beatKey(index), typedAt: beat.typed ? T[beatKey(index)] : undefined, still: T[beatKey(index)] <= 0.5, replacesTyping: index > 0 && scene.beats[index - 1].kind === "typing" };
         // A finished run moves from the ask onto the agent's reply; runs already
         // sitting on a reply stay where they are.
         for (const other of messages.values()) {
           const moving = other.traces.filter((trace) => trace.done && !trace.onReply && trace.who === row.who);
           if (moving.length > 0) {
-            // The finished run leaves the ask; the reply carries no "worked for" line.
-            other.traces = other.traces.filter((trace) => !moving.includes(trace));
+            // The finished run leaves the ask — folding away as the reply lands,
+            // so the rows above move once — and the reply carries no "worked for" line.
+            other.traces = other.traces.map((trace) => (moving.includes(trace) ? { ...trace, leaving: true } : trace));
           }
         }
         push(row, beat.id, beat.thread ? thread : beat.room === "dm" ? dm : rows);
         break;
       }
+      case "sidebar":
+        sidebar = true;
+        break;
       case "dm-unread":
         if (!unreadDms.includes(beat.who)) unreadDms = [...unreadDms, beat.who];
         sidebar = true;
@@ -282,7 +288,8 @@ function fitImage(width: number, height: number) {
 function Body({ body, caret = false }: { body: Segment[][]; /** the line is still being written — a caret rides its last letter */ caret?: boolean }) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col gap-2">
-      {body.map((paragraph, pIndex) => (
+      {body.map((paragraph, pIndex) => {
+        const p = (
         <p key={pIndex} className="kanso-text-label-14 m-0 whitespace-pre-wrap break-words text-ando-fg-primary">
           {paragraph.map((segment, sIndex) =>
             segment.mention ? (
@@ -295,7 +302,11 @@ function Body({ body, caret = false }: { body: Segment[][]; /** the line is stil
           )}
           {caret && pIndex === body.length - 1 ? <span className="st-caret ml-px inline-block h-[15px] w-px translate-y-[3px] bg-ando-fg-primary" aria-hidden /> : null}
         </p>
-      ))}
+        );
+        // While a line is being written, each paragraph after the first
+        // lands (slot + gap growing) the moment the writing reaches it.
+        return caret && pIndex > 0 ? <Landing key={pIndex} gap={8}>{p}</Landing> : p;
+      })}
     </div>
   );
 }
@@ -447,7 +458,9 @@ function sliceBody(body: Segment[][], n: number): Segment[][] {
   let left = n;
   const out: Segment[][] = [];
   for (const paragraph of body) {
-    if (left <= 0) break;
+    // The first paragraph is always there (empty, with the caret) so the row
+    // has its line box — and its height — before the first letter.
+    if (left <= 0 && out.length > 0) break;
     const p: Segment[] = [];
     for (const segment of paragraph) {
       if (left <= 0) break;
@@ -467,7 +480,7 @@ const bodyLength = (body: Segment[][]) => body.reduce((n, paragraph) => n + para
  *  pushed up by layout, and the row fades in — no scale. The row holds its
  *  top edge and clips while the slot grows, so it reveals in reading
  *  order (avatar, name, then the line) rather than last line first. */
-function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; jamActions: JamActions; /** Which edge the row holds while its slot grows: bottom in a bottom-anchored transcript (what is above is pushed up), top in a top-anchored list like the Jam thread (the row reveals downward). */ anchor?: "bottom" | "top" }) {
+function MessageRowView({ row, jamActions, anchor = "top", clearance = 36 }: { row: MessageRow; jamActions: JamActions; /** The list's typing-indicator clearance (px): a row replacing the indicator starts its slot there. */ clearance?: number; /** Which edge the row holds while its slot grows: bottom in a bottom-anchored transcript (what is above is pushed up), top in a top-anchored list like the Jam thread (the row reveals downward). */ anchor?: "bottom" | "top" }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
   // A typed line reveals itself at TYPE_CPS from the second it landed.
   const total = row.body ? bodyLength(row.body) : 0;
@@ -477,7 +490,7 @@ function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; 
   // Rows that were there when the film opened do not land; they are simply there.
   const Slot = row.still ? StillSlot : Landing;
   return (
-    <Slot anchor={anchor} data-beat={row.beat} data-row-id={row.key}>
+    <Slot anchor={anchor} from={row.replacesTyping ? clearance : 0} data-beat={row.beat} data-row-id={row.key}>
       {/* message-row-frame.tsx: a live call row wears the success wash and a 2px success edge */}
       <div className={`group relative min-w-0 -ml-4 px-4 py-1.5 ${activeCall ? "pl-3.5 pb-1.5 bg-ando-bg-success-subtle border-l-2 border-l-ando-action-success rounded-l-none rounded-r-md" : "rounded-r-md hover:bg-ando-bg-fill-subtle"}`}>
         <div className="flex min-w-0 w-full max-w-full items-start gap-2 overflow-visible">
@@ -501,7 +514,7 @@ function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; 
               {row.attachment ? <div className="pt-1.5"><AttachmentView attachment={row.attachment} /></div> : null}
               {row.jam ? (row.jam.endedAt == null ? <ActiveJamCallCard call={row.jam} muted={jamActions.muted} elapsed={jamActions.elapsed} onToggleMute={jamActions.toggleMute} onEnd={jamActions.end} onJoin={jamActions.join} /> : <EndedJamCallCard call={row.jam} />) : null}
               {row.reactions.length > 0 ? <ReactionRow reactions={row.reactions} /> : null}
-              {row.traces.map((trace) => jamActions.tracePhases[trace.run] ? <TraceLine key={trace.run} agent={trace.who} participants={jamActions.traceParticipants} phases={jamActions.tracePhases[trace.run]} vt={jamActions.traceVt} onReply={trace.onReply} /> : null)}
+              {row.traces.map((trace) => jamActions.tracePhases[trace.run] ? (trace.leaving ? <Leaving key={trace.run} gap={8}><TraceLine agent={trace.who} participants={jamActions.traceParticipants} phases={jamActions.tracePhases[trace.run]} vt={jamActions.traceVt} onReply={trace.onReply} /></Leaving> : <Landing key={trace.run} gap={8}><TraceLine agent={trace.who} participants={jamActions.traceParticipants} phases={jamActions.tracePhases[trace.run]} vt={jamActions.traceVt} onReply={trace.onReply} /></Landing>) : null)}
               {row.runs.map((run) => <RunRow key={run.run} run={run} />)}
             </div>
           </div>
@@ -511,9 +524,9 @@ function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; 
   );
 }
 
-function StillSlot({ children, className = "", ...rest }: { children: React.ReactNode; className?: string; anchor?: "top" | "bottom" } & Record<`data-${string}`, string | undefined>) {
-  const { anchor: _anchor, ...attrs } = rest as { anchor?: "top" | "bottom" } & Record<`data-${string}`, string | undefined>;
-  void _anchor;
+function StillSlot({ children, className = "", ...rest }: { children: React.ReactNode; className?: string; anchor?: "top" | "bottom"; from?: number } & Record<`data-${string}`, string | undefined>) {
+  const { anchor: _anchor, from: _from, ...attrs } = rest as { anchor?: "top" | "bottom"; from?: number } & Record<`data-${string}`, string | undefined>;
+  void _anchor; void _from;
   return <div className={`flex w-full flex-col ${className}`} {...attrs}>{children}</div>;
 }
 
@@ -1009,7 +1022,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
           <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
           {/* The typing indicator's clearance eases in and out on the landing curve, so the transcript never jumps when someone stops typing and their line lands. */}
-          <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8, transition: "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" }}>
+          <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing && !typingInThread ? 44 : 8, transition: typing && !typingInThread ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }}>
             <div aria-hidden className="mt-auto shrink-0" />
             {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
@@ -1040,7 +1053,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 typing={typingInThread ? typing : null}
                 onSend={sendThread}
                 threadCount={thread.length}
-                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" />)}
+                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" clearance={40} />)}
               />
             </JamStage>
           </>

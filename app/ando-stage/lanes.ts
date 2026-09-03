@@ -41,6 +41,7 @@ function label(scene: Scene, beat: Beat): string {
     case "context": return "agent reads the jam";
     case "logo": return "logo";
     case "wait": return "wait";
+    case "sidebar": return "sidebar";
   }
 }
 

@@ -65,6 +65,8 @@ export type Beat =
   | { kind: "logo"; ms: number }
   /** Nothing happens for `ms`: room for what the next beat needs before it lands (your typing, a breath). */
   | { kind: "wait"; ms: number }
+  /** The sidebar slides into the window (ahead of the first DM, so its unread row is seen arriving). */
+  | { kind: "sidebar"; ms: number }
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; /** the indicator sits over the Jam thread's composer, not the room's */ thread?: true; ms: number }
@@ -412,6 +414,8 @@ const JAMS_CUT: Scene = {
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
+    // The sidebar slides in with Tadao's reply, so it is settled when the DM's unread row lands in it.
+    { kind: "sidebar", ms: 0 },
     { kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2200, body: [[{ text: "yep! sending you both a dm" }]] },
     // Shot 6 — a second after the recap, Tadao does what it said: a DM,
     // unread in the sidebar while the call is still on. You hang up, then

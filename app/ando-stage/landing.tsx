@@ -22,7 +22,24 @@ export const LAND_EASE = [0.3, 0.8, 0.3, 1] as const;
 export const LAND_MS = 300;
 const FADE_MS = 180;
 
-export function Landing({ children, className = "", anchor = "top", ...rest }: { children: ReactNode; className?: string; /** Which edge the row holds while the slot grows. */ anchor?: "top" | "bottom" } & Record<`data-${string}`, string | undefined>) {
+/** The opposite of a landing: whatever is inside folds away on the same
+ *  curve — its height (and the flex gap above it, `gap` px) to nothing —
+ *  so the rows around it move once, smoothly, instead of jumping when it
+ *  unmounts. It stays in the tree at zero height. */
+export function Leaving({ children, gap = 0 }: { children: ReactNode; gap?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const from = el.offsetHeight;
+    el.style.overflow = "hidden";
+    const fold = animate(el, { height: [from, 0], marginTop: [0, -gap], opacity: [1, 0] }, { duration: LAND_MS / 1000, ease: [...LAND_EASE] });
+    return () => fold.stop();
+  }, [gap]);
+  return <div ref={ref} className="flex w-full flex-col">{children}</div>;
+}
+
+export function Landing({ children, className = "", anchor = "top", gap = 0, from = 0, ...rest }: { children: ReactNode; className?: string; /** Which edge the row holds while the slot grows. */ anchor?: "top" | "bottom"; /** The flex gap (px) the parent puts above this slot: it grows in with the slot instead of appearing whole. */ gap?: number; /** The slot's starting height: the clearance a typing indicator held (dropped the same frame), so what is above moves once. */ from?: number } & Record<`data-${string}`, string | undefined>) {
   const slotRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -31,7 +48,7 @@ export function Landing({ children, className = "", anchor = "top", ...rest }: {
     if (!slot || !inner) return;
     const target = inner.offsetHeight;
     slot.style.overflow = "hidden";
-    const grow = animate(slot, { height: [0, target] }, { duration: LAND_MS / 1000, ease: [...LAND_EASE] });
+    const grow = animate(slot, gap > 0 ? { height: [from, target], marginTop: [-gap, 0] } : { height: [from, target] }, { duration: LAND_MS / 1000, ease: [...LAND_EASE] });
     const fade = animate(inner, { opacity: [0, 1] }, { duration: FADE_MS / 1000, ease: "easeOut" });
     grow.then(() => {
       slot.style.height = "auto";
@@ -41,9 +58,9 @@ export function Landing({ children, className = "", anchor = "top", ...rest }: {
       grow.stop();
       fade.stop();
     };
-  }, []);
+  }, [gap, from]);
   return (
-    <div ref={slotRef} className={`flex w-full flex-col ${anchor === "top" ? "justify-start" : "justify-end"} ${className}`} style={{ height: 0, overflow: "hidden" }} {...rest}>
+    <div ref={slotRef} className={`flex w-full flex-col ${anchor === "top" ? "justify-start" : "justify-end"} ${className}`} style={{ height: from, overflow: "hidden", marginTop: gap > 0 ? -gap : undefined }} {...rest}>
       <div ref={innerRef} className="flex w-full flex-col" style={{ opacity: 0 }}>
         {children}
       </div>

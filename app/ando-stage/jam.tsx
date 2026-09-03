@@ -12,6 +12,7 @@ import { TypingIndicator } from "./typing";
 import { Icon } from "./glyph";
 import { Avatar } from "./chrome";
 import { Landing } from "./landing";
+import { animate } from "motion";
 import { motion } from "motion/react";
 import type { Actor } from "./scenes";
 
@@ -38,6 +39,26 @@ export function VoiceGlyph({ className = "" }: { className?: string }) {
 /** Seconds after the call appears before you pop in, and before the tools follow. */
 const YOU_JOIN = 0.5;
 const TOOLS_IN = YOU_JOIN + 0.5;
+
+/** The transcript's lines. The ones already spoken when the list first
+ *  shows (the panel unfolding onto them) are simply there; only a line that
+ *  arrives afterwards lands. Lines landing while the section is still
+ *  growing pushed everything up and then let it back down. */
+function TranscriptLines({ transcript }: { transcript: TranscriptSegment[] }) {
+  const [still] = useState(() => transcript.length);
+  return transcript.map((segment, index) => {
+    const line = (
+      <div className="flex space-x-2">
+        <div className="shrink-0 pt-0.5"><Avatar actor={segment.who} size={20} /></div>
+        <div className="flex flex-col space-y-0.5 min-w-0">
+          <span className="kanso-text-label-11 text-ando-fg-secondary">{segment.who.name}</span>
+          <span className={`kanso-text-label-12 ${segment.final ? "" : "text-ando-fg-secondary italic"}`}>{segment.text}</span>
+        </div>
+      </div>
+    );
+    return index < still ? <div key={index} className="flex w-full shrink-0 flex-col">{line}</div> : <Landing key={index} className="shrink-0">{line}</Landing>;
+  });
+}
 
 /** `participants` are who is in the call; when `joined`, you are first. */
 export type JamCall = { id: string; startedAt: number; endedAt: number | null; participants: Actor[]; joined: boolean };
@@ -275,9 +296,20 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   // newest segment as they land (and when the tab opens onto a backlog).
   const transcriptRef = useRef<HTMLDivElement>(null);
   const lastText = transcript[transcript.length - 1]?.text ?? "";
-  useEffect(() => chaseBottom(transcriptRef.current), [transcript.length, lastText, tab]);
+  // The frame the list mounts (the tab showing) it sits at its bottom
+  // already — chasing there from the top would send every line up as the
+  // section starts unfolding, then let them back down. Lines that arrive
+  // afterwards are chased.
+  const shownTab = useRef<"thread" | "transcript" | null>(null);
+  useLayoutEffect(() => {
+    if (shownTab.current === tab) return;
+    shownTab.current = tab;
+    const list = tab === "transcript" ? transcriptRef.current : threadRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [tab]);
+  useEffect(() => chaseBottom(transcriptRef.current), [transcript.length, lastText]);
   const threadRef = useRef<HTMLDivElement>(null);
-  useEffect(() => chaseBottom(threadRef.current), [threadCount, tab, typing]);
+  useEffect(() => chaseBottom(threadRef.current), [threadCount, typing]);
   // While the section unfolds or docks (its height eases over JAM_MOVE), a
   // list taller than its box would show its top until the box outgrew it,
   // then snap to the bottom. Pin it to the bottom for the whole move.
@@ -290,7 +322,20 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   // over a read-only editor (the same arrangement as the room's composer).
   const [draft, setDraft] = useState("");
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const [composerGrown, setComposerGrown] = useState(false);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const composerGrown = useRef(false);
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (!el || composerGrown.current) return;
+    composerGrown.current = true;
+    // Measured, not Motion's `height: "auto"` — that under-read the box and
+    // it snapped the difference when the animation ended.
+    const target = el.offsetHeight;
+    el.style.overflow = "hidden";
+    const grow = animate(el, { height: [0, target], paddingTop: [0, 8], paddingBottom: [0, 16] }, { duration: 0.7, ease: [0.2, 0, 0, 1] });
+    grow.then(() => { el.style.height = "auto"; el.style.overflow = "visible"; });
+    return () => grow.stop();
+  });
   const shown = scripted ?? draft;
   const canSend = shown.trim().length > 0;
   useLayoutEffect(() => {
@@ -390,7 +435,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
       </div>
 
       {/* Thread / Live transcript — folded away while the call is the hero, unfolding to a set height, then filling the column. */}
-      <div className={`flex flex-col bg-ando-bg-main border-t border-ando-border-default ${lowerHeight == null ? "flex-1 min-h-0" : "shrink-0 overflow-hidden"}`} style={lowerHeight == null ? undefined : { height: lowerHeight, transition: `height ${JAM_MOVE}` }} data-jam-lower>
+      {/* justify-end: while the section is shorter than its header + list (the first frames of the unfold), the header is what gets clipped, at the top — so the list's bottom edge is the section's bottom edge from the first frame and the lines only ever move down with it. */}
+      <div className={`flex flex-col justify-end bg-ando-bg-main border-t border-ando-border-default ${lowerHeight == null ? "flex-1 min-h-0" : "shrink-0 overflow-hidden"}`} style={lowerHeight == null ? undefined : { height: lowerHeight, transition: `height ${JAM_MOVE}` }} data-jam-lower>
         <div className="ando-surface-header">
           <div ref={tabsRef} className="ando-tabs__list relative flex items-center space-x-0 gap-3 border-b-0">
             {pill ? <motion.span aria-hidden className="absolute top-0 h-7 rounded-md bg-ando-bg-fill-muted" initial={false} animate={{ x: pill.x, width: pill.w }} transition={{ type: "spring", stiffness: 520, damping: 34 }} /> : null}
@@ -409,21 +455,11 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             <div aria-hidden className="mt-auto shrink-0" />
             {transcript.length === 0 ? (
               <div className="flex h-full items-center justify-center kanso-text-label-12 text-ando-fg-secondary">Listening…</div>
-            ) : transcript.map((segment, index) => (
-              <Landing key={index} className="shrink-0">
-                <div className="flex space-x-2">
-                  <div className="shrink-0 pt-0.5"><Avatar actor={segment.who} size={20} /></div>
-                  <div className="flex flex-col space-y-0.5 min-w-0">
-                    <span className="kanso-text-label-11 text-ando-fg-secondary">{segment.who.name}</span>
-                    <span className={`kanso-text-label-12 ${segment.final ? "" : "text-ando-fg-secondary italic"}`}>{segment.text}</span>
-                  </div>
-                </div>
-              </Landing>
-            ))}
+            ) : <TranscriptLines transcript={transcript} />}
           </div>
         ) : (
         /* The typing indicator's clearance eases in and out on the landing curve (as the room's does), so the last row is never under it. */
-        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" style={{ paddingBottom: typing ? 40 : 0, transition: "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" }} data-jam-thread>
+        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" style={{ paddingBottom: typing ? 40 : 0, transition: typing ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }} data-jam-thread>
           {/* Bottom-anchored like the room: a reply lands at the composer and pushes the join event up. */}
           <div aria-hidden className="mt-auto shrink-0" />
           {/* system-message/index.tsx: join event */}
@@ -450,7 +486,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             it is never shoved: the section and the composer open together. */}
         {/* Only the thread has a composer — the live transcript is read-only. It grows in
             once, when the panel docks; a tab switch shows it in place. */}
-        {composer && tab === "thread" ? <motion.div className={`relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2 ${composerGrown ? "" : "overflow-hidden"}`} initial={composerGrown ? false : { height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }} onAnimationComplete={() => setComposerGrown(true)}>
+        {composer && tab === "thread" ? <div ref={composerRef} className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
           <div className="relative flex flex-col">
           {typing ? <TypingIndicator actor={typing} /> : null}
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
@@ -505,7 +541,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             </div>
           </div>
           </div>
-        </motion.div> : null}
+        </div> : null}
       </div>
     </div>
   );

@@ -250,10 +250,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const appear = pop(seg(vt, T.agent - 0.05, 0.32));
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
-      // Where the composer's own indicator draws its middle dot, measured
-      // against the rendered TypingIndicator: 21px in from the pane's edge,
-      // 17px up from the composer's box.
-      const P = { x: CARD.x + 21.2, y: cardY + bottomTop - 17 };
+      // Where the composer's own indicator draws its middle dot: the strip
+      // sits 3px above the box, its dots 4px in from the 16px inset on a
+      // 6px pitch — the middle one 28px in, 19.4px up from the box.
+      // Measured against the rendered TypingIndicator with the camera at
+      // rest (it must be at rest — mid pull-back the numbers lie).
+      const P = { x: CARD.x + 28, y: cardY + bottomTop - 19.4 };
       const C = { x: ax, y: LINE_Y };
       const z = zoomed ? lerp(ZOOM, 1, zp) : 1;
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;

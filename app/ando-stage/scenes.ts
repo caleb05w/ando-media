@@ -348,12 +348,12 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1000, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ms: 900 },
     { kind: "cursor", to: "join-button", glyph: "arrow", press: true, ms: 1100 },
-    // Shot 2 — cut to the sky: the call, alone, growing.
-    { kind: "jam-join", ms: 1600 },
-    { kind: "jam-deploy", ms: 900 },
-    { kind: "cursor", to: "transcript-tab", glyph: "pointer", press: true, ms: 900 },
-    { kind: "tab", tab: "transcript", ms: 500 },
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 900 },
+    // Shot 2 — cut to the sky: the call arrives, the transcript unfolds
+    // under it at once, and the talking starts right away.
+    { kind: "jam-join", ms: 600 },
+    { kind: "jam-deploy", ms: 250 },
+    { kind: "tab", tab: "transcript", ms: 150 },
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1100 },
     // Shot 3 — the room comes back; the panel docks.
     { kind: "jam-dock", ms: 900 },
     { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1500 },

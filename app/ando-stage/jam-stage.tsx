@@ -25,12 +25,15 @@ export const PANEL_W = 400;
  *  the transcript, no composer. */
 export const LOWER_DEPLOYED = 250;
 const HERO_SCALE = 1.2;
+/** The entrance: 2rem below the seat, a touch small, transparent. */
+const ENTER_RISE = 32;
+const ENTER_SCALE = 0.95;
 /** The light end of the world's sky. */
 const HERO_GROUND = "#dcecfe";
 
 type Rect = { left: number; top: number; width: number; height: number };
 
-const MOVE = `left ${JAM_MOVE}, top ${JAM_MOVE}, width ${JAM_MOVE}, height ${JAM_MOVE}, transform ${JAM_MOVE}, border-radius ${JAM_MOVE}, box-shadow ${JAM_MOVE}`;
+const MOVE = `left ${JAM_MOVE}, top ${JAM_MOVE}, width ${JAM_MOVE}, height ${JAM_MOVE}, transform ${JAM_MOVE}, opacity ${JAM_MOVE}, border-radius ${JAM_MOVE}, box-shadow ${JAM_MOVE}`;
 
 /** Where the lower section sits for a phase; the stage passes it into the panel. */
 export function lowerHeightFor(phase: JamPhase, rowH: number, stageH: number) {
@@ -59,41 +62,28 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     if (stage) setStageH(stage.offsetHeight);
   }, []);
 
-  // Mounting as the hero: paint one frame on the Join card, then let the
-  // transition carry the box to its centred seat. Written straight to the
-  // element (the values React would render next), so no extra render.
+  // Mounting as the hero: the call arrives in place — from 2rem below its
+  // seat, at 0.95, transparent — and settles up into it. Painted one frame
+  // early straight on the element (the values React would render next), so
+  // the transition has a start and no extra render is needed.
   const innerRef = useRef<HTMLDivElement>(null);
   const startedAsHero = useRef(phase !== "docked");
   const latest = useRef<{ rect: Rect; scale: number } | null>(null);
   useLayoutEffect(() => {
     if (!startedAsHero.current) return;
     const box = boxRef.current;
-    const inner = innerRef.current;
-    const rowEl = row.current;
-    const card = document.querySelector<HTMLElement>("[data-jam-card]");
-    if (!box || !inner || !rowEl || !card) return;
-    const r = rowEl.getBoundingClientRect();
-    const c = card.getBoundingClientRect();
-    // The camera scales the whole room; screen deltas come back to layout px.
-    const k = rowEl.clientWidth > 0 ? r.width / rowEl.clientWidth : 1;
+    if (!box) return;
+    const start = latest.current;
     box.style.transition = "none";
-    box.style.left = `${(c.left - r.left) / k}px`;
-    box.style.top = `${(c.top - r.top) / k}px`;
-    box.style.width = `${c.width / k}px`;
-    box.style.height = `${c.height / k}px`;
-    box.style.transform = "scale(1)";
-    inner.style.opacity = "0";
+    box.style.opacity = "0";
+    box.style.transform = `translateY(${ENTER_RISE}px) scale(${(start?.scale ?? 1) * ENTER_SCALE})`;
     void box.offsetWidth;
     const raf = requestAnimationFrame(() => {
       const now = latest.current;
       if (!now) return;
       box.style.transition = MOVE;
-      box.style.left = `${now.rect.left}px`;
-      box.style.top = `${now.rect.top}px`;
-      box.style.width = `${now.rect.width}px`;
-      box.style.height = `${now.rect.height}px`;
-      box.style.transform = `scale(${now.scale})`;
-      inner.style.opacity = "1";
+      box.style.opacity = "1";
+      box.style.transform = `translateY(0px) scale(${now.scale})`;
     });
     return () => cancelAnimationFrame(raf);
   }, [row]);
@@ -127,7 +117,7 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
           top: rect.top,
           width: rect.width,
           height: rect.height,
-          transform: `scale(${scale})`,
+          transform: `translateY(0px) scale(${scale})`,
           transformOrigin: "50% 50%",
           borderRadius: floating ? 12 : 0,
           boxShadow: floating ? "0 24px 64px rgba(26,24,23,0.28), 0 0 0 1px rgba(26,24,23,0.08)" : "none",

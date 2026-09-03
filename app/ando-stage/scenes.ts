@@ -339,19 +339,20 @@ const JAMS_CUT: Scene = {
   surface: { kind: "dm", who: "sara" },
   cast: CAST,
   beats: [
-    // Already there when we open.
+    // Already there when we open: the link and Sara's question.
     { kind: "mark", label: "TODAY", ms: 0 },
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 0, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
-    { kind: "say", id: "j2", who: "sara", time: "11:06 AM", ms: 0, body: [[{ text: "Wait, which parts?" }]] },
-    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 0, body: [[{ text: "Is this for our launch video?" }]] },
-    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 700, body: [[{ text: "Yeah, I had a few ideas." }]] },
-    // Shot 1 — the DM.
-    { kind: "typing", who: "sara", ms: 600 },
-    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1000, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
-    // Sara starts the Jam: the headphones ring in the header. You pick up,
-    // the card lands, you press Join.
-    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 500 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1300 },
+    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 1100, body: [[{ text: "Is this for our launch video?" }]] },
+    // Shot 1 — the DM. Your reply types itself into the composer over the
+    // gap before it lands; Sara's shows her typing first.
+    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 500, body: [[{ text: "Yeah, I had a few ideas." }]] },
+    { kind: "typing", who: "sara", ms: 800 },
+    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 900, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
+    // Sara starts the Jam: the headphones ring in the header until the
+    // cursor presses them — the pick-up lands on the press — then the
+    // card lands and you press Join.
+    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 400 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
     { kind: "jam-answer", ms: 500 },
     { kind: "cursor", to: "join-button", glyph: "pointer", press: true, ms: 1100 },
     // Shot 2 — cut to the sky: the call arrives, the transcript unfolds

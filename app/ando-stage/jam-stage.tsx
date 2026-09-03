@@ -72,18 +72,28 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
   useLayoutEffect(() => {
     if (!startedAsHero.current) return;
     const box = boxRef.current;
-    if (!box) return;
-    const start = latest.current;
+    const rowEl = row.current;
+    if (!box || !rowEl) return;
+    // The seat, measured here and now: the row has not been measured into
+    // state yet on this first frame, and a box left on that zero-size
+    // guess would transition in from the top-left corner.
+    const w = rowEl.clientWidth;
+    const h = rowEl.clientHeight;
+    const stage = box.querySelector<HTMLElement>("[data-jam-stage]")?.offsetHeight ?? 0;
+    const heroScale = Math.min(HERO_SCALE, Math.max(1, (h - 48) / Math.max(1, stage)));
     box.style.transition = "none";
+    box.style.left = `${(w - PANEL_W) / 2}px`;
+    box.style.top = `${(h - stage) / 2}px`;
+    box.style.width = `${PANEL_W}px`;
+    box.style.height = `${stage}px`;
     box.style.opacity = "0";
-    box.style.transform = `translateY(${ENTER_RISE}px) scale(${(start?.scale ?? 1) * ENTER_SCALE})`;
+    box.style.transform = `translateY(${ENTER_RISE}px) scale(${heroScale * ENTER_SCALE})`;
     void box.offsetWidth;
     const raf = requestAnimationFrame(() => {
       const now = latest.current;
-      if (!now) return;
       box.style.transition = MOVE;
       box.style.opacity = "1";
-      box.style.transform = `translateY(0px) scale(${now.scale})`;
+      box.style.transform = `translateY(0px) scale(${now?.scale ?? heroScale})`;
     });
     return () => cancelAnimationFrame(raf);
   }, [row]);

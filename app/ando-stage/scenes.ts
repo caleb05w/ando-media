@@ -405,23 +405,35 @@ const JAMS_CUT: Scene = {
       lines: ["Every jam, live transcribed", "Your agents follow up"],
       lineHold: 0.8,
       hold: 2.1,
-      ms: 7000,
+      ms: 2400,
     },
+    // The call never goes quiet: the two of you keep talking behind the
+    // card, through the thread, until the hang-up — the ring keeps trading
+    // and the transcript keeps filling, seen or not. (A transcript line
+    // never sits inside a typing beat's dwell: the indicator reads from
+    // the latest beat.)
+    { kind: "transcript", who: "sara", text: "and the agent picks it up from here", ms: 2300 },
+    { kind: "transcript", who: "caleb", text: "right, let's get Tadao on it", ms: 2300 },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },
+    { kind: "transcript", who: "sara", text: "I'll ask him in the thread", ms: 300 },
     { kind: "typing", who: "sara", thread: true, ms: 1200 },
-    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
+    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 0, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
+    { kind: "transcript", who: "caleb", text: "perfect", ms: 400 },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
+    { kind: "transcript", who: "sara", text: "he's reading the transcript already", ms: 0 },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     // The sidebar slides in with Tadao's reply, so it is settled when the DM's unread row lands in it.
     { kind: "sidebar", ms: 0 },
-    { kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2200, body: [[{ text: "yep! sending you both a dm" }]] },
+    { kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 1000, body: [[{ text: "yep! sending you both a dm" }]] },
+    { kind: "transcript", who: "caleb", text: "love that", ms: 1200 },
     // Shot 6 — a second after the recap, Tadao does what it said: a DM,
     // unread in the sidebar while the call is still on. You hang up, then
     // open it.
     { kind: "dm-unread", who: "tadao", ms: 0 },
-    { kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1100, body: [[{ text: "Follow-ups from the jam, on you:" }]] },
+    { kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 500, body: [[{ text: "Follow-ups from the jam, on you:" }]] },
+    { kind: "transcript", who: "sara", text: "okay, I think we're good", ms: 600 },
     { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 950 },
     { kind: "jam-end", ms: 300 },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 950 },

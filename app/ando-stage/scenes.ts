@@ -422,7 +422,8 @@ const JAMS_CUT: Scene = {
     { kind: "jam-end", ms: 500 },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 950 },
     { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3000 },
-    // Shot 7 — the logo.
+    // Shot 7 — white. The closer, then the logo.
+    { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 2.4, ms: 2400 },
     { kind: "logo", ms: 3000 },
   ],
 };

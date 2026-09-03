@@ -361,7 +361,7 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 2600, body: [[{ text: "deploy went out clean last night 🎉" }]] },
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 700, body: [[{ text: "Hey, wanna jam on this idea I had for our launch vid" }]] },
     { kind: "typing", who: "sara", ms: 800 },
-    { kind: "say", id: "j5", who: "sara", time: "11:06 AM", ms: 900, body: [[{ text: "Sure, calling now!" }]] },
+    { kind: "say", id: "j5", who: "sara", time: "11:06 AM", ms: 1900, body: [[{ text: "Sure, calling now!" }]] },
     // Sara starts the Jam: the headphones ring and the cursor goes to them.
     // Every press zooms the frame in around it (the auto camera, cards.tsx).
     // The press IS the join — but first, the card, so a viewer who has

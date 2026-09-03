@@ -15,7 +15,7 @@ function label(scene: Scene, beat: Beat): string {
   switch (beat.kind) {
     case "mark": return beat.label.toLowerCase();
     case "typing": return `${scene.cast[beat.who].name.split(" ")[0]} typing`;
-    case "say": return scene.cast[beat.who].name.split(" ")[0];
+    case "say": return `${scene.cast[beat.who].name.split(" ")[0]}${beat.thread ? " · thread" : ""}`;
     case "card": return `${scene.cast[beat.who].name.split(" ")[0]} card`;
     case "attach": return `${scene.cast[beat.who].name.split(" ")[0]} file`;
     case "react": return beat.emoji;

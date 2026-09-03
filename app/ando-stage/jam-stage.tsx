@@ -28,8 +28,11 @@ const HERO_SCALE = 1.2;
 /** The entrance: 2rem below the seat, a touch small, transparent. */
 const ENTER_RISE = 32;
 const ENTER_SCALE = 0.95;
-/** The light end of the world's sky. */
-const HERO_GROUND = "#dcecfe";
+/** The sky. The photo at public/ando-stage/sky.jpg when it is there; under
+ *  it, a gradient in the photo's own blues with a little grain, so the shot
+ *  reads the same before the file lands. */
+const HERO_GROUND = "url(/ando-stage/sky.jpg) center / cover no-repeat, linear-gradient(180deg, #8ab7e4 0%, #a9cbec 30%, #c4dbf1 62%, #dde9f4 100%)";
+const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>\")";
 
 type Rect = { left: number; top: number; width: number; height: number };
 
@@ -118,7 +121,9 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
         aria-hidden
         className="pointer-events-none fixed inset-0 z-10"
         style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${JAM_MOVE}` }}
-      />
+      >
+        <div aria-hidden className="absolute inset-0" style={{ backgroundImage: GRAIN, opacity: 0.16, mixBlendMode: "soft-light" }} />
+      </div>
       <div
         ref={boxRef}
         className="absolute z-20 overflow-hidden"

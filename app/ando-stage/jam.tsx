@@ -7,7 +7,7 @@
 // participant-tile.tsx, call-controls.tsx, jam-panel-tabs.tsx). Classes are
 // the production strings; the LiveKit room is the only thing not here.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, type ReactNode, useState } from "react";
 import { Icon } from "./glyph";
 import { Avatar } from "./chrome";
 import type { Actor } from "./scenes";
@@ -191,7 +191,7 @@ const SPEAKING_RING = "st-speaking";
 /** Curve and length of every move the panel makes between its phases. */
 export const JAM_MOVE = "700ms cubic-bezier(0.2, 0, 0, 1)";
 
-export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean }) {
+export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true, thread = null, threadCount = 0, scripted = null }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean; /** Rows in the Jam's thread, after the join event. */ thread?: ReactNode; threadCount?: number; /** A line the script is typing into the thread composer. */ scripted?: string | null }) {
   const duration = useCallDuration(call.startedAt, elapsed);
   // transcripts-list.tsx TranscriptAutoFollow: the list stays pinned to the
   // newest segment as they land (and when the tab opens onto a backlog).
@@ -201,6 +201,11 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
     const list = transcriptRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [transcript.length, lastText, tab]);
+  const threadRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = threadRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [threadCount, tab]);
   const tabClass = (active: boolean, extra: string) => `ando-tabs__trigger cursor-pointer border-b-0 pb-0 h-7 px-2 flex items-center rounded-md space-x-0 hover:bg-ando-bg-fill-muted ${active ? "bg-ando-bg-fill-muted border-transparent" : ""} ${extra}`;
   return (
     <div className={`${slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
@@ -275,7 +280,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             ))}
           </div>
         ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3">
+        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" data-jam-thread>
           {/* system-message/index.tsx: join event */}
           <div className="flex items-center gap-3 py-1 -ml-4 pl-4 text-ando-fg-secondary hover:bg-ando-bg-fill-subtle rounded-r-md">
             <div className="flex shrink-0 items-center justify-center bg-ando-bg-fill-muted rounded" style={{ width: 32, height: 32 }}>
@@ -292,13 +297,18 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               <span className="kanso-text-label-12 text-ando-fg-tertiary inline ml-1.5">{clockTime(call.startedAt)}</span>
             </div>
           </div>
+          {thread ? <div className="flex flex-col pt-1 pb-2">{thread}</div> : null}
         </div>
         )}
         {/* Thread composer, compact, with the broadcast option */}
         {composer ? <div className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
-            <div className="relative min-h-[70px]">
-              <span className="kanso-text-label-14 absolute left-5 top-4 pointer-events-none text-ando-fg-tertiary">Enter your message</span>
+            <div className="relative min-h-[70px]" data-jam-editor>
+              {scripted != null ? (
+                <span className="kanso-text-label-14 absolute left-5 top-4 whitespace-pre-wrap text-ando-fg-primary">{scripted}<span className="st-caret ml-px inline-block h-[1.1em] w-px translate-y-[2px] bg-ando-fg-primary align-text-bottom" /></span>
+              ) : (
+                <span className="kanso-text-label-14 absolute left-5 top-4 pointer-events-none text-ando-fg-tertiary">Enter your message</span>
+              )}
             </div>
             <div className="px-3 pt-2">
               <label className="flex min-w-0 select-none items-center space-x-2 pl-1">
@@ -316,7 +326,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               </div>
               <div className="origin-right scale-90">
                 <span className="ando-button-group shrink-0" data-orientation="horizontal">
-                  <span className="ando-button w-7 px-0 cursor-not-allowed bg-ando-bg-fill-muted" data-size="sm" aria-hidden><Icon name="IconPaperPlane" fill="filled" size={16} className="text-ando-fg-tertiary" /></span>
+                  <span data-jam-send className={`ando-button w-7 px-0 ${scripted ? "" : "cursor-not-allowed bg-ando-bg-fill-muted"}`} data-size="sm" aria-hidden><Icon name="IconPaperPlane" fill="filled" size={16} className={scripted ? "text-ando-fg-reverse" : "text-ando-fg-tertiary"} /></span>
                   <span className="ando-button-group__separator" />
                   <span className="ando-button ando-button-group__caret px-0 cursor-not-allowed bg-ando-bg-fill-muted text-ando-fg-tertiary" data-size="sm" style={{ width: 24 }} aria-hidden><Icon name="IconChevronDownSmall" size={12} /></span>
                 </span>

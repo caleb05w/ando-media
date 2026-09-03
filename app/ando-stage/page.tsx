@@ -25,7 +25,7 @@ import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, WORD_CADENCE, WORD_LAND, anchorSelector, backOut, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type TypeCardOn } from "./cards";
-import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
+import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
 const CURSOR_TARGETS = {
@@ -35,6 +35,8 @@ const CURSOR_TARGETS = {
   "transcript-tab": '[data-jam-tab="transcript"]',
   "hang-up": '[aria-label="End call"]',
   "send-button": "[data-stage-send]",
+  "thread-tab": '[data-jam-tab="thread"]',
+  "thread-send": "[data-jam-send]",
 } as const;
 
 /** The brand cursor set — glyph, size, and the hotspot offset (mini-ando.tsx). */
@@ -88,7 +90,7 @@ type MessageRow = Extract<Row, { kind: "message" }>;
  *  and scrubs away with everything after that beat. */
 type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string };
 
-type StageState = { rows: Row[]; typing: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; typing: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
   let scriptedJam: JamCall | null = null;
@@ -98,12 +100,13 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
   let tab: "thread" | "transcript" = "thread";
   const transcript: TranscriptSegment[] = [];
   const rows: Row[] = [];
+  const thread: Row[] = [];
   const messages = new Map<string, MessageRow>();
   const runs = new Map<string, Run>();
-  const push = (row: MessageRow, id: string) => {
-    const prev = rows[rows.length - 1];
+  const push = (row: MessageRow, id: string, into: Row[] = rows) => {
+    const prev = into[into.length - 1];
     row.burst = prev?.kind === "message" && prev.who === row.who && prev.runs.length === 0 && !prev.card && !prev.jam && !row.jam;
-    rows.push(row);
+    into.push(row);
     messages.set(id, row);
   };
   const base = (who: Actor, time: string): MessageRow => ({ kind: "message", key: "", who, time, reactions: [], runs: [], traces: [], burst: false });
@@ -156,6 +159,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
         break;
       case "jam-deploy":
         if (scriptedJam) jamPhase = "deploy";
+        if (beat.tab) tab = beat.tab;
         break;
       case "jam-dock":
         jamPhase = "docked";
@@ -201,7 +205,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
             row.traces.push(...moving.map((trace) => ({ ...trace, onReply: true })));
           }
         }
-        push(row, beat.id);
+        push(row, beat.id, beat.thread ? thread : rows);
         break;
       }
       case "card":
@@ -231,7 +235,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, ringing, jamPhase, tab, transcript };
+  return { rows, thread, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -540,7 +544,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, typing, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, thread, typing, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -655,6 +659,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const cursorRef = useRef(0);
   const [scriptedDraft, setScriptedDraft] = useState<string | null>(null);
   const draftRef = useRef<string | null>(null);
+  // Where the typed line is going: the Jam thread's composer or the room's.
+  const [draftInThread, setDraftInThread] = useState(false);
+  const draftInThreadRef = useRef(false);
   useEffect(() => {
     if (!hooks) return;
     let raf = 0;
@@ -676,6 +683,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (next !== cursorRef.current) { cursorRef.current = next; setCursor(next); }
       const draft = scriptedDraftAt(scene, T, vt);
       if (draft !== draftRef.current) { draftRef.current = draft; setScriptedDraft(draft); }
+      const inThread = draft != null && scriptedDraftInThread(scene, T, vt);
+      if (inThread !== draftInThreadRef.current) { draftInThreadRef.current = inThread; setDraftInThread(inThread); }
       const elapsed = jamElapsedAt(scene, T, vt);
       if (elapsed !== elapsedRef.current) { elapsedRef.current = elapsed; setJamElapsed(elapsed); }
       const coarse = Math.floor(vt * 10) / 10;
@@ -848,7 +857,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             <div aria-hidden className="mt-auto shrink-0" />
             {rows.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
-          <Composer scene={scene} typing={typing} onSend={send} scripted={scriptedDraft} />
+          <Composer scene={scene} typing={typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
         </main>
         {jamCall != null && jamCall.endedAt == null && panelOpen ? (
           <>
@@ -871,6 +880,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 slideIn={scriptedJam == null}
                 lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
                 composer={jamPhase === "docked"}
+                scripted={draftInThread ? scriptedDraft : null}
+                threadCount={thread.length}
+                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
               />
             </JamStage>
           </>

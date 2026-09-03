@@ -37,7 +37,7 @@ export type Beat =
   | { kind: "jam-end"; ms: number }
   /** The panel, alone and centred since you joined, unfolds its thread and
    *  live transcript beneath the call. */
-  | { kind: "jam-deploy"; ms: number }
+  | { kind: "jam-deploy"; /** Which tab the unfolded panel opens on (thread by default). */ tab?: "thread" | "transcript"; ms: number }
   /** The room comes back and the panel takes its seat on the right. */
   | { kind: "jam-dock"; ms: number }
   /** Your pointer travels to a control (and presses it). Pure in the clock:
@@ -61,7 +61,7 @@ export type Beat =
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; ms: number }
-  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; ms: number }
+  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; ms: number }
   | { kind: "card"; id: string; who: string; time: string; card: LaunchCard; ms: number }
   /** A file lands. Optional body posts as the message text above it. */
   | { kind: "attach"; id: string; who: string; time: string; body?: Segment[][]; attachment: Attachment; ms: number }
@@ -71,7 +71,7 @@ export type Beat =
 
 /** What the main pane is: a channel (hashtag, member count) or a 1:1 DM
  *  (the other person's avatar and name, headphones instead of members). */
-export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "hang-up" | "send-button";
+export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "thread-tab" | "hang-up" | "send-button" | "thread-send";
 
 /** Where the camera looks: a control, the panel, the room, or a message (`row:<id>`). */
 export type CameraAnchor = CursorTarget | "panel" | "jam-transcript" | "room" | `row:${string}`;
@@ -355,39 +355,42 @@ const JAMS_CUT: Scene = {
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 400 },
     { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
     // Shot 2 — cut to the sky: the call arrives, the transcript unfolds
-    // under it at once, and the talking starts right away.
+    // under it at once on the Live transcript tab, and the talking starts
+    // right away. Four lines land before the room comes back.
     { kind: "jam-join", ms: 600 },
-    { kind: "jam-deploy", ms: 250 },
-    { kind: "tab", tab: "transcript", ms: 150 },
+    { kind: "jam-deploy", tab: "transcript", ms: 400 },
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1100 },
-    // Shot 3 — the room comes back; the panel docks.
-    { kind: "jam-dock", ms: 900 },
-    { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1500 },
+    { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1600 },
     { kind: "transcript", who: "caleb", text: "no voiceover", ms: 900 },
-    { kind: "transcript", who: "sara", text: "that one", ms: 900 },
+    { kind: "transcript", who: "sara", text: "that one", ms: 1000 },
+    // Shot 3 — the room comes back; the panel docks; the jam goes on.
+    { kind: "jam-dock", ms: 900 },
     { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 1300 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 1000 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 1100 },
     // Shot 4 — white. One line, word by word.
     { kind: "type", text: "Jams are live transcribed.", hold: 2.0, ms: 2000 },
-    // Shot 5 — cut back to the room. You ask; the agent reads the call.
-    { kind: "jam-end", ms: 300 },
-    { kind: "cursor", to: "send-button", glyph: "pointer", press: true, ms: 1000 },
-    { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", ms: 800, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1600 },
+    // Shot 5 — back in the room, the jam still open. You ask the agent in
+    // the Jam's own thread; it takes its time reading the transcript.
+    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "tab", tab: "thread", ms: 400 },
+    { kind: "cursor", to: "thread-send", glyph: "pointer", press: true, ms: 1500 },
+    { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", thread: true, ms: 800, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 2800 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 1200 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
-      kind: "say", id: "j8", who: "tadao", time: "11:13 AM", ms: 2600,
+      kind: "say", id: "j8", who: "tadao", time: "11:13 AM", thread: true, ms: 2600,
       body: [
         [{ text: "Quick recap of the jam:" }],
         [{ text: "Three launch-video ideas — the Slack import coming apart, an agent answering in a thread, and the golden ticket as the close." }],
         [{ text: "You landed on: cold open on the agent, no voiceover, the ticket as the call to action." }],
       ],
     },
-    { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Filing tickets in Linear…", icon: "write", ms: 1400 },
+    { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Filing tickets in Linear…", icon: "write", ms: 1600 },
     { kind: "trace-done", run: "t2", tool: "Create Issue", ms: 200 },
-    // Shot 6 — the tickets.
+    // Shot 6 — the tickets, in the thread.
     {
-      kind: "say", id: "j9", who: "tadao", time: "11:13 AM", ms: 2600,
+      kind: "say", id: "j9", who: "tadao", time: "11:13 AM", thread: true, ms: 2800,
       body: [
         [{ text: "Filed three tickets:" }],
         [{ text: "AND-7110", link: true }, { text: " — Launch video: agent cold open" }],
@@ -450,6 +453,12 @@ function keyWeights(text: string): number[] {
 
 /** A beat of stillness between the last keystroke and the send. */
 export const SEND_HOLD = 0.4;
+
+/** Whether the line you are about to send goes to the Jam thread (true) or the room. */
+export function scriptedDraftInThread(scene: Scene, T: Timing, vt: number): boolean {
+  const beat = scene.beats[cursorAt(scene, T, vt)];
+  return beat != null && beat.kind === "say" && beat.who === ME && beat.thread === true;
+}
 
 export function scriptedDraftAt(scene: Scene, T: Timing, vt: number): string | null {
   const next = cursorAt(scene, T, vt);

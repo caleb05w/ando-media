@@ -329,7 +329,9 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             {/* participant-grid.tsx sidebar layout: ≤2 side by side, equal, full height */}
             {/* Whoever was here first has the whole width; you pop in (you just
                 joined, half a second in) and shoulder them aside — your tile
-                grows from nothing on a spring while theirs gives way. Only once
+                grows from nothing on a Dynamic-Island spring (damping ratio
+                ~0.5: the width overshoots and rebounds, so theirs is shoved
+                past halfway and springs back) while theirs gives way. Only once
                 you've landed do the controls spring up beneath, one after
                 another. */}
             <div className="h-full flex flex-row gap-2">
@@ -340,9 +342,9 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                     key={actor.name}
                     className="group relative min-w-0 rounded-md overflow-hidden h-full bg-ando-dark-700 flex items-center justify-center transition-colors duration-150"
                     data-agent-speaking={speaking === actor ? "true" : "false"}
-                    initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.7 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
+                    initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.5 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
                     animate={{ flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
-                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 380, damping: 16, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
+                    transition={you ? { flexGrow: { type: "spring", stiffness: 260, damping: 16, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 300, damping: 15, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
                     style={{ transformOrigin: "50% 50%" }}
                   >
                     <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>

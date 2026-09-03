@@ -396,10 +396,11 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "caleb", text: "two seconds on the logo, no more", ms: 480 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 1500 },
     // Shot 4 — white. The middle line.
-    // The cursor sets off for Thread as the card's white is still fading;
-    // once the thread is open, Sara pings Tadao in it.
+    // Rule: a card's dwell covers its hold AND its 0.6s lift, plus a breath,
+    // so nothing that follows — the cursor's trip to Thread, the press —
+    // ever happens behind it. Change the hold, change the dwell with it.
     // Jam(0) it(1) out(2) with(3) your(4) human(5) (and(6) agent)(7) teammates(8): you on "your", Sara on "human", Tadao on "agent".
-    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: [{ who: "caleb", on: 4 }, { who: "sara", on: 5 }, { who: "tadao", on: 7 }], hold: 2.8, ms: 3000 },
+    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: [{ who: "caleb", on: 4 }, { who: "sara", on: 5 }, { who: "tadao", on: 7 }], hold: 2.8, ms: 3600 },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },

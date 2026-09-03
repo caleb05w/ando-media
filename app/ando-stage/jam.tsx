@@ -93,22 +93,78 @@ function clockTime(ms: number): string {
  *  Active: one split control in action-success, participants beside the
  *  headphones, the caret sharing the fill. */
 export function JamHeaderControl({ active, ringing = false, participants, onClick }: { active: boolean; /** A Jam is calling: the headphones ring like a phone until you pick up. */ ringing?: boolean; participants: Actor[]; onClick: () => void }) {
-  const tone = active ? "bg-ando-action-success text-ando-fg-white hover:bg-ando-action-success-hover" : "text-ando-fg-secondary";
+  // Idle → calling is a morph, not a swap: the green floods out from the
+  // headphones, the pill grows to seat the faces as they spring in, the
+  // seam opens, and the whole pill gives one small bounce. Motion's layout
+  // animation carries the width; the flood is a clip-path reveal on a green
+  // layer under the icon; everything else rides a spring.
+  const FLOOD = { type: "spring", stiffness: 260, damping: 30 } as const;
+  const SEAT = { type: "spring", stiffness: 520, damping: 30 } as const;
+  const ink = active ? "text-ando-fg-white" : "text-ando-fg-secondary";
   return (
-    <span className={`ando-button-group select-none shrink-0 ${active ? "" : "gap-px"}`} data-orientation="horizontal" aria-label="Jam controls">
-      <button type="button" onClick={onClick} aria-label={active ? "Open Jam" : "Start Jam"} className={`ando-button rounded-l-sm rounded-r-[1px] ${active ? "group/jam gap-2 py-1 pl-1.5 pr-1" : "w-7 px-0"} ${tone}`} data-variant="secondary" data-size="xs">
-        <span className={ringing ? "st-ring inline-flex" : "inline-flex"}><Icon name="IconHeadphones" size={16} fill={active ? "filled" : "outlined"} className="text-current" /></span>
+    <motion.span
+      layout
+      transition={{ layout: SEAT }}
+      className={`ando-button-group relative select-none shrink-0 ${active ? "" : "gap-px"}`}
+      data-orientation="horizontal"
+      aria-label="Jam controls"
+      animate={{ scale: active ? [1, 1.06, 1] : 1 }}
+      style={{ transformOrigin: "20% 50%" }}
+    >
+      <motion.button
+        layout
+        transition={{ layout: SEAT }}
+        type="button"
+        onClick={onClick}
+        aria-label={active ? "Open Jam" : "Start Jam"}
+        className={`ando-button relative overflow-hidden rounded-l-sm rounded-r-[1px] transition-colors duration-300 ${active ? "group/jam gap-2 py-1 pl-1.5 pr-1" : "w-7 px-0"} ${ink}`}
+        data-variant="secondary"
+        data-size="xs"
+      >
+        {/* The green, flooding out from the headphones. */}
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-ando-action-success"
+          initial={false}
+          animate={{ clipPath: active ? "circle(160% at 14px 50%)" : "circle(0% at 14px 50%)" }}
+          transition={FLOOD}
+        />
+        <span className={`relative z-10 inline-flex ${ringing ? "st-ring" : ""}`}>
+          <Icon name="IconHeadphones" size={16} fill={active ? "filled" : "outlined"} className="text-current" />
+        </span>
         {active ? (
-          <span className="ando-avatar-group pr-1" style={{ ["--ando-avatar-group-overlap" as string]: "4px", ["--ando-avatar-group-ring-width" as string]: "1.5px", ["--color-ando-bg-main" as string]: "var(--color-ando-action-success)" }}>
+          <motion.span
+            layout
+            className="relative z-10 ando-avatar-group pr-1"
+            style={{ ["--ando-avatar-group-overlap" as string]: "4px", ["--ando-avatar-group-ring-width" as string]: "1.5px", ["--color-ando-bg-main" as string]: "var(--color-ando-action-success)" }}
+            initial={{ opacity: 0, x: -10, scale: 0.6 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ ...SEAT, delay: 0.08 }}
+          >
             {participants.slice(0, 3).map((actor) => <Avatar key={actor.name} actor={actor} size={16} />)}
-          </span>
+          </motion.span>
         ) : null}
-      </button>
-      {active ? <span className="ando-separator ando-button-group__separator" data-orientation="vertical" /> : null}
-      <span className={`ando-button ando-button-group__caret px-0 rounded-l-[1px] rounded-r-sm ${tone}`} data-variant="secondary" data-size="xs" style={{ width: 24 }} aria-hidden>
-        <Icon name="IconChevronDownSmall" size={12} />
-      </span>
-    </span>
+      </motion.button>
+      {active ? <motion.span layout className="ando-separator ando-button-group__separator" data-orientation="vertical" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }} /> : null}
+      <motion.span
+        layout
+        transition={{ layout: SEAT }}
+        className={`ando-button ando-button-group__caret relative overflow-hidden px-0 rounded-l-[1px] rounded-r-sm transition-colors duration-300 ${ink}`}
+        data-variant="secondary"
+        data-size="xs"
+        style={{ width: 24 }}
+        aria-hidden
+      >
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-ando-action-success"
+          initial={false}
+          animate={{ clipPath: active ? "circle(200% at -20px 50%)" : "circle(0% at -20px 50%)" }}
+          transition={{ ...FLOOD, delay: 0.05 }}
+        />
+        <span className="relative z-10 inline-flex"><Icon name="IconChevronDownSmall" size={12} /></span>
+      </motion.span>
+    </motion.span>
   );
 }
 
@@ -251,7 +307,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
     <div className={`${slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
       {/* Docked stage */}
       <div className="flex flex-col relative select-none bg-ando-bg-dark shrink-0" data-jam-stage>
-        <div className="ando-surface-header" data-variant="overlay">
+        <motion.div className="ando-surface-header" data-variant="overlay" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.2, ease: [0.2, 0, 0, 1] }}>
           <div className="flex items-center justify-between w-full">
             <button type="button" onClick={onCollapse} aria-label="Close jam panel" className="text-ando-fg-white transition-opacity hover:opacity-80"><Icon name="IconSidebarLeftArrow" className="-scale-x-100" /></button>
             <div className="flex items-center space-x-2 select-none">
@@ -262,31 +318,52 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               <button type="button" aria-label="Fullscreen" className="text-ando-fg-white transition-opacity hover:opacity-80"><Icon name="IconFullScreen" /></button>
             </div>
           </div>
-        </div>
+        </motion.div>
         <div className="flex flex-col space-y-4 px-4 pb-4">
           <div className="w-full overflow-hidden" style={{ height: 184 }}>
             {/* participant-grid.tsx sidebar layout: ≤2 side by side, equal, full height */}
-            <div className="h-full flex flex-row space-x-2">
-              {call.participants.slice(0, 2).map((actor, index) => (
-                <div key={actor.name} className="group relative min-w-0 flex-1 rounded-md overflow-hidden h-full bg-ando-dark-700 flex items-center justify-center transition-colors duration-150" data-agent-speaking={speaking === actor ? "true" : "false"}>
-                  <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>
-                  <div className="absolute bottom-1 left-1 right-1 flex min-w-0">
-                    <div className="flex h-5 min-w-0 max-w-full items-center gap-0.5 overflow-hidden rounded-sm bg-ando-black/25 py-0 pl-1 pr-1 backdrop-blur-[8px]">
-                      <span className="flex size-3 items-center justify-center text-ando-fg-white"><Icon name={index === 0 && muted ? "IconMicrophoneOff" : "IconMicrophone"} size={12} fill="filled" /></span>
-                      <div className="min-w-0 px-0.5"><span className="kanso-text-label-11 block truncate whitespace-nowrap text-ando-fg-white">{index === 0 ? `${actor.name} (you)` : actor.name}</span></div>
+            {/* Whoever was here first has the whole width; you pop in (you just
+                joined) and shoulder them aside — your tile grows from nothing on
+                a spring while theirs gives way. The controls spring up beneath,
+                one after another. */}
+            <div className="h-full flex flex-row gap-2">
+              {call.participants.slice(0, 2).map((actor, index) => {
+                const you = index === 0 && call.joined;
+                return (
+                  <motion.div
+                    key={actor.name}
+                    className="group relative min-w-0 rounded-md overflow-hidden h-full bg-ando-dark-700 flex items-center justify-center transition-colors duration-150"
+                    data-agent-speaking={speaking === actor ? "true" : "false"}
+                    initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.7 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
+                    animate={{ flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
+                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: 0.45 }, scale: { type: "spring", stiffness: 420, damping: 22, delay: 0.5 }, opacity: { duration: 0.2, delay: 0.5 } } : { duration: 0 }}
+                    style={{ transformOrigin: "50% 50%" }}
+                  >
+                    <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>
+                    <div className="absolute bottom-1 left-1 right-1 flex min-w-0">
+                      <div className="flex h-5 min-w-0 max-w-full items-center gap-0.5 overflow-hidden rounded-sm bg-ando-black/25 py-0 pl-1 pr-1 backdrop-blur-[8px]">
+                        <span className="flex size-3 items-center justify-center text-ando-fg-white"><Icon name={index === 0 && muted ? "IconMicrophoneOff" : "IconMicrophone"} size={12} fill="filled" /></span>
+                        <div className="min-w-0 px-0.5"><span className="kanso-text-label-11 block truncate whitespace-nowrap text-ando-fg-white">{index === 0 ? `${actor.name} (you)` : actor.name}</span></div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
           <div className="shrink-0">
             <div className="flex items-center justify-center gap-3">
-              <div onClick={onToggleMute} role="presentation"><ControlGroup on={!muted} icon={muted ? "IconMicrophoneOff" : "IconMicrophone"} label={muted ? "Unmute" : "Mute"} /></div>
-              <ControlGroup on={false} icon="IconVideoOff" label="Start video" />
-              <button type="button" aria-label="Share screen" className="flex items-center justify-center size-9 rounded-md text-ando-fg-white cursor-pointer transition-colors bg-ando-action-secondary-on-dark hover:bg-ando-action-secondary-on-dark-hover"><Icon name="IconShareScreen" fill="filled" /></button>
-              <button type="button" aria-label="React" className="flex items-center justify-center size-9 rounded-md bg-ando-action-secondary-on-dark text-ando-fg-white shadow-md transition-colors hover:bg-ando-action-secondary-on-dark-hover cursor-pointer"><Icon name="IconEmojiSmile" fill="filled" /></button>
-              <button type="button" onClick={onEnd} aria-label="End call" className="flex items-center justify-center size-9 rounded-md bg-ando-action-danger-on-dark hover:bg-ando-action-danger-on-dark-hover text-ando-fg-white cursor-pointer transition-colors"><Icon name="IconCall" fill="filled" className="rotate-[135deg]" /></button>
+              {[
+                <div key="mic" onClick={onToggleMute} role="presentation"><ControlGroup on={!muted} icon={muted ? "IconMicrophoneOff" : "IconMicrophone"} label={muted ? "Unmute" : "Mute"} /></div>,
+                <ControlGroup key="video" on={false} icon="IconVideoOff" label="Start video" />,
+                <button key="share" type="button" aria-label="Share screen" className="flex items-center justify-center size-9 rounded-md text-ando-fg-white cursor-pointer transition-colors bg-ando-action-secondary-on-dark hover:bg-ando-action-secondary-on-dark-hover"><Icon name="IconShareScreen" fill="filled" /></button>,
+                <button key="react" type="button" aria-label="React" className="flex items-center justify-center size-9 rounded-md bg-ando-action-secondary-on-dark text-ando-fg-white shadow-md transition-colors hover:bg-ando-action-secondary-on-dark-hover cursor-pointer"><Icon name="IconEmojiSmile" fill="filled" /></button>,
+                <button key="end" type="button" onClick={onEnd} aria-label="End call" className="flex items-center justify-center size-9 rounded-md bg-ando-action-danger-on-dark hover:bg-ando-action-danger-on-dark-hover text-ando-fg-white cursor-pointer transition-colors"><Icon name="IconCall" fill="filled" className="rotate-[135deg]" /></button>,
+              ].map((control, i) => (
+                <motion.div key={i} initial={{ opacity: 0, scale: 0.4, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ opacity: { duration: 0.16, delay: 0.25 + i * 0.07 }, scale: { type: "spring", stiffness: 520, damping: 20, delay: 0.25 + i * 0.07 }, y: { type: "spring", stiffness: 520, damping: 24, delay: 0.25 + i * 0.07 } }}>
+                  {control}
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>

@@ -858,9 +858,10 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       // The window pops up from the bottom as the film opens: 0.97 → 1, quick.
       const win = windowRef.current;
       if (win) {
-        const p = ease(seg(vt, 0.1, 0.45));
-        win.style.opacity = `${Math.min(1, p * 2)}`;
-        win.style.transform = `translateY(${72 * (1 - p)}px) scale(${0.97 + 0.03 * p})`;
+        // The window rises 20px into place, no scale, on a quartic ease-out.
+        const p = 1 - Math.pow(1 - seg(vt, 0.1, 0.5), 4);
+        win.style.opacity = `${Math.min(1, p * 1.6)}`;
+        win.style.transform = `translateY(${20 * (1 - p)}px)`;
       }
 
       // The camera. Every anchor is read from live layout and brought back

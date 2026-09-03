@@ -18,7 +18,7 @@ export const STAGE = { w: 1280, h: 800 } as const;
 export const LINE_Y = 430;
 /** The focus frame: wide in the cloud, tighter once the dots seat. */
 export const FRAME_CLOUD = { x: 120, y: 140, w: 1040, h: 580 } as const;
-export const FRAME_TIGHT = { x: 240, y: 140, w: 800, h: 580 } as const;
+export const FRAME_TIGHT = { x: 240, y: 84, w: 800, h: 676 } as const;
 /** The window is the tight frame, and widens to the left for the sidebar. */
 export const CARD = FRAME_TIGHT;
 export const SIDEBAR_W = 354;

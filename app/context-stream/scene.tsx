@@ -110,6 +110,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const [indicator, setIndicator] = useState<Frame | null>(null);
 
   const groundRef = useRef<HTMLDivElement>(null);
+  const pageGroundRef = useRef<HTMLDivElement>(null);
   const filmRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -168,6 +169,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       /* ── The window ────────────────────────────────────────────── */
       const winP = ease(seg(vt, T.iface + 0.1, 0.7));
       ground.style.opacity = `${winP}`;
+      if (pageGroundRef.current) pageGroundRef.current.style.opacity = `${winP}`;
       const side = ease(seg(vt, T.sidebar, 0.7));
       const cardX = lerp(CARD.x, CARD_WIDE.x, side);
       const cardW = lerp(CARD.w, CARD_WIDE.w, side);
@@ -208,9 +210,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const composerTop = lerp(cardH + 12, bottomTop, slide);
       composer.style.top = `${composerTop}px`;
       transcript.style.top = `${headerH}px`;
-      transcript.style.bottom = `${composerH + STRIP_H}px`;
+      // The typing slot only takes room while someone is typing (the product's own rule).
+      transcript.style.bottom = `${composerH + (typingShown ? STRIP_H : 8)}px`;
 
       /* ── Rows ──────────────────────────────────────────────────── */
+      // Every row comes in from the bottom: its slot opens from the
+      // composer's edge upward, pushing the rows above it up, while it
+      // rises into the slot.
       let chatIndex = 0;
       ROWS.forEach((row, i) => {
         const refs = rowRefs.current[i];
@@ -219,14 +225,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         if (row.lands === "chat") {
           at = T.chat + CHAT_LEAD + chatIndex * CHAT_STAGGER;
           chatIndex += 1;
-          refs.wrap.style.height = "";
         } else {
           at = T.reply;
         }
         const p = ease(seg(vt, at, 0.45));
-        if (row.lands !== "chat") refs.wrap.style.height = `${rowH[i] * p}px`;
+        refs.wrap.style.height = `${rowH[i] * p}px`;
         refs.inner.style.opacity = `${p}`;
-        refs.inner.style.transform = `translateY(${8 * (1 - p)}px)`;
+        refs.inner.style.transform = `translateY(${14 * (1 - p)}px)`;
       });
 
       /* ── The agent and the camera ──────────────────────────────── */
@@ -346,8 +351,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
   return (
     <div className="cs-stage relative w-screen overflow-hidden bg-white text-ando-fg-primary" style={{ height: `calc(100dvh - ${STUDIO_CLEARANCE}px)` }}>
+      {/* The ground, edge to edge — the stage's own copy of it rides inside the camera. */}
+      <div ref={pageGroundRef} className="absolute inset-0 bg-ando-bg-nav" style={{ opacity: 0 }} />
       <div
-        className="absolute left-1/2 top-1/2 overflow-hidden bg-white"
+        className="absolute left-1/2 top-1/2 overflow-hidden"
         style={{ width: STAGE.w, height: STAGE.h, transform: `translate(-50%, -50%) scale(${scale})` }}
         onClick={onReplay}
         role="presentation"
@@ -370,14 +377,14 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
                 <div ref={headerRef} data-cs="header" className="absolute left-0 right-0 top-0" style={{ opacity: 0 }}>
                   <ConversationHeader scene={ROOM} jamControl={<JamHeaderControl active={false} participants={[CAST[ME]]} onClick={noop} />} />
                 </div>
-                <div ref={transcriptRef} data-cs="transcript" className="absolute left-0 right-0 flex flex-col justify-end overflow-hidden pb-1" style={{ top: 44, bottom: 140 + STRIP_H }}>
+                <div ref={transcriptRef} data-cs="transcript" className="absolute left-0 right-0 flex flex-col justify-end overflow-hidden pb-1" style={{ top: 44, bottom: 148 }}>
                   {ROWS.map((row, i) => (
                     <div
                       key={row.key}
                       data-row={row.key}
                       ref={(el) => { rowRefs.current[i].wrap = el; }}
-                      className="relative shrink-0"
-                      style={{ overflow: row.lands === "chat" ? undefined : "hidden", height: row.lands === "chat" ? undefined : 0 }}
+                      className="relative shrink-0 overflow-hidden"
+                      style={{ height: 0 }}
                     >
                       <div ref={(el) => { rowRefs.current[i].inner = el; }} style={{ opacity: 0 }}>
                         <RowView row={row} runPhase={runPhase} phases={phases} traceVt={traceVt} />
@@ -408,7 +415,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           </div>
 
           {/* Outside the camera, so the pull-back leaves it still. */}
-          <div ref={title2Ref} data-cs="title-2" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: CARD.y - 76, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
+          <div ref={title2Ref} data-cs="title-2" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: CARD.y - 62, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
             “so we built an interface around that”
           </div>
         </div>

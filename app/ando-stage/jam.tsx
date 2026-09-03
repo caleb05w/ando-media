@@ -34,6 +34,10 @@ export function VoiceGlyph({ className = "" }: { className?: string }) {
   );
 }
 
+/** Seconds after the call appears before you pop in, and before the tools follow. */
+const YOU_JOIN = 0.5;
+const TOOLS_IN = YOU_JOIN + 0.5;
+
 /** `participants` are who is in the call; when `joined`, you are first. */
 export type JamCall = { id: string; startedAt: number; endedAt: number | null; participants: Actor[]; joined: boolean };
 
@@ -323,9 +327,10 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
           <div className="w-full overflow-hidden" style={{ height: 184 }}>
             {/* participant-grid.tsx sidebar layout: ≤2 side by side, equal, full height */}
             {/* Whoever was here first has the whole width; you pop in (you just
-                joined) and shoulder them aside — your tile grows from nothing on
-                a spring while theirs gives way. The controls spring up beneath,
-                one after another. */}
+                joined, half a second in) and shoulder them aside — your tile
+                grows from nothing on a spring while theirs gives way. Only once
+                you've landed do the controls spring up beneath, one after
+                another. */}
             <div className="h-full flex flex-row gap-2">
               {call.participants.slice(0, 2).map((actor, index) => {
                 const you = index === 0 && call.joined;
@@ -336,7 +341,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                     data-agent-speaking={speaking === actor ? "true" : "false"}
                     initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.7 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
                     animate={{ flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
-                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: 0.45 }, scale: { type: "spring", stiffness: 420, damping: 22, delay: 0.5 }, opacity: { duration: 0.2, delay: 0.5 } } : { duration: 0 }}
+                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 420, damping: 22, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
                     style={{ transformOrigin: "50% 50%" }}
                   >
                     <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>
@@ -360,7 +365,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                 <button key="react" type="button" aria-label="React" className="flex items-center justify-center size-9 rounded-md bg-ando-action-secondary-on-dark text-ando-fg-white shadow-md transition-colors hover:bg-ando-action-secondary-on-dark-hover cursor-pointer"><Icon name="IconEmojiSmile" fill="filled" /></button>,
                 <button key="end" type="button" onClick={onEnd} aria-label="End call" className="flex items-center justify-center size-9 rounded-md bg-ando-action-danger-on-dark hover:bg-ando-action-danger-on-dark-hover text-ando-fg-white cursor-pointer transition-colors"><Icon name="IconCall" fill="filled" className="rotate-[135deg]" /></button>,
               ].map((control, i) => (
-                <motion.div key={i} initial={{ opacity: 0, scale: 0.4, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ opacity: { duration: 0.16, delay: 0.25 + i * 0.07 }, scale: { type: "spring", stiffness: 520, damping: 20, delay: 0.25 + i * 0.07 }, y: { type: "spring", stiffness: 520, damping: 24, delay: 0.25 + i * 0.07 } }}>
+                <motion.div key={i} initial={{ opacity: 0, scale: 0.4, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ opacity: { duration: 0.16, delay: TOOLS_IN + i * 0.07 }, scale: { type: "spring", stiffness: 520, damping: 20, delay: TOOLS_IN + i * 0.07 }, y: { type: "spring", stiffness: 520, damping: 24, delay: TOOLS_IN + i * 0.07 } }}>
                   {control}
                 </motion.div>
               ))}

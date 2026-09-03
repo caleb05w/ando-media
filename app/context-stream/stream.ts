@@ -169,13 +169,10 @@ const rush = (T: Timing, vt: number) => {
   return 0.5 * ACCEL * u * u;
 };
 
-/** Where the agent is at `vt`: it comes in from the right edge as the
- *  camera settles — it was at the end of the line all along — then walks
- *  to centre stage while it eats. */
+/** Where the agent is at `vt`: it appears at the end of the line as the
+ *  camera settles, then walks to centre stage while it eats. */
 export function agentX(T: Timing, vt: number) {
-  const enter = smooth(seg(vt, T.agent - RAMP_DOWN, RAMP_DOWN));
-  const settled = lerp(STAGE.w + 80, AGENT_X, enter);
-  return lerp(settled, CENTER_X, ease(seg(vt, T.agent + 0.3, 0.7)));
+  return lerp(AGENT_X, CENTER_X, ease(seg(vt, T.agent + 0.3, 0.7)));
 }
 /** Where a dot is eaten: just inside the disc's left edge. */
 const eatX = (T: Timing, vt: number) => agentX(T, vt) - AGENT_R * 0.6;

@@ -21,7 +21,7 @@ import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, backOut, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -224,15 +224,17 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
       /* ── The agent and the camera ──────────────────────────────── */
       // The agent is /the-library's agent typing indicator, untouched: its
-      // own avatar, its own 120px, its own loop. It comes in from the right
-      // as the camera settles, the stream runs into it, it walks to centre
-      // stage; at `indicator` its animation plays backwards — the face spins
-      // out into the dots — and the wave carries on. At `iface` the camera
-      // is already in on it — the same 120px on screen — and pulls back
-      // while the window builds around it; when the pull ends the dots are
-      // exactly the composer's own, and hand over.
+      // own avatar, its own 120px, its own animation. It scales up at the
+      // end of the line as the camera settles, the stream runs into it, it
+      // walks to centre stage; at `indicator` its animation plays backwards
+      // — the face spins out into the dots — and the moment it lands on
+      // them the interface starts: the camera is already in on the dots —
+      // the same 120px on screen — and pulls back while the window builds
+      // around them; when the pull ends they are exactly the composer's
+      // own, and hand over.
       const field = fieldAt(T, vt);
       const ax = agentX(T, vt);
+      const appear = backOut(seg(vt, T.agent - 0.3, 0.45));
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       // Where the composer's own indicator draws its middle dot, measured
@@ -244,11 +246,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX;
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear;
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.4, 0.25)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.3, 0.12)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -288,7 +290,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       fadeIn(title1Ref.current, T.agent + 0.3, T.indicator + 0.5);
       fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
 
-      /* ── The canvas: the dots, and the agent's arrival ─────────── */
+      /* ── The canvas: the dots ──────────────────────────────────── */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, STAGE.w, STAGE.h);
       ctx.fillStyle = DOT_INK;
@@ -308,16 +310,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
-      }
-      // Two rings ripple out from the agent as it lands.
-      ctx.lineWidth = 1.5;
-      for (const lag of [0, 0.16]) {
-        const rp = seg(vt, T.agent - 0.3 + lag, 0.7);
-        if (rp <= 0 || rp >= 1) continue;
-        ctx.globalAlpha = 0.4 * (1 - rp);
-        ctx.beginPath();
-        ctx.arc(ax, LINE_Y, AGENT_R + 90 * ease(rp), 0, Math.PI * 2);
-        ctx.stroke();
       }
       ctx.globalAlpha = 1;
     };

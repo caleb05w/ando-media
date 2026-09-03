@@ -137,6 +137,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const indicatorRef = useRef<HTMLDivElement>(null);
   const traceRef = useRef<HTMLDivElement>(null);
   const valueLineRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const valueItemRefs = useRef<Array<Array<HTMLSpanElement | null>>>([]);
   const title0Ref = useRef<HTMLDivElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
@@ -275,7 +276,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       trace.style.clipPath = `inset(-8px ${(1 - drawn) * 100}% -8px -8px)`;
       // The slot: each line rolls up into place on its beat and tips away
       // when the next one comes — the banner's reel, on the film's clock.
+      // Each line's pile pops in item by item once the line has landed, and
+      // the agent gives a small nod as every step arrives.
       const valueSteps = valuePhasesFor(T).steps;
+      let nod = 0;
       valueLineRefs.current.forEach((line, i) => {
         if (!line) return;
         const step = valueSteps[i];
@@ -284,6 +288,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         const gone = next ? ease(seg(vt, next.t, 0.38)) : 0;
         line.style.opacity = `${roll * (1 - gone)}`;
         line.style.transform = `translateY(${lerp(24, 0, roll) - 18 * gone}px) rotateX(${lerp(-42, 0, roll) + 42 * gone}deg)`;
+        nod += Math.sin(Math.PI * seg(vt, step.t, 0.4));
+        (valueItemRefs.current[i] ?? []).forEach((item, j) => {
+          if (!item) return;
+          const p = pop(seg(vt, step.t + 0.3 + j * 0.09, 0.3));
+          item.style.opacity = `${clamp01(p * 2)}`;
+          item.style.transform = `scale(${p})`;
+        });
       });
       // The agent pops out of the cluster the seeds snapped into: from
       // nothing, past full, and settles — fast.
@@ -301,7 +312,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const S = zoomed ? { x: lerp(C.x, P.x, zp), y: lerp(C.y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear;
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * (1 + 0.05 * Math.min(1, nod));
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
@@ -451,7 +462,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
             {/* The trace line beside the agent — the product's TraceLine at the agent's scale. No data-cs: its shimmer and pops are its own. */}
             <div ref={traceRef} data-trace className="absolute whitespace-nowrap" style={{ left: AGENT_X, top: LINE_Y, opacity: 0, transform: `scale(${TRACE_SCALE})`, transformOrigin: "0 0" }}>
-              {valueOn ? <ValueLine agent={AGENT} participants={READ_FROM} steps={valuePhases.steps} lineRefs={valueLineRefs} /> : null}
+              {valueOn ? <ValueLine agent={AGENT} participants={READ_FROM} steps={valuePhases.steps} lineRefs={valueLineRefs} itemRefs={valueItemRefs} /> : null}
             </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>

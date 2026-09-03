@@ -94,12 +94,13 @@ export const runStart = (T: Timing) => T.chat + CHAT_LEAD + 2 * CHAT_STAGGER + 0
 export function valuePhasesFor(T: Timing): TracePhases {
   return {
     start: T.trace + 0.3,
+    // Two seconds a step: time to read each one.
     steps: [
       { t: T.trace + 0.3, label: "Starting agent session", icon: null },
-      { t: T.trace + 1.1, label: "Reading today's jam…", icon: "transcript" },
-      { t: T.trace + 2.5, label: "Checking company policies…", icon: "read", pile: [<NotionDisc key="n" />, <DriveDisc key="d" />, <DocsDisc key="g" />] },
-      { t: T.trace + 3.6, label: "Reading the call transcripts…", icon: "transcript", pile: [<GrainDisc key="a" />, <ZoomDisc key="z" />, <SlackDisc key="s" />, <GrainDisc key="b" />] },
-      { t: T.trace + 4.8, label: "Drafting the standup summary…", icon: "write" },
+      { t: T.trace + 1.9, label: "Reading today's jam…", icon: "transcript" },
+      { t: T.trace + 3.9, label: "Checking company policies…", icon: "read", pile: [<NotionDisc key="n" />, <DriveDisc key="d" />, <DocsDisc key="g" />] },
+      { t: T.trace + 5.9, label: "Reading the call transcripts…", icon: "transcript", pile: [<GrainDisc key="a" />, <ZoomDisc key="z" />, <SlackDisc key="s" />, <GrainDisc key="b" />] },
+      { t: T.trace + 7.9, label: "Drafting the standup summary…", icon: "write" },
     ],
     done: T.collapse + 10,
   };

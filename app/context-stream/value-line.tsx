@@ -19,7 +19,7 @@ const SHIMMER_INKS = { ["--ct-shimmer-lo" as string]: "rgba(88, 82, 78, 0.45)", 
 export const VALUE_SLOT_W = 300;
 export const VALUE_LINE_H = 20;
 
-export function ValueLine({ agent, participants, steps, lineRefs }: { agent: Actor; participants: Actor[]; steps: TracePhases["steps"]; lineRefs: RefObject<Array<HTMLSpanElement | null>> }) {
+export function ValueLine({ agent, participants, steps, lineRefs, itemRefs }: { agent: Actor; participants: Actor[]; steps: TracePhases["steps"]; lineRefs: RefObject<Array<HTMLSpanElement | null>>; /** [step][item] — each pile item, so it can pop in on its own beat */ itemRefs: RefObject<Array<Array<HTMLSpanElement | null>>> }) {
   return (
     <div className="flex items-center gap-2 kanso-text-label-12 text-ando-fg-tertiary">
       <span className="kanso-text-label-11-md shrink-0 text-ando-fg-secondary">{agent.name}</span>
@@ -38,7 +38,14 @@ export function ValueLine({ agent, participants, steps, lineRefs }: { agent: Act
               {pile ? (
                 <span className="inline-flex shrink-0 items-center pl-0.5">
                   {pile.map((item, index) => (
-                    <span key={index} className="-ml-1 flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-ando-bg-main first:ml-0">{item}</span>
+                    <span
+                      key={index}
+                      ref={(el) => { (itemRefs.current[i] ??= [])[index] = el; }}
+                      className="-ml-1 flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-ando-bg-main first:ml-0"
+                      style={{ opacity: 0 }}
+                    >
+                      {item}
+                    </span>
                   ))}
                 </span>
               ) : null}

@@ -184,10 +184,11 @@ export function camX(T: Timing, vt: number) {
 }
 const drift = (T: Timing, vt: number) => DRIFT * Math.max(0, vt - T.line);
 
-/** Where the agent is at `vt`: born at the left of the line, and it stays
- *  there. */
-export function agentX(_T: Timing, _vt: number) {
-  return AGENT_X;
+/** Where the agent is at `vt`: born at the left of the line, where the
+ *  trace line draws out beside it; once that has folded it walks to centre
+ *  stage for the typing indicator. */
+export function agentX(T: Timing, vt: number) {
+  return lerp(AGENT_X, CENTER_X, ease(seg(vt, T.collapse + 0.35, 0.7)));
 }
 /** A dot is eaten when it is this far into the disc. */
 const EAT_R = AGENT_R * 0.6;

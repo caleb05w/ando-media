@@ -47,6 +47,14 @@ export type Beat =
   /** An agent run under message `on`, its activity line updating per beat. */
   | { kind: "trace"; run: string; on: string; who: string; label: string; icon?: "read" | "write" | "transcript"; ms: number }
   | { kind: "trace-done"; run: string; tool: string; ms: number }
+  /** The camera: a shot. Opens at `scale` looking at `at`, and pushes in by
+   *  `push` over the shot (until the next camera beat). `cut` snaps there;
+   *  otherwise it glides from where it was. */
+  | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
+  /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
+  | { kind: "type"; text: string; hold: number; ms: number }
+  /** The end: cut to white, the mark bounces in, the wordmark lands beside it. */
+  | { kind: "logo"; ms: number }
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; ms: number }
@@ -60,7 +68,10 @@ export type Beat =
 
 /** What the main pane is: a channel (hashtag, member count) or a 1:1 DM
  *  (the other person's avatar and name, headphones instead of members). */
-export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "hang-up";
+export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "hang-up" | "send-button";
+
+/** Where the camera looks: a control, the panel, the room, or a message (`row:<id>`). */
+export type CameraAnchor = CursorTarget | "panel" | "jam-transcript" | "room" | `row:${string}`;
 
 export type Surface =
   | { kind: "channel"; name: string; members: number; private?: boolean }
@@ -314,7 +325,85 @@ const CHAT_THEN_JAM: Scene = {
   ],
 };
 
-export const SCENES: Scene[] = [CHAT_THEN_JAM, BLANK];
+/* The launch cut — the same story as CHAT_THEN_JAM at the reference's pace
+ * (app/context-stream/MOTION.md): ~30s, seven shots, hard cuts, a camera
+ * that drifts in toward whatever the cursor is about to press (a slow push,
+ * never a crop — the room is the whole frame), one type card,
+ * the logo to close. The first four lines are already on screen when it
+ * opens; the room is a set, not a screenshot. */
+const JAMS_CUT: Scene = {
+  id: "jams-cut",
+  name: "Jams launch — the cut",
+  blurb: "Join, transcript, agent recap, tickets, logo. Thirty seconds.",
+  surface: { kind: "dm", who: "sara" },
+  cast: CAST,
+  beats: [
+    // Already there when we open.
+    { kind: "mark", label: "TODAY", ms: 0 },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 0, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
+    { kind: "say", id: "j2", who: "sara", time: "11:06 AM", ms: 0, body: [[{ text: "Wait, which parts?" }]] },
+    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 0, body: [[{ text: "Is this for our launch video?" }]] },
+    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 0, body: [[{ text: "Yeah, I had a few ideas." }]] },
+    // Shot 1 — the DM, cropped low on the composer, pushing.
+    { kind: "camera", at: "composer", scale: 1.0, push: 0.06, cut: true, ms: 700 },
+    { kind: "typing", who: "sara", ms: 600 },
+    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1000, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
+    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ms: 900 },
+    { kind: "camera", at: "join-button", scale: 1.06, push: 0.06, ms: 0 },
+    { kind: "cursor", to: "join-button", glyph: "arrow", press: true, ms: 1100 },
+    // Shot 2 — cut to the sky: the call, alone, growing; push in.
+    { kind: "jam-join", ms: 0 },
+    { kind: "camera", at: "panel", scale: 1.0, push: 0.1, cut: true, ms: 1600 },
+    { kind: "jam-deploy", ms: 900 },
+    { kind: "camera", at: "transcript-tab", scale: 1.1, push: 0.04, ms: 0 },
+    { kind: "cursor", to: "transcript-tab", glyph: "pointer", press: true, ms: 900 },
+    { kind: "tab", tab: "transcript", ms: 500 },
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 900 },
+    // Shot 3 — the room comes back; the camera pans onto the panel as it docks.
+    { kind: "jam-dock", ms: 0 },
+    { kind: "camera", at: "panel", scale: 1.0, push: 0.08, ms: 900 },
+    { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1500 },
+    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 900 },
+    { kind: "transcript", who: "sara", text: "that one", ms: 900 },
+    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 1300 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 1000 },
+    // Shot 4 — white. One line, word by word.
+    { kind: "type", text: "Jams are live transcribed.", hold: 2.0, ms: 2000 },
+    // Shot 5 — cut back, pushed in on the composer. You ask; the agent reads the call.
+    { kind: "jam-end", ms: 0 },
+    { kind: "camera", at: "composer", scale: 1.0, push: 0.05, cut: true, ms: 300 },
+    { kind: "cursor", to: "send-button", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", ms: 800, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1600 },
+    { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
+    { kind: "camera", at: "row:j8", scale: 1.05, push: 0.06, ms: 0 },
+    {
+      kind: "say", id: "j8", who: "tadao", time: "11:13 AM", ms: 2600,
+      body: [
+        [{ text: "Quick recap of the jam:" }],
+        [{ text: "Three launch-video ideas — the Slack import coming apart, an agent answering in a thread, and the golden ticket as the close." }],
+        [{ text: "You landed on: cold open on the agent, no voiceover, the ticket as the call to action." }],
+      ],
+    },
+    { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Filing tickets in Linear…", icon: "write", ms: 1400 },
+    { kind: "trace-done", run: "t2", tool: "Create Issue", ms: 200 },
+    // Shot 6 — the tickets, pushed in.
+    { kind: "camera", at: "row:j9", scale: 1.1, push: 0.05, ms: 0 },
+    {
+      kind: "say", id: "j9", who: "tadao", time: "11:13 AM", ms: 2600,
+      body: [
+        [{ text: "Filed three tickets:" }],
+        [{ text: "AND-7110", link: true }, { text: " — Launch video: agent cold open" }],
+        [{ text: "AND-7111", link: true }, { text: " — Launch video: Slack import sequence" }],
+        [{ text: "AND-7112", link: true }, { text: " — Launch video: golden ticket close" }],
+      ],
+    },
+    // Shot 7 — white. The mark, then the wordmark.
+    { kind: "logo", ms: 3200 },
+  ],
+};
+
+export const SCENES: Scene[] = [JAMS_CUT, CHAT_THEN_JAM, BLANK];
 
 /* ------------------------- timing, for the Studio ------------------------- */
 

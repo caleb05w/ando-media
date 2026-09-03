@@ -365,6 +365,7 @@ export function Composer({ scene, typing, onSend, scripted = null }: { scene: Sc
                 onClick={submit}
                 disabled={!canSend}
                 aria-label={`Send message to ${target}`}
+                data-stage-send
                 className={`ando-button w-7 px-0 ${canSend ? "" : "cursor-not-allowed !bg-ando-bg-fill-muted"}`}
                 data-size="sm"
               >

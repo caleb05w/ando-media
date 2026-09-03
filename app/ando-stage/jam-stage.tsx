@@ -74,11 +74,13 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     if (!box || !inner || !rowEl || !card) return;
     const r = rowEl.getBoundingClientRect();
     const c = card.getBoundingClientRect();
+    // The camera scales the whole room; screen deltas come back to layout px.
+    const k = rowEl.clientWidth > 0 ? r.width / rowEl.clientWidth : 1;
     box.style.transition = "none";
-    box.style.left = `${c.left - r.left}px`;
-    box.style.top = `${c.top - r.top}px`;
-    box.style.width = `${c.width}px`;
-    box.style.height = `${c.height}px`;
+    box.style.left = `${(c.left - r.left) / k}px`;
+    box.style.top = `${(c.top - r.top) / k}px`;
+    box.style.width = `${c.width / k}px`;
+    box.style.height = `${c.height / k}px`;
     box.style.transform = "scale(1)";
     inner.style.opacity = "0";
     void box.offsetWidth;
@@ -111,10 +113,10 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
 
   return (
     <>
-      {/* The ground while the call is the hero: the world's daytime sky (affiliate/mini-world.tsx), flat, covering the room. */}
+      {/* The ground while the call is the hero: the world's daytime sky (affiliate/mini-world.tsx), flat, covering the whole room — `fixed` inside the camera's transform resolves against the camera, so the top bar goes under too. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-10"
+        className="pointer-events-none fixed inset-0 z-10"
         style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${JAM_MOVE}` }}
       />
       <div

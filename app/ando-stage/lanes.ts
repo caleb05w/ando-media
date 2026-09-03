@@ -32,6 +32,9 @@ function label(scene: Scene, beat: Beat): string {
     case "trace": return beat.label.toLowerCase();
     case "trace-done": return "run done";
     case "title": return "title card";
+    case "camera": return `camera · ${beat.at.replace("-", " ")}`;
+    case "type": return "type card";
+    case "logo": return "logo";
   }
 }
 
@@ -40,7 +43,7 @@ function label(scene: Scene, beat: Beat): string {
 function closerOf(scene: Scene, index: number): number | null {
   const beat = scene.beats[index];
   if (beat.kind === "typing" || beat.kind === "trace" || beat.kind === "transcript") return index + 1 < scene.beats.length ? index + 1 : null;
-  if (beat.kind === "title") return null;
+  if (beat.kind === "title" || beat.kind === "type" || beat.kind === "camera" || beat.kind === "logo") return null;
   if (beat.kind === "jam-start") {
     const end = scene.beats.findIndex((b, i) => i > index && b.kind === "jam-end");
     return end === -1 ? null : end;

@@ -24,6 +24,7 @@ import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
+import { LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, WORD_CADENCE, WORD_LAND, anchorSelector, backOut, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -33,6 +34,7 @@ const CURSOR_TARGETS = {
   composer: "[data-stage-editor]",
   "transcript-tab": '[data-jam-tab="transcript"]',
   "hang-up": '[aria-label="End call"]',
+  "send-button": "[data-stage-send]",
 } as const;
 
 /** The brand cursor set — glyph, size, and the hotspot offset (mini-ando.tsx). */
@@ -147,6 +149,9 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
         break;
       case "cursor":
       case "title":
+      case "camera":
+      case "type":
+      case "logo":
         break;
       case "tab":
         tab = beat.tab;
@@ -393,7 +398,7 @@ type JamActions = { muted: boolean; toggleMute: () => void; end: () => void; joi
 function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamActions }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
   return (
-    <div className="flex w-full flex-col" data-beat={row.beat}>
+    <div className="flex w-full flex-col" data-beat={row.beat} data-row-id={row.key}>
       {/* message-row-frame.tsx: a live call row wears the success wash and a 2px success edge */}
       <div className={`st-land group relative min-w-0 -ml-4 px-4 py-1.5 ${activeCall ? "pl-3.5 pb-1.5 bg-ando-bg-success-subtle border-l-2 border-l-ando-action-success rounded-l-none rounded-r-md" : "rounded-r-md hover:bg-ando-bg-fill-subtle"}`}>
         <div className="flex min-w-0 w-full max-w-full items-start gap-2 overflow-visible">
@@ -488,6 +493,18 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // not on the 10Hz clock the trace line rides.
   const [titleCard, setTitleCard] = useState<TitleCard | null>(null);
   const titleRef = useRef<string | null>(null);
+  // The cut's cards: mounted on the beat (a hard cut), moved per frame.
+  const [typeCard, setTypeCard] = useState<TypeCardOn | null>(null);
+  const typeKeyRef = useRef<string | null>(null);
+  const [logoOn, setLogoOn] = useState(false);
+  const logoOnRef = useRef(false);
+  // The camera: the whole room on one transform, posed every frame from the
+  // shot that is on. `cameraPose` is what was last applied, so an anchor's
+  // screen rect can be brought back to room px; `anchorCache` keeps the last
+  // place each anchor was seen for the frames it is not in the DOM.
+  const cameraRef = useRef<HTMLDivElement>(null);
+  const cameraPose = useRef({ tx: 0, ty: 0, s: 1 });
+  const anchorCache = useRef(new Map<string, { x: number; y: number }>());
   // The panel tab you clicked yourself overrides the script's until the next tab beat.
   const [tabOverride, setTabOverride] = useState<"thread" | "transcript" | null>(null);
   const pointerRef = useRef<HTMLDivElement>(null);
@@ -650,6 +667,89 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       const card = titleCardAt(scene, T, vt);
       const cardKey = card ? card.headline : null;
       if (cardKey !== titleRef.current) { titleRef.current = cardKey; setTitleCard(card); }
+
+      // The type card: cut in on the beat, each word landing on its own time.
+      const tc = typeCardAt(scene, T, vt);
+      const tcKey = tc?.key ?? null;
+      if (tcKey !== typeKeyRef.current) { typeKeyRef.current = tcKey; setTypeCard(tc); }
+      if (tc) {
+        const line = document.querySelector<HTMLElement>("[data-type-line]");
+        if (line) {
+          const local = vt - tc.t;
+          const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
+          let pending = 0;
+          words.forEach((word, i) => {
+            const p = ease(seg(local, i * WORD_CADENCE, WORD_LAND));
+            word.style.opacity = `${p}`;
+            word.style.transform = `translateX(${(1 - p) * 44}px)`;
+            if (local < i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
+          });
+          // The line re-centres as it grows: the words still to come are held out of the count.
+          line.style.transform = `translateX(${pending / 2}px)`;
+        }
+      }
+
+      // The logo: the mark bounces in, then slides over as the wordmark lands.
+      const logoT = logoAt(scene, T, vt);
+      const on = logoT != null;
+      if (on !== logoOnRef.current) { logoOnRef.current = on; setLogoOn(on); }
+      if (logoT != null) {
+        const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
+        const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
+        if (mark && letters) {
+          const local = vt - logoT;
+          const drop = seg(local, 0, 0.62);
+          const slide = ease(seg(local, 0.8, 0.6));
+          const markScale = 0.3 + 0.7 * backOut(drop);
+          mark.style.opacity = `${Math.min(1, drop * 4)}`;
+          mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y * slide}px) scale(${markScale})`;
+          letters.style.opacity = `${slide}`;
+          letters.style.transform = `translate(${LETTERS_OFFSET.x + 32 * (1 - slide)}px, ${LETTERS_OFFSET.y}px)`;
+        }
+      }
+
+      // The camera. Every anchor is read from live layout and brought back
+      // to room px through the pose last applied; a cut snaps, a shot change
+      // glides over 0.9s, and within a shot the push runs on its own ease.
+      const cam = cameraRef.current;
+      if (cam) {
+        const { cur, prev } = shotsAt(scene, T, vt, totalFor(scene)(T));
+        if (!cur) {
+          cam.style.transform = "";
+          cameraPose.current = { tx: 0, ty: 0, s: 1 };
+        } else {
+          const W = cam.clientWidth;
+          const H = cam.clientHeight;
+          const pose0 = cameraPose.current;
+          const resolve = (at: string) => {
+            const el = document.querySelector<HTMLElement>(anchorSelector(at as Parameters<typeof anchorSelector>[0]));
+            if (el) {
+              const r = el.getBoundingClientRect();
+              const c = { x: (r.left + r.width / 2 - pose0.tx) / pose0.s, y: (r.top + r.height / 2 - pose0.ty) / pose0.s };
+              anchorCache.current.set(at, c);
+              return c;
+            }
+            return anchorCache.current.get(at) ?? { x: W / 2, y: H / 2 };
+          };
+          const now = { s: shotScale(cur, vt), c: resolve(cur.at) };
+          let s = now.s;
+          let c = now.c;
+          if (!cur.cut && prev) {
+            const from = { s: shotScale(prev, cur.t), c: resolve(prev.at) };
+            const g = ease(seg(vt, cur.t, 0.9));
+            s = from.s + (now.s - from.s) * g;
+            c = { x: from.c.x + (now.c.x - from.c.x) * g, y: from.c.y + (now.c.y - from.c.y) * g };
+          }
+          let tx = W / 2 - c.x * s;
+          let ty = H / 2 - c.y * s;
+          if (s >= 1) {
+            tx = Math.min(0, Math.max(W - W * s, tx));
+            ty = Math.min(0, Math.max(H - H * s, ty));
+          }
+          cam.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+          cameraPose.current = { tx, ty, s };
+        }
+      }
       // The pointer: per-frame writes, measured from live layout (nothing it
       // aims at is transformed, so rects are safe to read every frame).
       const pointer = pointerRef.current;
@@ -682,7 +782,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             const y = from.y + (to.y - from.y) * e - arc;
             pointerPos.current = { x, y };
             pointer.style.opacity = "1";
-            pointer.style.transform = `translate(${x}px, ${y}px) scale(${1 - 0.15 * pose.press})`;
+            pointer.style.transform = `translate(${x}px, ${y}px) scale(${cameraPose.current.s * (1 - 0.15 * pose.press)})`;
             const glyph = cursorGlyphRef.current;
             const c = CURSOR_GLYPHS[pose.glyph];
             if (glyph && glyph.getAttribute("src") !== c.src) { glyph.src = c.src; glyph.width = c.w; glyph.height = c.h; glyph.style.margin = `${c.dy}px 0 0 ${c.dx}px`; }
@@ -718,16 +818,15 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   }, [onCycleScene]);
 
   return (
-    <div
-      className="relative flex h-dvh w-screen flex-col overflow-hidden bg-ando-bg-nav text-ando-fg-primary"
-      style={{ paddingBottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0 }}
-    >
+    <div className="relative h-dvh w-screen overflow-hidden bg-ando-bg-nav text-ando-fg-primary">
+      {/* The camera: the whole room on one transform (cards.tsx). */}
+      <div ref={cameraRef} className="absolute inset-x-0 top-0 flex flex-col will-change-transform" style={{ bottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0, transformOrigin: "0 0" }}>
       <Topbar />
       <div ref={rowRef} className="relative flex min-h-0 flex-1">
         <Rail me={scene.cast[ME]} />
         <Sidebar scene={scene} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
+        <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
           <ConversationHeader scene={scene} jamControl={<JamHeaderControl active={jamCall != null} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
           <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8 }}>
             <div aria-hidden className="mt-auto shrink-0" />
@@ -761,6 +860,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           </>
         ) : null}
       </div>
+      </div>
 
       {titleCard ? (
         <div className="pointer-events-none fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-[#fafaf9] text-[#1a1817]" aria-hidden>
@@ -769,11 +869,13 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           <span className="mt-3 text-[44px] leading-[1.1] tracking-[-0.01em]" style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}>{titleCard.headline}</span>
         </div>
       ) : null}
+      {typeCard ? <TypeCard card={typeCard} /> : null}
+      {logoOn ? <LogoCard /> : null}
       {/* Your pointer, when the script moves it. The brand cursor set from
           /public/cursors (see app/affiliate/mini-ando.tsx); hotspot offsets
           ride the translate point. */}
       {hooks ? (
-        <div ref={pointerRef} className="pointer-events-none fixed left-0 top-0 z-[70] opacity-0 will-change-transform" aria-hidden>
+        <div ref={pointerRef} className="pointer-events-none fixed left-0 top-0 z-[70] opacity-0 will-change-transform" style={{ transformOrigin: "0 0" }} aria-hidden>
           <img ref={cursorGlyphRef} src={CURSOR_GLYPHS.arrow.src} alt="" width={CURSOR_GLYPHS.arrow.w} height={CURSOR_GLYPHS.arrow.h} className="max-w-none drop-shadow-sm" style={{ margin: `${CURSOR_GLYPHS.arrow.dy}px 0 0 ${CURSOR_GLYPHS.arrow.dx}px` }} />
         </div>
       ) : null}

@@ -162,7 +162,11 @@ export const WORD_CADENCE = 0.15;
 /** How long a word takes to land. */
 export const WORD_LAND = 0.42;
 
-export type TypeCardOn = { key: string; words: string[]; t: number; hold: number; faces: Array<{ actor: Actor; on: number }> };
+export type TypeCardOn = { key: string; /** Each line's words. */ lines: string[][]; /** When each line starts, from the card's own zero. */ starts: number[]; /** When each line begins to leave. */ ends: number[]; t: number; /** The whole card's hold: the last line's end. */ hold: number; faces: Array<{ actor: Actor; on: number }> };
+/** How long a line takes to lift and blur away once its hold is up. */
+export const LINE_EXIT = 0.5;
+/** Seconds for a line's words to finish arriving. */
+export const lineArrive = (words: number) => (words - 1) * WORD_CADENCE + WORD_LAND;
 /** A face pops in with the word it is keyed to, over this long. */
 export const FACE_LAND = 0.55;
 
@@ -171,8 +175,19 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
     const beat = scene.beats[index];
     if (beat.kind !== "type") continue;
     const t = T[beatKey(index)];
-    if (vt < t || vt > t + beat.hold + TYPE_EXIT) continue;
-    return { key: beatKey(index), words: beat.text.split(" "), t, hold: beat.hold, faces: (beat.faces ?? []).map((face) => ({ actor: scene.cast[face.who], on: face.on })) };
+    const lines = [beat.text, ...(beat.lines ?? [])].map((line) => line.split(" "));
+    const starts: number[] = [];
+    const ends: number[] = [];
+    let at = 0;
+    lines.forEach((words, i) => {
+      starts.push(at);
+      const last = i === lines.length - 1;
+      at += lineArrive(words.length) + (last ? beat.hold : beat.lineHold ?? 1.3);
+      ends.push(at);
+    });
+    const hold = at;
+    if (vt < t || vt > t + hold + TYPE_EXIT) continue;
+    return { key: beatKey(index), lines, starts, ends, t, hold, faces: (beat.faces ?? []).map((face) => ({ actor: scene.cast[face.who], on: face.on })) };
   }
   return null;
 }
@@ -198,9 +213,14 @@ export function TypeCard({ card }: { card: TypeCardOn }) {
           ))}
         </div>
       ) : null}
-      <div className="flex whitespace-nowrap will-change-transform" data-type-line style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.02em", fontWeight: 500, fontFamily: "var(--font-geist-sans), Geist, ui-sans-serif, system-ui, sans-serif" }}>
-        {card.words.map((word, i) => (
-          <span key={i} data-word className="inline-block will-change-transform" style={{ marginRight: i < card.words.length - 1 ? "0.26em" : 0, opacity: 0 }}>{word}</span>
+      {/* Lines stack on one spot: the live one centred, the ones before it lifted and blurred above. */}
+      <div className="relative flex items-center justify-center" style={{ height: 60 }}>
+        {card.lines.map((words, li) => (
+          <div key={li} className="absolute flex whitespace-nowrap will-change-transform" data-type-line data-line={li} style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.02em", fontWeight: 500, fontFamily: "var(--font-geist-sans), Geist, ui-sans-serif, system-ui, sans-serif" }}>
+            {words.map((word, i) => (
+              <span key={i} data-word className="inline-block will-change-transform" style={{ marginRight: i < words.length - 1 ? "0.26em" : 0, opacity: 0 }}>{word}</span>
+            ))}
+          </div>
         ))}
       </div>
     </div>

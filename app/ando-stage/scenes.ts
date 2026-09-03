@@ -57,7 +57,7 @@ export type Beat =
    *  otherwise it glides from where it was. */
   | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
   /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
-  | { kind: "type"; text: string; hold: number; /** An avatar stack above the line: each face pops in as the word at index `on` arrives. */ faces?: Array<{ who: string; on: number }>; ms: number }
+  | { kind: "type"; text: string; /** More lines after `text`: each arrives word by word once the one before has held (`lineHold` seconds), which then lifts and blurs away above it. `hold` is the last line's. */ lines?: string[]; lineHold?: number; hold: number; /** An avatar stack above the first line: each face pops in as the word at index `on` arrives. */ faces?: Array<{ who: string; on: number }>; ms: number }
   /** The agent reading the jam: the library's context trace on white, run
    *  from its start for `hold` seconds, then a fade back to the room. */
   | { kind: "context"; hold: number; ms: number }
@@ -400,7 +400,17 @@ const JAMS_CUT: Scene = {
     // so nothing that follows — the cursor's trip to Thread, the press —
     // ever happens behind it. Change the hold, change the dwell with it.
     // Jam(0) it(1) out(2) with(3) your(4) human(5) (and(6) agent)(7) teammates(8): you on "your", Sara on "human", Tadao on "agent".
-    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: [{ who: "caleb", on: 4 }, { who: "sara", on: 5 }, { who: "tadao", on: 7 }], hold: 2.8, ms: 3600 },
+    // One card, three lines: what it is, then how it works. Each line
+    // holds `lineHold`, lifts away, and the next arrives beneath it.
+    {
+      kind: "type",
+      text: "Jam it out with your human (and agent) teammates",
+      faces: [{ who: "caleb", on: 4 }, { who: "sara", on: 5 }, { who: "tadao", on: 7 }],
+      lines: ["Every jam is live transcribed", "so your agents can follow along, and follow up."],
+      lineHold: 1.3,
+      hold: 2.6,
+      ms: 9600,
+    },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },

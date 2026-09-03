@@ -25,7 +25,7 @@ import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { Landing } from "./landing";
-import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, LINE_EXIT, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -772,10 +772,10 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       const tcKey = tc?.key ?? null;
       if (tcKey !== typeKeyRef.current) { typeKeyRef.current = tcKey; setTypeCard(tc); }
       if (tc) {
-        const line = document.querySelector<HTMLElement>("[data-type-line]");
-        if (line) {
+        const lines = Array.from(document.querySelectorAll<HTMLElement>("[data-type-line]"));
+        if (lines.length > 0) {
           const local = vt - tc.t;
-          // Each face pops in with the word it is keyed to.
+          // Each face pops in with the word (of the first line) it is keyed to.
           const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
           faces.forEach((face) => {
             const on = Number(face.dataset.on ?? 0);
@@ -783,23 +783,39 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             face.style.opacity = `${Math.min(1, p * 3)}`;
             face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
           });
-          const lead = 0;
-          const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
-          let pending = 0;
-          words.forEach((word, i) => {
-            const p = ease(seg(local, lead + i * WORD_CADENCE, WORD_LAND));
-            word.style.opacity = `${p}`;
-            word.style.transform = `translateX(${(1 - p) * 44}px)`;
-            if (local < lead + i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
-          });
-          // The line re-centres as it grows: the words still to come are held out of the count.
-          // After its hold it lifts away for whatever takes the white next.
+          // The card as a whole lifts away after its last line's hold.
           const exit = ease(seg(local, tc.hold, TYPE_EXIT));
-          line.style.transform = `translateX(${pending / 2}px) translateY(${-28 * exit}px)`;
-          line.style.opacity = `${1 - exit}`;
+          lines.forEach((line, li) => {
+            const start = tc.starts[li];
+            const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
+            let pending = 0;
+            words.forEach((word, i) => {
+              const p = ease(seg(local, start + i * WORD_CADENCE, WORD_LAND));
+              word.style.opacity = `${p}`;
+              word.style.transform = `translateX(${(1 - p) * 44}px)`;
+              if (local < start + i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
+            });
+            // A line that has had its hold lifts and blurs away above the next;
+            // the last line leaves with the card.
+            const last = li === lines.length - 1;
+            const gone = last ? exit : ease(seg(local, tc.ends[li], LINE_EXIT));
+            // Only one ghost at a time: a lifted line is gone for good once the line after it leaves too.
+            const buried = li + 1 < lines.length - 1 ? ease(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
+            const lift = last ? 28 : 110;
+            line.style.transform = `translateX(${pending / 2}px) translateY(${-lift * gone}px)`;
+            line.style.opacity = `${last ? 1 - gone : (1 - 0.85 * gone) * (1 - buried)}`;
+            line.style.filter = last ? "none" : `blur(${6 * gone}px)`;
+          });
+          // The stack lifts with the first line.
           const stack = document.querySelector<HTMLElement>("[data-type-faces]");
-          if (stack) { stack.style.transform = `translateY(${-28 * exit}px)`; stack.style.opacity = `${1 - exit}`; }
-          // The white goes with the line, so the next shot shows through.
+          if (stack) {
+            const gone = lines.length > 1 ? ease(seg(local, tc.ends[0], LINE_EXIT)) : exit;
+            const buried = lines.length > 2 ? ease(seg(local, tc.ends[1], LINE_EXIT)) : lines.length === 2 ? exit : 0;
+            stack.style.transform = `translateY(${-(lines.length > 1 ? 110 : 28) * gone}px)`;
+            stack.style.opacity = `${lines.length > 1 ? (1 - 0.85 * gone) * (1 - buried) : 1 - gone}`;
+            stack.style.filter = lines.length > 1 ? `blur(${6 * gone}px)` : "none";
+          }
+          // The white goes with the last line, so the next shot shows through.
           const card = document.querySelector<HTMLElement>("[data-type-card]");
           if (card) card.style.opacity = `${1 - exit}`;
         }

@@ -66,6 +66,8 @@ export function anchorSelector(at: CameraAnchor): string {
 export const TYPE_EXIT = 0.45;
 export const CONTEXT_FADE_IN = 0.4;
 export const CONTEXT_FADE_OUT = 0.5;
+/** The trace runs this much faster than the library page, so a 3s hold reaches "Reading today's jam…". */
+export const CONTEXT_RATE = 1.7;
 
 export type ContextOn = { key: string; t: number; hold: number };
 
@@ -102,7 +104,7 @@ export function ContextCard({ localRef, hold }: { localRef: RefObject<number>; h
   return (
     <div className="pointer-events-none fixed inset-0 z-[81] flex items-center justify-center bg-white" aria-hidden data-context-card style={{ opacity: 1 - fadeOut }}>
       <div className="w-[460px]" style={{ opacity: fadeIn, transform: `translateY(${(1 - fadeIn) * 12}px)` }}>
-        <ContextTrace vt={Math.max(0, local * 1000)} open onToggle={() => {}} theme="light" />
+        <ContextTrace vt={Math.max(0, local * 1000 * CONTEXT_RATE)} open onToggle={() => {}} theme="light" />
       </div>
     </div>
   );

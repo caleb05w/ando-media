@@ -306,8 +306,8 @@ const CHAT_THEN_JAM: Scene = {
     { kind: "typing", who: "sara", ms: 1400 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", ms: 1200, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize the issues we talked about?" }]] },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Starting agent session", ms: 1800 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 2800 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 1200 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1900 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 1000 },
     { kind: "typing", who: "tadao", ms: 2000 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 300 },
     {
@@ -373,28 +373,29 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 550 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 650 },
-    // Shot 3 — the room comes back; the panel docks; the jam does not slow down.
-    { kind: "jam-dock", ms: 450 },
-    { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 430 },
-    { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 450 },
-    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 470 },
-    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 380 },
-    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 380 },
-    { kind: "transcript", who: "sara", text: "that one. and the golden ticket as the close", ms: 560 },
-    { kind: "transcript", who: "caleb", text: "wait, ticket before or after the import", ms: 500 },
-    { kind: "transcript", who: "sara", text: "after. import, agent, ticket", ms: 470 },
-    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 470 },
-    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 440 },
-    { kind: "transcript", who: "caleb", text: "and the door mark at the very end", ms: 470 },
-    { kind: "transcript", who: "sara", text: "two seconds on the logo, no more", ms: 470 },
-    { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 400 },
-    { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 430 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 600 },
+    // Shot 3 — the room comes back; the panel docks; the jam does not slow
+    // down. Fifteen lines in three seconds: a blur on purpose.
+    { kind: "jam-dock", ms: 300 },
+    { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 190 },
+    { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 200 },
+    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 210 },
+    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 180 },
+    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 180 },
+    { kind: "transcript", who: "sara", text: "that one. and the golden ticket as the close", ms: 230 },
+    { kind: "transcript", who: "caleb", text: "wait, ticket before or after the import", ms: 210 },
+    { kind: "transcript", who: "sara", text: "after. import, agent, ticket", ms: 200 },
+    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 200 },
+    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 190 },
+    { kind: "transcript", who: "caleb", text: "and the door mark at the very end", ms: 200 },
+    { kind: "transcript", who: "sara", text: "two seconds on the logo, no more", ms: 200 },
+    { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 180 },
+    { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 190 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 340 },
     // Shot 4 — white. One line, word by word.
     { kind: "type", text: "Your agents were in the jam.", hold: 2.2, ms: 2200 },
     // The line lifts away and the agent's context trace takes the white:
     // starting a session, then reading today's jam. Then we fade back.
-    { kind: "context", hold: 4.8, ms: 4800 },
+    { kind: "context", hold: 3.0, ms: 3000 },
     // Shot 5 — back in the room, the jam still open. You ask the agent in
     // the Jam's own thread; it takes its time reading the transcript.
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1000 },
@@ -425,7 +426,7 @@ const JAMS_CUT: Scene = {
       ],
     },
     // Shot 7 — white. The mark, then the wordmark.
-    { kind: "logo", ms: 3200 },
+    { kind: "logo", ms: 3000 },
   ],
 };
 

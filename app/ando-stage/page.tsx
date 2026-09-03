@@ -470,14 +470,20 @@ function MessageRowView({ row, jamActions, anchor = "bottom" }: { row: MessageRo
   const shown = row.typedAt != null && row.body ? Math.min(total, Math.max(0, Math.floor((jamActions.typeVt - row.typedAt) * TYPE_CPS))) : total;
   const typing = row.typedAt != null && shown < total;
   const body = row.body && row.typedAt != null ? sliceBody(row.body, shown) : row.body;
+  // Clipped to the slot while it grows — otherwise the content, pinned to
+  // the slot's far edge, overflows across the row before it until the slot
+  // catches up. Released once grown so nothing (hover wash, pills) is cut.
+  const [grown, setGrown] = useState(false);
   return (
     <motion.div
-      className={`flex w-full flex-col ${anchor === "top" ? "justify-start overflow-hidden" : "justify-end"}`}
+      className={`flex w-full flex-col ${anchor === "top" ? "justify-start" : "justify-end"}`}
+      style={{ overflow: grown ? "visible" : "hidden" }}
       data-beat={row.beat}
       data-row-id={row.key}
       initial={{ height: 0 }}
       animate={{ height: "auto" }}
       transition={{ duration: 0.3, ease: LAND_EASE }}
+      onAnimationComplete={() => setGrown(true)}
     >
       <motion.div
         initial={{ opacity: 0 }}

@@ -406,11 +406,13 @@ const JAMS_CUT: Scene = {
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 800 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
-      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 3200,
+      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2400,
       body: [
-        [{ text: "for sure, and here's a quick recap for posterity:" }],
-        [{ text: "Two launch-video ideas — the Slack import coming apart, and an agent answering in a thread. Golden ticket as the close." }],
-        [{ text: "You landed on: agent first as a cold open, then the import, the ticket as the call to action, no voiceover, two seconds on the logo. Caleb cuts it, Sara does the type." }],
+        [{ text: "for sure — quick recap:" }],
+        [{ text: "• Agent first as the cold open, then the Slack import" }],
+        [{ text: "• Golden ticket as the close" }],
+        [{ text: "• No voiceover. Two seconds on the logo" }],
+        [{ text: "• Caleb cuts, Sara does the type" }],
       ],
     },
     // Shot 6 — the jam ends, and Tadao does what it said: a DM, unread in
@@ -421,11 +423,11 @@ const JAMS_CUT: Scene = {
     {
       kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 900,
       body: [
-        [{ text: "Follow-ups from the jam, as Sara asked. Three on you:" }],
-        [{ text: "1. Cut the launch video — agent first, as the cold open." }],
-        [{ text: "2. Send Sara the Figma for the type pass." }],
-        [{ text: "3. Two seconds on the logo, no more." }],
-        [{ text: "I can remind you again tomorrow morning." }],
+        [{ text: "Follow-ups from the jam, on you:" }],
+        [{ text: "1. Cut the video, agent first" }],
+        [{ text: "2. Send Sara the Figma" }],
+        [{ text: "3. Logo: two seconds, max" }],
+        [{ text: "I can remind you again tomorrow." }],
       ],
     },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 1000 },

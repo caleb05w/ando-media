@@ -366,7 +366,9 @@ const JAMS_CUT: Scene = {
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
     { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, zoom: true, ms: 1900 },
-    { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },
+    // A card always finishes — its hold and its lift — before the next
+    // thing happens; nothing is ever hidden behind one.
+    { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2650 },
     // Shot 2 — cut to the sky: the call arrives, the ring trades between
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
@@ -377,28 +379,18 @@ const JAMS_CUT: Scene = {
     { kind: "jam-deploy", tab: "transcript", ms: 200 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1650 },
-    // Shot 3 — the room comes back; the panel docks; fifteen lines in three seconds.
+    // Shot 3 — the room comes back; the panel docks; five more lines, quick.
     { kind: "jam-dock", ms: 300 },
-    { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 190 },
-    { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 200 },
-    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 210 },
-    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 180 },
-    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 180 },
-    { kind: "transcript", who: "sara", text: "that one. and the golden ticket as the close", ms: 230 },
-    { kind: "transcript", who: "caleb", text: "wait, ticket before or after the import", ms: 210 },
-    { kind: "transcript", who: "sara", text: "after. import, agent, ticket", ms: 200 },
-    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 200 },
-    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 190 },
-    { kind: "transcript", who: "caleb", text: "and the door mark at the very end", ms: 200 },
-    { kind: "transcript", who: "sara", text: "two seconds on the logo, no more", ms: 200 },
-    { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 180 },
-    { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 190 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 340 },
+    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 320 },
+    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 280 },
+    { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 340 },
+    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 320 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 500 },
     // Shot 4 — white. The middle line.
-    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 2600 },
+    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 3250 },
     // Shot 5 — back in the room. Sara asks Tadao in the Jam's thread; it
     // reads the call and answers there. Nobody has to summon it.
-    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 900 },
+    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1200 },
     { kind: "tab", tab: "thread", ms: 500 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 500, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1500 },
@@ -408,10 +400,10 @@ const JAMS_CUT: Scene = {
       kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2400,
       body: [
         [{ text: "for sure — quick recap:" }],
-        [{ text: "• Agent first as the cold open, then the Slack import" }],
+        [{ text: "• Agent first, then the Slack import" }],
+        [{ text: "• Tadao answering in a thread is idea two" }],
         [{ text: "• Golden ticket as the close" }],
-        [{ text: "• No voiceover. Two seconds on the logo" }],
-        [{ text: "• Caleb cuts, Sara does the type" }],
+        [{ text: "• No voiceover" }],
       ],
     },
     // Shot 6 — the jam ends, and Tadao does what it said: a DM, unread in
@@ -425,7 +417,7 @@ const JAMS_CUT: Scene = {
         [{ text: "Follow-ups from the jam, on you:" }],
         [{ text: "1. Cut the video, agent first" }],
         [{ text: "2. Send Sara the Figma" }],
-        [{ text: "3. Logo: two seconds, max" }],
+        [{ text: "3. Post it in #marketing" }],
         [{ text: "I can remind you again tomorrow." }],
       ],
     },

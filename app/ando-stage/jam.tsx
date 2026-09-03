@@ -11,6 +11,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode, useSta
 import { Icon } from "./glyph";
 import { Avatar } from "./chrome";
 import { Landing } from "./landing";
+import { motion } from "motion/react";
 import type { Actor } from "./scenes";
 
 export type TranscriptSegment = { who: Actor; text: string; final: boolean };
@@ -336,8 +337,10 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
           {thread ? <div className="flex flex-col pt-1 pb-2">{thread}</div> : null}
         </div>
         )}
-        {/* Thread composer, compact, with the broadcast option */}
-        {composer ? <div className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
+        {/* Thread composer, compact, with the broadcast option. It grows in
+            on the panel's own curve when the panel docks, so the list above
+            it is never shoved: the section and the composer open together. */}
+        {composer ? <motion.div className="relative z-10 flex flex-col space-y-2 overflow-hidden px-4 pb-4 pt-2" initial={{ height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }}>
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
             <div className="relative min-h-[70px]" data-jam-editor>
               {scripted != null ? (
@@ -386,7 +389,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               </div>
             </div>
           </div>
-        </div> : null}
+        </motion.div> : null}
       </div>
     </div>
   );

@@ -891,10 +891,11 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         const p = 1 - Math.pow(1 - seg(vt, 0.15, 0.6), 4);
         // ...and in the CARD_LEAD before a type card cuts in, the whole UI
         // recedes: it blurs, dims and eases down a touch, so the card lands
-        // on something already letting go. It is back the frame the card is
-        // up (the card covers it) — so the card's exit reveals it whole.
+        // on something already letting go. It stays receded under the card
+        // and comes back as the card fades out, so the white dissolves onto
+        // a UI sharpening into place (never a snap under a one-frame gap).
         const next = nextTypeCardAt(scene, T, vt);
-        const recede = next == null ? 0 : easeInOut(seg(vt, next - CARD_LEAD, CARD_LEAD));
+        const recede = tc ? 1 - ease(seg(vt - tc.t, tc.hold, TYPE_EXIT)) : next == null ? 0 : easeInOut(seg(vt, next - CARD_LEAD, CARD_LEAD));
         win.style.opacity = `${Math.min(1, p * 1.6) * (1 - 0.4 * recede)}`;
         win.style.transform = `translateY(${20 * (1 - p)}px) scale(${1 - 0.04 * recede})`;
         win.style.filter = recede > 0 ? `blur(${8 * recede}px)` : "none";

@@ -15,7 +15,6 @@
 // play, pause, speed, seek, notes and takes; this file owns the room.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "motion/react";
 import { Studio, type Hooks } from "../../lib/timeline-studio/studio";
 import { lanesFor } from "./lanes";
 import "./stage.css";
@@ -25,6 +24,7 @@ import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
+import { Landing } from "./landing";
 import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_CADENCE, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, facesLead, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
@@ -63,8 +63,6 @@ type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | 
 
 /** Agent lines type out at this pace once they land (the landing hero: 55 cps; faster here so a recap fits its beat). */
 const TYPE_CPS = 110;
-/** The landing hero's entrance curve for anything that lands. */
-const LAND_EASE = [0.3, 0.8, 0.3, 1] as const;
 
 type Row =
   | { kind: "mark"; key: string; label: string; tone?: "attention"; beat?: string }
@@ -472,27 +470,8 @@ function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; 
   const shown = row.typedAt != null && row.body ? Math.min(total, Math.max(0, Math.floor((jamActions.typeVt - row.typedAt) * TYPE_CPS))) : total;
   const typing = row.typedAt != null && shown < total;
   const body = row.body && row.typedAt != null ? sliceBody(row.body, shown) : row.body;
-  // Clipped to the slot while it grows — otherwise the content, pinned to
-  // the slot's far edge, overflows across the row before it until the slot
-  // catches up. Released once grown so nothing (hover wash, pills) is cut.
-  const [grown, setGrown] = useState(false);
   return (
-    <motion.div
-      className={`flex w-full flex-col ${anchor === "top" ? "justify-start" : "justify-end"}`}
-      style={{ overflow: grown ? "visible" : "hidden" }}
-      data-beat={row.beat}
-      data-row-id={row.key}
-      initial={{ height: 0 }}
-      animate={{ height: "auto" }}
-      transition={{ duration: 0.3, ease: LAND_EASE }}
-      onAnimationComplete={() => setGrown(true)}
-    >
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ opacity: { duration: 0.18, ease: "easeOut" } }}
-        className="flex w-full flex-col"
-      >
+    <Landing anchor={anchor} data-beat={row.beat} data-row-id={row.key}>
       {/* message-row-frame.tsx: a live call row wears the success wash and a 2px success edge */}
       <div className={`group relative min-w-0 -ml-4 px-4 py-1.5 ${activeCall ? "pl-3.5 pb-1.5 bg-ando-bg-success-subtle border-l-2 border-l-ando-action-success rounded-l-none rounded-r-md" : "rounded-r-md hover:bg-ando-bg-fill-subtle"}`}>
         <div className="flex min-w-0 w-full max-w-full items-start gap-2 overflow-visible">
@@ -522,8 +501,7 @@ function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; 
           </div>
         </div>
       </div>
-      </motion.div>
-    </motion.div>
+    </Landing>
   );
 }
 
@@ -820,6 +798,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           line.style.opacity = `${1 - exit}`;
           const stack = document.querySelector<HTMLElement>("[data-type-faces]");
           if (stack) { stack.style.transform = `translateY(${-28 * exit}px)`; stack.style.opacity = `${1 - exit}`; }
+          // The white goes with the line, so the next shot shows through.
+          const card = document.querySelector<HTMLElement>("[data-type-card]");
+          if (card) card.style.opacity = `${1 - exit}`;
         }
       }
 

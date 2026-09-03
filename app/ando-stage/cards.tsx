@@ -63,8 +63,8 @@ export function anchorSelector(at: CameraAnchor): string {
 
 /* ── The context card ───────────────────────────────────────────────── */
 
-/** How long the type line takes to lift away after its hold. */
-export const TYPE_EXIT = 0.45;
+/** How long a card takes to leave after its hold: the line lifts and the white fades, so whatever is arriving underneath crossfades through it. */
+export const TYPE_EXIT = 0.6;
 export const CONTEXT_FADE_IN = 0.4;
 export const CONTEXT_FADE_OUT = 0.5;
 /** The trace runs this much faster than the library page, so a 3s hold reaches "Reading today's jam…". */
@@ -120,7 +120,7 @@ export function ContextCard({ localRef, hold }: { localRef: RefObject<number>; h
    never shows past the room's edge. */
 export const AUTO_ZOOM = 1.6;
 export const AUTO_IN = 0.9;
-export const AUTO_HOLD = 1.5;
+export const AUTO_HOLD = 1.2;
 export const AUTO_OUT = 0.9;
 /** The cursor's glide before it presses (page.tsx pointerAt). */
 const PRESS_GLIDE = 0.9;

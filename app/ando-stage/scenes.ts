@@ -366,9 +366,9 @@ const JAMS_CUT: Scene = {
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
     { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, zoom: 2.3, ms: 1900 },
-    // A card always finishes — its hold and its lift — before the next
-    // thing happens; nothing is ever hidden behind one.
-    { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2650 },
+    // The call arrives the moment this card starts to leave: its white fades
+    // as the line lifts, and the sky and the call come up through it.
+    { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },
     // Shot 2 — cut to the sky: the call arrives, the ring trades between
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
@@ -387,7 +387,9 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 320 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 500 },
     // Shot 4 — white. The middle line.
-    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 3250 },
+    // This one clears fully before the cursor moves — a press is never
+    // hidden behind a card.
+    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 3300 },
     // Shot 5 — back in the room. Sara asks Tadao in the Jam's thread; it
     // reads the call and answers there. Nobody has to summon it.
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1200 },

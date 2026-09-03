@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode, useState } from "react";
 import { Icon } from "./glyph";
 import { Avatar } from "./chrome";
+import { Landing } from "./landing";
 import type { Actor } from "./scenes";
 
 export type TranscriptSegment = { who: Actor; text: string; final: boolean };
@@ -286,17 +287,19 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
         </div>
         {tab === "transcript" ? (
           /* transcripts-list.tsx: p-4, rows spaced 3, xs avatar, name label-11, text label-12 — the latest still being spoken reads italic. */
-          <div ref={transcriptRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 space-y-3" data-jam-transcript>
+          <div ref={transcriptRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 gap-3" data-jam-transcript>
             {transcript.length === 0 ? (
               <div className="flex h-full items-center justify-center kanso-text-label-12 text-ando-fg-secondary">Listening…</div>
             ) : transcript.map((segment, index) => (
-              <div key={index} className="st-land flex space-x-2">
-                <div className="shrink-0 pt-0.5"><Avatar actor={segment.who} size={20} /></div>
-                <div className="flex flex-col space-y-0.5 min-w-0">
-                  <span className="kanso-text-label-11 text-ando-fg-secondary">{segment.who.name}</span>
-                  <span className={`kanso-text-label-12 ${segment.final ? "" : "text-ando-fg-secondary italic"}`}>{segment.text}</span>
+              <Landing key={index} className="shrink-0">
+                <div className="flex space-x-2">
+                  <div className="shrink-0 pt-0.5"><Avatar actor={segment.who} size={20} /></div>
+                  <div className="flex flex-col space-y-0.5 min-w-0">
+                    <span className="kanso-text-label-11 text-ando-fg-secondary">{segment.who.name}</span>
+                    <span className={`kanso-text-label-12 ${segment.final ? "" : "text-ando-fg-secondary italic"}`}>{segment.text}</span>
+                  </div>
                 </div>
-              </div>
+              </Landing>
             ))}
           </div>
         ) : (

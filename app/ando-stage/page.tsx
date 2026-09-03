@@ -462,7 +462,7 @@ const bodyLength = (body: Segment[][]) => body.reduce((n, paragraph) => n + para
 
 /** message-row-frame.tsx + message-view-sections.tsx. Lands the way the
  *  landing hero's rows do: the slot grows from nothing so what is above is
- *  pushed up by layout, while the row scales up out of its bottom-left. */
+ *  pushed up by layout, and the row fades in — no scale. */
 function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamActions }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
   // A typed line reveals itself at TYPE_CPS from the second it landed.
@@ -480,10 +480,9 @@ function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamA
       transition={{ duration: 0.3, ease: LAND_EASE }}
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ opacity: { duration: 0.18, ease: "easeOut" }, scale: { duration: 0.3, ease: LAND_EASE } }}
-        style={{ originX: 0, originY: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ opacity: { duration: 0.18, ease: "easeOut" } }}
         className="flex w-full flex-col"
       >
       {/* message-row-frame.tsx: a live call row wears the success wash and a 2px success edge */}

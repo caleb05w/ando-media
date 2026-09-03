@@ -414,16 +414,7 @@ const JAMS_CUT: Scene = {
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
-    {
-      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 3000,
-      body: [
-        [{ text: "for sure — quick recap:" }],
-        [{ text: "• Agent first, then the Slack import" }],
-        [{ text: "• Tadao answering in a thread is idea two" }],
-        [{ text: "• Golden ticket as the close" }],
-        [{ text: "• No voiceover" }],
-      ],
-    },
+    { kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2200, body: [[{ text: "yep! sending you both a dm" }]] },
     // Shot 6 — a second after the recap, Tadao does what it said: a DM,
     // unread in the sidebar while the call is still on. You hang up, then
     // open it.

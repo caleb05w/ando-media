@@ -297,6 +297,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
         {tab === "transcript" ? (
           /* transcripts-list.tsx: p-4, rows spaced 3, xs avatar, name label-11, text label-12 — the latest still being spoken reads italic. */
           <div ref={transcriptRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 gap-3" data-jam-transcript>
+            {/* Bottom-anchored, as the room's transcript is: a new line lands at the composer and pushes the rest up. */}
+            <div aria-hidden className="mt-auto shrink-0" />
             {transcript.length === 0 ? (
               <div className="flex h-full items-center justify-center kanso-text-label-12 text-ando-fg-secondary">Listening…</div>
             ) : transcript.map((segment, index) => (
@@ -313,6 +315,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
           </div>
         ) : (
         <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" data-jam-thread>
+          {/* Bottom-anchored like the room: a reply lands at the composer and pushes the join event up. */}
+          <div aria-hidden className="mt-auto shrink-0" />
           {/* system-message/index.tsx: join event */}
           <div className="flex items-center gap-3 py-1 -ml-4 pl-4 text-ando-fg-secondary hover:bg-ando-bg-fill-subtle rounded-r-md">
             <div className="flex shrink-0 items-center justify-center bg-ando-bg-fill-muted rounded" style={{ width: 32, height: 32 }}>

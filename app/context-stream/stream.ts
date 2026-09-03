@@ -3,10 +3,11 @@
 // A cloud of dots (messages, docs, files, images) drifts over the stage,
 // pulls into one line, and the line starts to flow: more dots curve in
 // from off-frame and join it. Then the camera pans right, fast — the line
-// streaks left under it — the agent comes into frame at the right, and the
-// stream runs into it and is eaten, dot by dot. Every position here is a
-// function of (timing, vt) and a per-dot constant fixed at module load, so
-// scrubbing backwards puts every dot exactly where it was.
+// streaks left under it — and the whole stream rushes to centre stage and
+// gathers into three dots: a typing indicator, which the library's
+// animation then turns into the agent. Every position here is a function
+// of (timing, vt) and a per-dot constant fixed at module load, so scrubbing
+// backwards puts every dot exactly where it was.
 
 import type { Timing } from "./timing";
 
@@ -22,17 +23,14 @@ export const CARD = FRAME_TIGHT;
 export const SIDEBAR_W = 354;
 export const PANE_W = CARD.w;
 export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
-/** The disc — the agent — comes into frame here, at the right, on the line,
- *  then crosses to centre stage while it eats. */
-export const AGENT_X = CARD.x + Math.round(CARD.w * 0.7);
+/** Centre stage: where the stream gathers, and where the indicator plays. */
 export const CENTER_X = STAGE.w / 2;
-export const DISC_R = 24;
 export const DOT_R = 2.5;
-/** The agent's card (Ando-Brand 3968-2558), centred on the stream's y; its
- *  face sits on the band. */
-export const AGENT_CARD = { w: 288, h: 342, r: 15, band: 108, inset: 6, faceR: 52 } as const;
-/** The face sits on the band's bottom edge, which the film puts on the line. */
-export const AGENT_CARD_TOP = LINE_Y - AGENT_CARD.inset - AGENT_CARD.band;
+/** The typing indicator's three dots, as the library's Stage draws them at
+ *  120px: 6 units apart on a 60-unit canvas, 2px a unit. */
+export const HUB_PITCH = 12;
+export const HUB_X = [CENTER_X - HUB_PITCH, CENTER_X, CENTER_X + HUB_PITCH] as const;
+export const HUB_R = 4;
 
 /* ── Curves ─────────────────────────────────────────────────────────── */
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
@@ -140,26 +138,21 @@ const DRIFT = 16;
 /** The pan: how far the camera moves right, and how fast. */
 const PAN_DIST = 1100;
 const PAN_DUR = 0.7;
-/** Once the agent is in frame the stream rushes into it — px/s². */
-const ACCEL = 1100;
-/** Where the disc is at `vt`: in at the right, then across to the centre. */
-export function discX(T: Timing, vt: number) {
-  return lerp(AGENT_X, CENTER_X, ease(seg(vt, T.agent + 0.6, 1.0)));
-}
-/** Where a dot is eaten: just inside the disc's left edge. */
-const eatX = (T: Timing, vt: number) => discX(T, vt) - DISC_R * 0.55;
-/** How long a dot's landing rings the disc. */
-const PULSE = 0.22;
+/** The gather into the three dots: a mark leaves after its own beat and
+ *  arrives faster the further it has to come, so the far ends fly. */
+const GATHER_LAG = 0.12;
+const GATHER_DUR = 0.42;
+const GATHER_FAR = 0.28;
+/** How long a landing rings its dot. */
+const PULSE = 0.2;
 
 /** The camera's x at `vt`: still, then a fast push right over the pan. */
 export function camX(T: Timing, vt: number) {
   return PAN_DIST * smooth(seg(vt, T.pan, PAN_DUR));
 }
 const drift = (T: Timing, vt: number) => DRIFT * Math.max(0, vt - T.line);
-const rush = (T: Timing, vt: number) => {
-  const u = Math.max(0, vt - T.agent);
-  return 0.5 * ACCEL * u * u;
-};
+/** Accelerating — for something rushing somewhere. */
+const rushIn = (p: number) => Math.pow(clamp01(p), 2);
 
 function wrapX(x: number) {
   const L = SPAN1 - SPAN0;
@@ -168,32 +161,23 @@ function wrapX(x: number) {
 const edgeAlpha = (x: number) => clamp01(Math.min((x - SPAN0) / FADE, (SPAN1 - x) / FADE));
 
 /** A mark riding the line: seated on screen at `x0` at `t0`, where is it at
- *  `vt`, and when is it eaten? Before the agent the line is endless — it
- *  wraps under the camera. From the agent on it runs straight into the
- *  disc, faster and faster, and stops there. */
-function ride(T: Timing, vt: number, x0: number, t0: number): { x: number; eatenAt: number | null } {
+ *  `vt`, and when does it land in its dot? Before the gather the line is
+ *  endless — it wraps under the camera. From the gather on it flies to one
+ *  of the three dots at centre stage and is taken in. */
+function ride(T: Timing, vt: number, x0: number, t0: number, lane: number, d: number): { x: number; a: number; landsAt: number | null } {
   const pre = (t: number) => wrapX(x0 + drift(T, t) - drift(T, t0) - (camX(T, t) - camX(T, t0)));
-  if (vt < T.agent) return { x: pre(vt), eatenAt: null };
-  const tA = Math.max(t0, T.agent);
-  const xA = t0 >= T.agent ? x0 : pre(T.agent);
-  const uA = tA - T.agent;
-  // The mark runs right, faster and faster; the disc walks left to the
-  // centre and stops. Where they meet is the root of a monotone function —
-  // a bisection finds it to the frame.
-  const gap = (u: number) => xA + DRIFT * (u - uA) + 0.5 * ACCEL * (u * u - uA * uA) - eatX(T, T.agent + u);
-  let eatenAt = tA;
-  if (gap(uA) < 0) {
-    let lo = uA;
-    let hi = uA + 6;
-    for (let i = 0; i < 26; i += 1) {
-      const mid = (lo + hi) / 2;
-      if (gap(mid) < 0) lo = mid;
-      else hi = mid;
-    }
-    eatenAt = T.agent + (lo + hi) / 2;
+  if (vt < T.gather2) {
+    const x = pre(vt);
+    return { x, a: edgeAlpha(x), landsAt: null };
   }
-  const x = xA + DRIFT * (vt - tA) + rush(T, vt) - rush(T, tA);
-  return { x, eatenAt };
+  const tA = Math.max(t0, T.gather2);
+  const xA = t0 >= T.gather2 ? x0 : pre(T.gather2);
+  const target = HUB_X[lane];
+  const far = Math.abs(target - xA) / (FRAME_TIGHT.w / 2);
+  const start = tA + GATHER_LAG * d;
+  const dur = GATHER_DUR + GATHER_FAR * far;
+  const p = rushIn(seg(vt, start, dur));
+  return { x: lerp(xA, target, p), a: edgeAlpha(xA) * (1 - clamp01((p - 0.82) / 0.18)), landsAt: start + dur };
 }
 
 function bezier(p0: number, p1: number, p2: number, p3: number, t: number) {
@@ -204,42 +188,37 @@ function bezier(p0: number, p1: number, p2: number, p3: number, t: number) {
 export type Mark = { x: number; y: number; a: number; r: number };
 export type Field = {
   marks: Mark[];
-  /** How much of the stream the disc has eaten, 0→1. */
-  eaten: number;
-  /** The disc's ring, from the dots landing in it. */
-  pulse: number;
+  /** The three dots the stream gathers into: how full each is, and its ring from the landings. */
+  hub: Array<{ fill: number; pulse: number }>;
 };
 
-/** Every dot at `vt`, and what the disc has made of them. */
+/** Every dot at `vt`, and what the stream has gathered into. */
 export function fieldAt(T: Timing, vt: number): Field {
   const marks: Mark[] = [];
-  let total = 0;
-  let eatenCount = 0;
-  let pulse = 0;
-  if (vt >= T.card) return { marks, eaten: 1, pulse: 0 };
+  const hub = HUB_X.map(() => ({ fill: 0, pulse: 0, total: 0, landed: 0 }));
   const gatherDur = Math.max(0.5, T.line - T.gather);
 
-  // A seated mark: riding, then eaten. Returns nothing once it is inside.
-  const seated = (x0: number, t0: number, r: number): Mark | null => {
-    total += 1;
-    const { x, eatenAt } = ride(T, vt, x0, t0);
-    if (eatenAt != null && vt >= eatenAt) {
-      eatenCount += 1;
-      pulse += Math.sin(Math.PI * seg(vt, eatenAt, PULSE));
+  // A seated mark: riding, then flying to its dot. Returns nothing once it
+  // has landed.
+  const seated = (x0: number, t0: number, r: number, lane: number, d: number): Mark | null => {
+    const h = hub[lane];
+    h.total += 1;
+    const { x, a, landsAt } = ride(T, vt, x0, t0, lane, d);
+    if (landsAt != null && vt >= landsAt) {
+      h.landed += 1;
+      h.pulse += Math.sin(Math.PI * seg(vt, landsAt, PULSE));
       return null;
     }
-    // Into the disc: the last few px shrink, so the landing reads as a swallow.
-    const near = eatenAt == null ? 0 : clamp01((x - (eatX(T, vt) - 14)) / 14);
-    return { x, y: LINE_Y, a: edgeAlpha(x), r: r * (1 - 0.5 * near) };
+    return { x, y: LINE_Y, a, r };
   };
 
-  for (const dot of DOTS) {
+  DOTS.forEach((dot, i) => {
     const p = ease(seg(vt, T.gather + dot.d * 0.4 * gatherDur, 0.6 * gatherDur));
-    const seat = seated(slotX(dot.slot), T.line, DOT_R);
-    if (!seat) continue;
+    const seat = seated(slotX(dot.slot), T.line, DOT_R, i % 3, dot.d);
+    if (!seat) return;
     if (p >= 1) {
       marks.push(seat);
-      continue;
+      return;
     }
     const wander = (1 - p) * 6;
     const cx = dot.cx + Math.sin(vt * 0.7 + dot.phase) * wander;
@@ -249,10 +228,11 @@ export function fieldAt(T: Timing, vt: number): Field {
     const y = lerp(cy, LINE_Y, p) - Math.sin(Math.PI * p) * 22 * (dot.d - 0.5);
     const a = lerp(1, seat.a, p);
     if (a > 0.005) marks.push({ x, y, a, r: DOT_R });
-  }
+  });
 
-  // Inflows keep coming until the agent has been eating for a while.
-  const window = Math.max(0.3, T.agent + 0.9 - T.stream);
+  // Inflows keep coming until the gather is under way; the late ones fly
+  // straight from where they land.
+  const window = Math.max(0.3, T.gather2 + 0.5 - T.stream);
   FLOWS.forEach((flow, i) => {
     const start = T.stream + ((i + flow.order * 0.6) / FLOW_COUNT) * window;
     const q = seg(vt, start, FLOW_DUR);
@@ -260,21 +240,18 @@ export function fieldAt(T: Timing, vt: number): Field {
     const arrive = start + FLOW_DUR;
     // The flight is drawn against the camera: it curves in with the world.
     const shift = (t: number) => camX(T, t) - camX(T, start);
-    // Once the disc is in and walking left, a late inflow joins the line
-    // short of it — never behind it, where nothing would eat it.
-    const tx = arrive > T.agent ? Math.min(flow.tx, discX(T, arrive) - DISC_R - 40 + shift(arrive)) : flow.tx;
     if (q < 1) {
       const e = ease(q);
-      const x = bezier(flow.ox, flow.ox + 20, tx - 170, tx, e) - shift(vt);
+      const x = bezier(flow.ox, flow.ox + 20, flow.tx - 170, flow.tx, e) - shift(vt);
       const y = bezier(flow.oy, flow.oy + (LINE_Y - flow.oy) * 0.62, LINE_Y, LINE_Y, e);
       marks.push({ x, y, a: Math.min(1, q / 0.15), r: DOT_R });
       return;
     }
-    const seat = seated(tx - shift(arrive), arrive, DOT_R);
+    const seat = seated(flow.tx - shift(arrive), arrive, DOT_R, i % 3, flow.order);
     if (!seat) return;
     const landing = Math.sin(Math.PI * seg(vt, arrive, 0.3));
     marks.push({ ...seat, r: seat.r + 1.4 * landing });
   });
 
-  return { marks, eaten: total > 0 ? eatenCount / total : 0, pulse: Math.min(2, pulse) };
+  return { marks, hub: hub.map((h) => ({ fill: h.total > 0 ? h.landed / h.total : 0, pulse: Math.min(2, h.pulse) })) };
 }

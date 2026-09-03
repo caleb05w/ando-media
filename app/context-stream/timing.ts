@@ -13,11 +13,9 @@ export type Timing = {
   stream: number;
   /** The camera pans right, fast — the line streaks left. */
   pan: number;
-  /** The agent comes into frame at the right; the stream runs into it. First title. */
-  agent: number;
-  /** The disc becomes the face; the card opens out around it. */
-  card: number;
-  /** The card hands its face to the typing indicator, which runs its cycle. */
+  /** The stream rushes to centre stage and gathers into three dots. First title. */
+  gather2: number;
+  /** The three dots are the typing indicator: the library's animation turns them into the agent. */
   indicator: number;
   /** "so we built an interface around that": the camera pulls back from the indicator as the window builds around it. */
   iface: number;
@@ -40,16 +38,15 @@ export type Timing = {
   end: number;
 };
 
-export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "pan", "agent", "card", "indicator", "iface", "chat", "sidebar", "typing", "sara", "ask", "send", "reply", "logo", "end"];
+export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "pan", "gather2", "indicator", "iface", "chat", "sidebar", "typing", "sara", "ask", "send", "reply", "logo", "end"];
 
 export const LABELS: Record<keyof Timing, string> = {
   gather: "congregate",
   line: "the line",
   stream: "context stream",
   pan: "the pan",
-  agent: "the agent eats",
-  card: "the card",
-  indicator: "typing indicator",
+  gather2: "three dots",
+  indicator: "the agent forms",
   iface: "an interface",
   chat: "chat",
   sidebar: "sidebar",
@@ -67,17 +64,16 @@ export const DEFAULT_TIMING: Timing = {
   line: 3.3,
   stream: 3.9,
   pan: 6.2,
-  agent: 7.0,
-  card: 9.6,
-  indicator: 11.9,
-  iface: 16.2,
-  chat: 17.6,
-  sidebar: 18.6,
-  typing: 19.3,
-  sara: 20.5,
-  ask: 21.2,
-  send: 23.2,
-  reply: 26.2,
-  logo: 29.1,
-  end: 31.7,
+  gather2: 7.0,
+  indicator: 8.3,
+  iface: 12.6,
+  chat: 14.0,
+  sidebar: 15.0,
+  typing: 15.7,
+  sara: 16.9,
+  ask: 17.6,
+  send: 19.6,
+  reply: 22.6,
+  logo: 25.5,
+  end: 28.1,
 };

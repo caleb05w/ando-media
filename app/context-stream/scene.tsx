@@ -3,15 +3,15 @@
 // The scene is the driver: one rAF loop, one virtual clock `vt`, and every
 // visual value a pure function of it — so the studio can run time
 // backwards, hold it still, and jump it. Continuous things (the dots, the
-// disc, the card's reveal, the camera, the composer's slide, every fade) are
+// three dots they gather into, the camera, the composer's slide, every fade) are
 // written straight to the DOM each frame; the only React state is discrete
 // — the scripted draft, who is typing, the run's phase, the trace line's
 // coarse clock, the typing indicator's frame — set when they change.
 //
 // Layers, bottom to top, inside the camera: the grey ground · the window
 // (its card, then its contents: sidebar, header, transcript, composer) ·
-// the agent's card · the canvas (dots, disc) · the agent's face · the
-// typing indicator. Outside it: the second title, the logo.
+// the canvas (the dots, and the three they gather into) · the typing
+// indicator. Outside it: the second title, the logo.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
@@ -21,7 +21,7 @@ import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { AGENT_CARD, AGENT_CARD_TOP, CARD, CARD_WIDE, CENTER_X, DISC_R, LINE_Y, PANE_W, SIDEBAR_W, STAGE, backOut, clamp01, discX, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { CARD, CARD_WIDE, CENTER_X, HUB_R, HUB_X, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, ASK, ROWS, RowView, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -40,7 +40,6 @@ const ROOM: Room = {
 /** Room the studio's pill needs below the stage. */
 const STUDIO_CLEARANCE = 72;
 const DOT_INK = "#a3a09c";
-const DISC_INK = "#d9d6d3";
 /** The typing strip above the composer — the product's slot, h-9, 3px up. */
 const STRIP_H = 36;
 /** The library's agent typing indicator — Orbit v2, as /the-library shows
@@ -55,8 +54,6 @@ const INDICATOR_SMALL = 60;
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_BIG / INDICATOR_SMALL;
 const ZOOM_OUT = 1.2;
-/** The card's band and body swing in from a lean. */
-const CARD_LEAN = 14;
 const noop = () => {};
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
@@ -103,11 +100,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const headerRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
-  const bandRef = useRef<HTMLDivElement>(null);
-  const nameRef = useRef<HTMLDivElement>(null);
-  const roleRef = useRef<HTMLDivElement>(null);
-  const floatRef = useRef<HTMLImageElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
@@ -142,13 +134,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const header = headerRef.current;
       const transcript = transcriptRef.current;
       const composer = composerRef.current;
-      const shell = shellRef.current;
-      const band = bandRef.current;
-      const name = nameRef.current;
-      const role = roleRef.current;
-      const float = floatRef.current;
       const indicatorEl = indicatorRef.current;
-      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !shell || !band || !name || !role || !float || !indicatorEl) return;
+      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !indicatorEl) return;
 
       /* ── Reads first ───────────────────────────────────────────── */
       // Every layout read the frame needs, taken before its first style
@@ -214,58 +201,20 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         refs.inner.style.transform = `translateY(${8 * (1 - p)}px)`;
       });
 
-      /* ── The disc → the face → the card ────────────────────────── */
-      // The disc comes into frame at the right, walks to the centre and
-      // swells as it eats the stream. Then it becomes the face with a pop;
-      // the band opens out from behind the face; the body swings down from
-      // the band's edge and the name and the role rise into it. At
-      // `indicator` it folds back up, the band closes, and the face
-      // shrinks to hand over.
+      /* ── The stream → three dots ───────────────────────────────── */
+      // After the pan the whole line flies to centre stage and lands in
+      // three dots, each landing ringing its dot; the dots fill as they
+      // take the stream in. At `indicator` they are the typing indicator.
       const field = fieldAt(T, vt);
-      const agentP = seg(vt, T.agent, 0.6);
-      const discR = DISC_R * backOut(agentP) * (1 + 0.18 * field.eaten) + 1.6 * field.pulse;
-      const dx = discX(T, vt);
-      const faceP = ease(seg(vt, T.card, 0.35));
-      const bandIn = ease(seg(vt, T.card + 0.25, 0.4));
-      const bodyIn = ease(seg(vt, T.card + 0.55, 0.5));
-      const nameIn = ease(seg(vt, T.card + 0.7, 0.45));
-      const roleIn = ease(seg(vt, T.card + 0.8, 0.45));
-      const fold = ease(seg(vt, T.indicator, 0.35));
-      const close = ease(seg(vt, T.indicator + 0.2, 0.3));
-      const bandP = bandIn * (1 - close);
-      const bodyP = bodyIn * (1 - fold);
-      const bandH = AGENT_CARD.inset * 2 + AGENT_CARD.band;
-      const shellW = lerp(2 * AGENT_CARD.faceR, AGENT_CARD.w, bandP);
-      const shellH = lerp(bandH, AGENT_CARD.h, bodyP);
-      shell.style.left = `${CENTER_X - shellW / 2}px`;
-      shell.style.top = `${AGENT_CARD_TOP}px`;
-      shell.style.width = `${shellW}px`;
-      shell.style.height = `${shellH}px`;
-      shell.style.opacity = `${clamp01(bandP / 0.2)}`;
-      // The body swings down from the band's bottom edge, like a flap.
-      shell.style.transform = `perspective(900px) rotateX(${-CARD_LEAN * (1 - bodyP)}deg)`;
-      band.style.opacity = `${clamp01(bandP / 0.3)}`;
-      name.style.opacity = `${nameIn * (1 - fold)}`;
-      name.style.transform = `translateY(${14 * (1 - nameIn)}px)`;
-      role.style.opacity = `${roleIn * (1 - fold)}`;
-      role.style.transform = `translateY(${14 * (1 - roleIn)}px)`;
-
-      const toFace = ease(seg(vt, T.indicator + 0.3, 0.4));
-      const stageIn = ease(seg(vt, T.indicator + 0.45, 0.3));
-      const fr = lerp(discR + (AGENT_CARD.faceR - discR) * backOut(faceP), 20, toFace);
-      const lift = faceP * (1 - toFace);
-      float.style.left = `${dx - fr}px`;
-      float.style.top = `${LINE_Y - fr}px`;
-      float.style.width = `${2 * fr}px`;
-      float.style.height = `${2 * fr}px`;
-      float.style.opacity = `${clamp01(faceP / 0.6) * (1 - stageIn)}`;
-      float.style.boxShadow = `0 ${3 * lift}px ${18 * lift}px rgba(0,0,0,${0.08 * lift}), 0 ${24 * lift}px ${36 * lift}px ${-18 * lift}px rgba(0,0,0,${0.08 * lift}), inset 0 0 0 1px rgba(16,16,16,${0.06 * lift})`;
+      const hubIn = ease(seg(vt, T.gather2 + 0.2, 0.35));
+      const stageIn = ease(seg(vt, T.indicator, 0.3));
 
       /* ── The typing indicator and the camera ───────────────────── */
-      // The library's cycle plays centre stage where the face was. At
-      // `iface` the camera is already in on it — the same 120px on screen —
-      // and pulls back while the window builds around it; when the pull
-      // ends the dots are exactly the composer's own, and hand over.
+      // The library's cycle plays centre stage over the three dots: the
+      // wave, the morph into the face, the hold, the reset. At `iface` the
+      // camera is already in on it — the same 120px on screen — and pulls
+      // back while the window builds around it; when the pull ends the dots
+      // are exactly the composer's own, and hand over.
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       const P = { x: CARD.x + 16, y: cardY + bottomTop - 19 };
@@ -298,10 +247,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         setTraceVt(coarse);
       }
       // The indicator's frame, at 30 a second, only while it is on stage —
-      // the library's own cycle, from its first dot, once the face has
-      // handed over.
-      const from = T.indicator + 0.45;
-      const tick = vt >= from && vt < T.iface + ZOOM_OUT + 0.3 ? Math.floor((vt - from) * 30) / 30 : null;
+      // the library's own cycle, from its first dot.
+      const tick = vt >= T.indicator && vt < T.iface + ZOOM_OUT + 0.3 ? Math.floor((vt - T.indicator) * 30) / 30 : null;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
         setIndicator(tick == null ? null : cycleFrame(INDICATOR, (tick * 1000) % INDICATOR_CYCLE).frame);
@@ -322,10 +269,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${a * b}`;
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
-      fadeIn(title1Ref.current, T.agent + 0.35, T.card);
+      fadeIn(title1Ref.current, T.gather2 + 0.35, T.indicator + 1.1);
       fadeIn(title2Ref.current, T.iface + 0.3, T.chat + 0.9);
 
-      /* ── The canvas: dots, disc ────────────────────────────────── */
+      /* ── The canvas: the dots, and the three ───────────────────── */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, STAGE.w, STAGE.h);
       ctx.fillStyle = DOT_INK;
@@ -335,14 +282,15 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
       }
-      // The disc gives way to the face.
-      const discA = agentP > 0 ? 1 - clamp01(faceP / 0.6) : 0;
-      if (discA > 0) {
-        ctx.globalAlpha = discA;
-        ctx.fillStyle = DISC_INK;
-        ctx.beginPath();
-        ctx.arc(dx, LINE_Y, fr, 0, Math.PI * 2);
-        ctx.fill();
+      // The three dots give way to the indicator's own.
+      const hubA = hubIn * (1 - stageIn);
+      if (hubA > 0) {
+        field.hub.forEach((h, i) => {
+          ctx.globalAlpha = hubA * lerp(0.55, 1, h.fill);
+          ctx.beginPath();
+          ctx.arc(HUB_X[i], LINE_Y, lerp(2.5, HUB_R, h.fill) + 1.2 * h.pulse, 0, Math.PI * 2);
+          ctx.fill();
+        });
       }
       ctx.globalAlpha = 1;
     };
@@ -417,20 +365,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
               </div>
             </div>
 
-            {/* The agent's card (Ando-Brand 3968-2558): the band opens out from behind the face, the body swings down from it. */}
-            <div ref={shellRef} data-cs="agent-card" className="absolute overflow-hidden bg-white shadow-[0_0_0_0.5px_rgba(16,16,16,0.06),0_15px_60px_rgba(0,0,0,0.08)]" style={{ left: CENTER_X, top: AGENT_CARD_TOP, width: 0, height: 0, borderRadius: AGENT_CARD.r, opacity: 0, transformOrigin: `50% ${AGENT_CARD.inset + AGENT_CARD.band}px` }}>
-              <div ref={bandRef} className="absolute rounded-[9px]" style={{ left: AGENT_CARD.inset, right: AGENT_CARD.inset, top: AGENT_CARD.inset, height: AGENT_CARD.band, background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.04) 100%), #f5f5f4", opacity: 0 }} />
-              <div className="absolute left-1/2 flex w-[258px] -translate-x-1/2 flex-col items-center gap-[3px] text-center" style={{ top: 210 }}>
-                <div ref={nameRef} className="text-ando-fg-primary" style={{ fontSize: 30, lineHeight: "42px", fontWeight: 500, opacity: 0 }}>{AGENT.name}</div>
-                <div ref={roleRef} className="text-ando-fg-secondary" style={{ fontSize: 20, lineHeight: "28px", opacity: 0 }}>Workspace assistant</div>
-              </div>
-            </div>
-
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
-            {/* The agent's face — what the disc becomes, on the card's band. */}
-            <img ref={floatRef} src={AGENT.avatar} alt="" decoding="async" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 104, height: 104 }} />
-            {/* The typing indicator: the library's cycle, then the composer's own line. */}
+            {/* The typing indicator: the library's cycle over the three dots, then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_BIG, height: INDICATOR_BIG, transformOrigin: "50% 50%" }}>
               {indicator ? <Stage frame={indicator} size={INDICATOR_BIG} avatarSrc={AGENT.avatar} /> : null}
             </div>

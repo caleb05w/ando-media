@@ -385,7 +385,7 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "no voiceover?", ms: 280 },
     { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 340 },
     { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 320 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 500 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 1500 },
     // Shot 4 — white. The middle line.
     // This one clears fully before the cursor moves — a press is never
     // hidden behind a card.

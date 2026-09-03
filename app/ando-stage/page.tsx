@@ -145,6 +145,9 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
         if (pendingJamRow) { push(pendingJamRow.row, pendingJamRow.id); pendingJamRow = null; }
         break;
       case "jam-join":
+        // Joining while it rings is the pick-up too: the card lands now.
+        ringing = false;
+        if (pendingJamRow) { push(pendingJamRow.row, pendingJamRow.id); pendingJamRow = null; }
         if (scriptedJam && !scriptedJam.joined) {
           scriptedJam.joined = true;
           scriptedJam.participants = [me, ...scriptedJam.participants.filter((actor) => actor !== me)];

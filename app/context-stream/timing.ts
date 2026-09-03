@@ -15,7 +15,7 @@ export type Timing = {
   agent: number;
   /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
   indicator: number;
-  /** "so we built an interface around that": the moment the dots land, the camera pulls back from them as the window builds around them. */
+  /** "so we built an interface around that": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
   iface: number;
   /** Header and the messages it is answering arrive. */
   chat: number;
@@ -50,10 +50,11 @@ export const DEFAULT_TIMING: Timing = {
   line: 2.3,
   agent: 3.4,
   indicator: 4.4,
-  iface: 5.45,
-  chat: 6.85,
-  sidebar: 8.25,
-  reply: 10.45,
-  logo: 13.25,
-  end: 15.85,
+  // The typing state holds for 30s once the morph has landed on the dots.
+  iface: 35.45,
+  chat: 36.85,
+  sidebar: 38.25,
+  reply: 40.45,
+  logo: 43.25,
+  end: 45.85,
 };

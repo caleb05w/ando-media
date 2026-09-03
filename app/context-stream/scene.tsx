@@ -16,12 +16,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { HOLD_MS, TYPE_MS, cycleFrame, cycleMs, type Frame } from "../agent-typing-experience/variants";
+import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, backOut, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -46,27 +46,28 @@ const STRIP_H = 36;
  *  product's 4px on a 6px pitch, so at 60px they land 1:1 on the composer's
  *  own indicator. */
 const INDICATOR_SMALL = 60;
-/** The intake halo's box. */
-const HALO = 240;
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
 const ZOOM_OUT = 1.2;
-/** The agent at rest — the library's Orbit v2 with the face landed. */
+/** The agent at rest — the library's Orbit v2 with the face landed: the
+ *  frame its animation ends on. */
 const AGENT_FRAME = INDICATOR.morph(INDICATOR.morphMs);
-/** The library's cycle, and where in it the reset begins. */
-const INDICATOR_CYCLE = cycleMs(INDICATOR);
-const RESET_AT = TYPE_MS + INDICATOR.morphMs + HOLD_MS;
+/** Where the face has landed on the library's clock. */
+const FACE_AT = TYPE_MS + INDICATOR.morphMs;
 const noop = () => {};
 
 /** The agent's frame `t` seconds into `indicator`: at rest before; then
- *  /the-library's animation itself, `cycleFrame`, entered at its reset so
- *  it runs from the face it already is — the face gives way to three dots,
- *  the dots type, they consolidate and the face spins back in, it holds,
- *  it resets — the loop the library page plays, in full. */
+ *  /the-library's animation, `cycleFrame`, played backwards from the face —
+ *  the morph in reverse, the face spinning out into three dots — and on
+ *  into its typing wave, which carries until the composer takes over. One
+ *  animation, reversed. */
 function agentFrame(t: number): Frame {
   if (t < 0) return AGENT_FRAME;
-  return cycleFrame(INDICATOR, (RESET_AT + t * 1000) % INDICATOR_CYCLE).frame;
+  const c = FACE_AT - t * 1000;
+  if (c >= 0) return cycleFrame(INDICATOR, c).frame;
+  // Past the start of the loop: the wave is periodic, keep it going.
+  return typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1);
 }
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
@@ -112,7 +113,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const headerRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
-  const haloRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const title0Ref = useRef<HTMLDivElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
@@ -147,9 +147,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const header = headerRef.current;
       const transcript = transcriptRef.current;
       const composer = composerRef.current;
-      const halo = haloRef.current;
       const indicatorEl = indicatorRef.current;
-      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !halo || !indicatorEl) return;
+      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !indicatorEl) return;
 
       /* ── Reads first ───────────────────────────────────────────── */
       // Every layout read the frame needs, taken before its first style
@@ -223,24 +222,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       });
 
       /* ── The agent and the camera ──────────────────────────────── */
-      // The agent — the library's indicator at rest, face in its disc —
-      // comes in from the right as the camera settles, pops, and swells as
-      // the stream runs into it; walks to centre stage; at `indicator` the
-      // library's loop plays from its reset (dots, the morph back into the
-      // face, the hold, the reset again). At `iface`, in the loop's second
-      // typing phase, the camera is already in on it — the same 120px on
-      // screen — and pulls back while the window builds around it; when the
-      // pull ends the dots are exactly the composer's own, and hand over.
+      // The agent is /the-library's agent typing indicator, untouched: its
+      // own avatar, its own 120px, its own loop. It comes in from the right
+      // as the camera settles, the stream runs into it, it walks to centre
+      // stage; at `indicator` its animation plays backwards — the face spins
+      // out into the dots — and the wave carries on. At `iface` the camera
+      // is already in on it — the same 120px on screen — and pulls back
+      // while the window builds around it; when the pull ends the dots are
+      // exactly the composer's own, and hand over.
       const field = fieldAt(T, vt);
-      const pop = backOut(seg(vt, T.agent - 0.35, 0.5));
-      const swell = 0.86 + 0.14 * field.eaten + 0.06 * field.pulse;
-      // The intake: a soft halo that breathes with every landing.
-      const intake = clamp01(seg(vt, T.agent - 0.15, 0.3)) * (1 - ease(seg(vt, T.indicator - 0.25, 0.3)));
       const ax = agentX(T, vt);
-      halo.style.left = `${ax - HALO / 2}px`;
-      halo.style.top = `${LINE_Y - HALO / 2}px`;
-      halo.style.opacity = `${intake * (0.55 + 0.45 * Math.min(1, field.pulse))}`;
-      halo.style.transform = `scale(${pop * (0.9 + 0.1 * field.eaten + 0.1 * Math.min(1, field.pulse))})`;
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       const P = { x: CARD.x + 16, y: cardY + bottomTop - 19 };
@@ -249,11 +240,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * pop * swell;
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX;
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.35, 0.2)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.4, 0.25)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -274,7 +265,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         setTraceVt(coarse);
       }
       // The agent's frame: at rest until `indicator` (one frame, no churn),
-      // then the library's loop at 30 a second.
+      // then the library's animation, reversed, at 30 a second.
       const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? -1 : Math.floor((vt - T.indicator) * 30) / 30;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
@@ -399,11 +390,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
-            {/* The intake, behind the agent. */}
-            <div ref={haloRef} className="pointer-events-none absolute rounded-full" style={{ width: HALO, height: HALO, opacity: 0, background: "radial-gradient(circle, rgba(163,160,156,0.28) 0%, rgba(163,160,156,0.1) 40%, rgba(163,160,156,0) 70%)", transformOrigin: "50% 50%" }} />
-            {/* The agent: the library's typing indicator at rest, then its loop, then the composer's own line. */}
+            {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
-              {indicator ? <Stage frame={indicator} size={INDICATOR_PX} avatarSrc={AGENT.avatar} /> : null}
+              {indicator ? <Stage frame={indicator} size={INDICATOR_PX} avatarSrc={INDICATOR.avatar} /> : null}
             </div>
 
             <div ref={title0Ref} data-cs="title-0" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: STAGE.h / 2 - 20, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>

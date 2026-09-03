@@ -13,9 +13,9 @@ export type Timing = {
   line: number;
   /** The camera settles; the agent is at the end of the line and the stream runs into it. First title. */
   agent: number;
-  /** The agent becomes the typing indicator — the library's reset, then its wave. */
+  /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots, then the wave. */
   indicator: number;
-  /** "so we built an interface around that": the camera pulls back from the indicator as the window builds around it. */
+  /** "so we built an interface around that": the camera pulls back from the dots as the window builds around them. */
   iface: number;
   /** Header and the messages it is answering arrive. */
   chat: number;
@@ -49,11 +49,11 @@ export const DEFAULT_TIMING: Timing = {
   stream: 1.9,
   line: 2.3,
   agent: 3.4,
-  indicator: 4.6,
-  iface: 10.0,
-  chat: 11.4,
-  sidebar: 12.8,
-  reply: 15.0,
-  logo: 17.8,
-  end: 20.4,
+  indicator: 4.4,
+  iface: 6.3,
+  chat: 7.7,
+  sidebar: 9.1,
+  reply: 11.3,
+  logo: 14.1,
+  end: 16.7,
 };

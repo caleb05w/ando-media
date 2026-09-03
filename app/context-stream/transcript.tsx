@@ -9,12 +9,13 @@
 
 import { Avatar } from "../ando-stage/chrome";
 import { TraceLine, type TracePhases } from "../ando-stage/context-trace";
+import { AVATAR } from "../agent-typing-experience/variants";
 import { CAST, type Actor, type Segment } from "../ando-stage/scenes";
 import type { Timing } from "./timing";
 
-/** The film's agent — the card's face (Ando-Brand 3968-2558), baked into
- *  one square so every slot shows the same one. */
-export const AGENT: Actor = { name: "Tadao", avatar: "/context-stream/tadao.png", agent: true };
+/** The film's agent — the face /the-library's typing indicator resolves
+ *  into, so the reply row shows the same one. */
+export const AGENT: Actor = { name: "Tadao", avatar: AVATAR, agent: true };
 
 export type Lands = "chat" | "reply";
 

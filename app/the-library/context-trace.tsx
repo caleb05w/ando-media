@@ -73,12 +73,14 @@ const STRIKE_HOLD = 500;
 const INGEST_MS = 450;
 
 // Beats are uneven on purpose — metronomic dwell reads as fake work.
-const T = {
+/** The run's beats, for a film that drives this trace on its own clock. */
+export const TRACE_T = {
   pull: 1400,
   draft: 10200,
   done: 12600,
   cycle: 16600,
 };
+const T = TRACE_T;
 
 const SOURCES: Source[] = [
   {
@@ -435,11 +437,17 @@ export function ContextTrace({
   open,
   onToggle,
   theme = "dark",
+  width = 360,
+  avatar = "/agent-working/agent-1.png",
 }: {
   vt: number;
   open: boolean;
   onToggle: () => void;
   theme?: "dark" | "light";
+  /** the card's width; /the-library's canvas gives it 360 */
+  width?: number | string;
+  /** the face in the seat — the library's storyboard agent unless told otherwise */
+  avatar?: string;
 }) {
   const done = vt >= T.done;
   const arrived = SOURCES.filter((s) => vt >= s.arrive);
@@ -470,7 +478,8 @@ export function ContextTrace({
 
   return (
     <div
-      className={`ct-${theme} w-[360px] rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
+      className={`ct-${theme} rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
+      style={{ width }}
     >
       {/* The rail rides ABOVE the line: sources queue overhead and drain
           downward into the agent as they're read. */}
@@ -546,7 +555,7 @@ export function ContextTrace({
           ) : (
             <img
               key={seat === "avatar-back" ? "back" : "front"}
-              src="/agent-working/agent-1.png"
+              src={avatar}
               alt=""
               className={`size-[22px] rounded-full object-cover ${
                 seat === "avatar-out"

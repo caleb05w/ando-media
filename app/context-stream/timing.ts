@@ -13,6 +13,10 @@ export type Timing = {
   line: number;
   /** The agent is born out of the dots at the end of the line; the stream keeps pouring into it. First title. */
   agent: number;
+  /** The agent takes the seat of the context trace, which draws out and runs: the sources, the reading, the draft. */
+  trace: number;
+  /** The trace folds back into its seat and the agent grows out of it. */
+  collapse: number;
   /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
   indicator: number;
   /** "so we built an interface around that": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
@@ -28,13 +32,15 @@ export type Timing = {
   end: number;
 };
 
-export const ORDER: (keyof Timing)[] = ["gather", "stream", "line", "agent", "indicator", "iface", "chat", "sidebar", "reply", "logo", "end"];
+export const ORDER: (keyof Timing)[] = ["gather", "stream", "line", "agent", "trace", "collapse", "indicator", "iface", "chat", "sidebar", "reply", "logo", "end"];
 
 export const LABELS: Record<keyof Timing, string> = {
   gather: "congregate",
   stream: "context stream",
   line: "the line",
   agent: "the agent",
+  trace: "context trace",
+  collapse: "back to the agent",
   indicator: "typing indicator",
   iface: "an interface",
   chat: "chat",
@@ -49,12 +55,14 @@ export const DEFAULT_TIMING: Timing = {
   stream: 1.9,
   line: 2.3,
   agent: 3.4,
-  indicator: 4.4,
+  trace: 4.6,
+  collapse: 11.8,
+  indicator: 12.5,
   // The typing state holds for a second once the morph has landed on the dots.
-  iface: 6.45,
-  chat: 7.85,
-  sidebar: 9.25,
-  reply: 11.45,
-  logo: 14.25,
-  end: 16.85,
+  iface: 14.55,
+  chat: 15.95,
+  sidebar: 17.35,
+  reply: 19.55,
+  logo: 22.35,
+  end: 24.95,
 };

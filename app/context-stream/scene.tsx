@@ -20,8 +20,9 @@ import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
+import { ContextTrace } from "../the-library/context-trace";
 import { Logo } from "./logo";
-import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, PILL, SEAT, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -52,6 +53,13 @@ const STRIP_H = 36;
  *  product's 4px on a 6px pitch, so at 60px they land 1:1 on the composer's
  *  own indicator. */
 const INDICATOR_SMALL = 60;
+/** The agent in the trace's seat: its face at the seat's 22px. */
+const SEAT_SCALE = SEAT.d / (2 * AGENT_R);
+/** The trace runs the library's timeline at this many ms per film second,
+ *  and its drawer opens once its first source has arrived (library T). */
+const TRACE_RATE = 2000;
+const TRACE_OPEN_MS = 1500;
+const TRACE_LEAD = 0.35;
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
@@ -94,7 +102,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   // Every face the film will show, decoded up front — the 500px avatars
   // otherwise decode on the frame they first paint, a 100ms hitch.
   useEffect(() => {
-    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), AGENT.avatar])];
+    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), AGENT.avatar, "/avatars/jordan.png"])];
     for (const src of faces) {
       const img = new Image();
       img.src = src;
@@ -114,6 +122,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const [typing, setTyping] = useState<Actor | null>(null);
   const [traceVt, setTraceVt] = useState(0);
   const [indicator, setIndicator] = useState<Frame | null>(null);
+  const [traceMs, setTraceMs] = useState<number | null>(null);
 
   const groundRef = useRef<HTMLDivElement>(null);
   const pageGroundRef = useRef<HTMLDivElement>(null);
@@ -128,6 +137,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
+  const traceRef = useRef<HTMLDivElement>(null);
   const title0Ref = useRef<HTMLDivElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
@@ -149,6 +159,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let typingShown: Actor | null = null;
     let traceVtShown = 0;
     let indicatorShown: number | null = null;
+    let traceMsShown: number | null = null;
 
     const paint = (T: Timing) => {
       const ground = groundRef.current;
@@ -162,7 +173,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const transcript = transcriptRef.current;
       const composer = composerRef.current;
       const indicatorEl = indicatorRef.current;
-      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !indicatorEl) return;
+      const trace = traceRef.current;
+      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !indicatorEl || !trace) return;
 
       /* ── Reads first ───────────────────────────────────────────── */
       // Every layout read the frame needs, taken before its first style
@@ -170,6 +182,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // read-after-write.
       const headerH = header.offsetHeight;
       const composerH = composer.offsetHeight; // the box plus its 16px floor
+      const traceH = trace.offsetHeight;
       const rowH = rowRefs.current.map((refs) => refs.inner?.offsetHeight ?? 0);
 
       /* ── The window ────────────────────────────────────────────── */
@@ -251,7 +264,18 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // around them; when the pull ends they are exactly the composer's
       // own, and hand over.
       const field = fieldAt(T, vt);
-      const ax = agentX(T, vt);
+      // The trace: the agent shrinks into its seat while the pill draws out
+      // to the right; the library's trace runs; then the pill folds back
+      // into the seat and the agent grows out of it, centre stage.
+      const toSeat = ease(seg(vt, T.trace, 0.45));
+      const back = ease(seg(vt, T.collapse + 0.1, 0.45));
+      const inSeat = toSeat * (1 - back);
+      const drawn = ease(seg(vt, T.trace + TRACE_LEAD, 0.4)) * (1 - ease(seg(vt, T.collapse, 0.35)));
+      trace.style.top = `${PILL.y + PILL.h - traceH}px`;
+      trace.style.opacity = `${clamp01((toSeat - 0.8) / 0.2) * (1 - clamp01((back - 0.6) / 0.4))}`;
+      trace.style.clipPath = `inset(-40px ${(1 - drawn) * (PILL.w - 46)}px -40px -40px round 14px)`;
+      const ax = lerp(agentX(T, vt), SEAT.x, inSeat);
+      const seated = clamp01((inSeat - 0.85) / 0.15);
       // The agent pops out of the cluster the seeds snapped into: from
       // nothing, past full, and settles — fast.
       const appear = pop(seg(vt, T.agent - 0.04, 0.32));
@@ -268,11 +292,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear;
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * lerp(1, SEAT_SCALE, inSeat);
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.04, 0.06)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.04, 0.06)) * (1 - seated) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -292,6 +316,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         traceVtShown = coarse;
         setTraceVt(coarse);
       }
+      // The trace's clock, in the library's ms, only while it is out.
+      const ms = vt >= T.trace + TRACE_LEAD && vt < T.collapse + 0.5 ? Math.floor(((vt - T.trace - TRACE_LEAD) * TRACE_RATE) / 50) * 50 : null;
+      if (ms !== traceMsShown) {
+        traceMsShown = ms;
+        setTraceMs(ms);
+      }
       // The agent's frame: at rest until `indicator` (one frame, no churn),
       // then the library's animation, reversed, at 30 a second.
       const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? -1 : Math.floor((vt - T.indicator) * 30) / 30;
@@ -309,7 +339,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
       fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
-      fadeIn(title1Ref.current, T.agent + 0.3, T.indicator + 0.5);
+      fadeIn(title1Ref.current, T.agent + 0.3, T.indicator - 0.2);
       fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
 
       /* ── The canvas: the dots ──────────────────────────────────── */
@@ -410,6 +440,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
+            {/* The context trace — /the-library's, as its shelf renders it, its seat wearing the agent's face. No data-cs: it transitions on its own. */}
+            <div ref={traceRef} data-trace className="absolute" style={{ left: PILL.x, top: PILL.y, width: PILL.w, opacity: 0 }}>
+              {traceMs == null ? null : <ContextTrace theme="light" vt={traceMs} open={traceMs >= TRACE_OPEN_MS} onToggle={noop} width={PILL.w} avatar={AGENT.avatar} />}
+            </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
               {indicator ? <Stage frame={indicator} size={INDICATOR_PX} avatarSrc={INDICATOR.avatar} /> : null}

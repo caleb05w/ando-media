@@ -31,6 +31,10 @@ export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
 export const AGENT_X = CARD.x + Math.round(CARD.w * 0.72);
 export const CENTER_X = STAGE.w / 2;
 export const DOT_R = 2.5;
+/** The context trace's pill — the library's, 360 wide, its line row on
+ *  the stream's y, centred; the agent takes its seat at the left. */
+export const PILL = { x: CENTER_X - 180, y: LINE_Y - 24, w: 360, h: 48 } as const;
+export const SEAT = { x: PILL.x + 12 + 11, y: LINE_Y, d: 22 } as const;
 /** The agent is one of /the-library's typing indicators, at rest — the face
  *  in its disc — drawn at twice the shelf's 120px. Swap the key for another
  *  study (see app/agent-typing-experience/variants.ts: slingshot, suction,

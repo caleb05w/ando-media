@@ -18,12 +18,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Studio, type Hooks } from "../../lib/timeline-studio/studio";
 import { lanesFor } from "./lanes";
 import "./stage.css";
-import { Avatar, Composer, ConversationHeader, Rail, Sidebar, Topbar } from "./chrome";
+import { Avatar, Composer, ConversationHeader, Sidebar } from "./chrome";
 import { Icon } from "./glyph";
 import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
-import { ActiveJamCallCard, EndedJamCallCard, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
-import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
+import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
+import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_CADENCE, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, facesLead, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
 const CURSOR_TARGETS = {
@@ -32,6 +34,9 @@ const CURSOR_TARGETS = {
   composer: "[data-stage-editor]",
   "transcript-tab": '[data-jam-tab="transcript"]',
   "hang-up": '[aria-label="End call"]',
+  "send-button": "[data-stage-send]",
+  "thread-tab": '[data-jam-tab="thread"]',
+  "thread-send": "[data-jam-send]",
 } as const;
 
 /** The brand cursor set — glyph, size, and the hotspot offset (mini-ando.tsx). */
@@ -83,21 +88,29 @@ type MessageRow = Extract<Row, { kind: "message" }>;
 /** A message you sent from the composer. `at` is the cursor it landed at, so
  *  it keeps its place in the transcript as the scene plays on around it —
  *  and scrubs away with everything after that beat. */
-type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string };
+type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string; /** sent from the Jam panel's thread composer */ thread?: true };
 
-type StageState = { rows: Row[]; typing: Actor | null; scriptedJam: JamCall | null; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; /** the DM the script opens */ dm: Row[]; /** what the room shows */ surface: Surface; /** DM handles gone unread */ unreadDms: string[]; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
   let scriptedJam: JamCall | null = null;
+  let ringing = false;
+  let speakingNow: Actor | null = null;
+  let pendingJamRow: { row: MessageRow; id: string } | null = null;
+  let jamPhase: JamPhase = "docked";
   let tab: "thread" | "transcript" = "thread";
   const transcript: TranscriptSegment[] = [];
   const rows: Row[] = [];
+  const thread: Row[] = [];
+  const dm: Row[] = [];
+  let surface: Surface = scene.surface;
+  let unreadDms: string[] = [];
   const messages = new Map<string, MessageRow>();
   const runs = new Map<string, Run>();
-  const push = (row: MessageRow, id: string) => {
-    const prev = rows[rows.length - 1];
+  const push = (row: MessageRow, id: string, into: Row[] = rows) => {
+    const prev = into[into.length - 1];
     row.burst = prev?.kind === "message" && prev.who === row.who && prev.runs.length === 0 && !prev.card && !prev.jam && !row.jam;
-    rows.push(row);
+    into.push(row);
     messages.set(id, row);
   };
   const base = (who: Actor, time: string): MessageRow => ({ kind: "message", key: "", who, time, reactions: [], runs: [], traces: [], burst: false });
@@ -107,7 +120,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
       if (message.at !== at) continue;
       const who = (message.who && scene.cast[message.who]) || me;
       if (message.jam) push({ ...base(who, message.time), key: message.id, jam: message.jam }, message.id);
-      else push({ ...base(who, message.time), key: message.id, body: message.body.split("\n").map((line) => [{ text: line }]) }, message.id);
+      else push({ ...base(who, message.time), key: message.id, body: message.body.split("\n").map((line) => [{ text: line }]) }, message.id, message.thread ? thread : rows);
     }
   };
 
@@ -124,25 +137,55 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
         // until a jam-join beat. Scrubbing back removes the whole thing.
         const call: JamCall = { id: beat.id, startedAt: now, endedAt: null, participants: beat.participants.map((handle) => scene.cast[handle]), joined: beat.participants[0] === ME };
         scriptedJam = call;
-        push({ ...base(scene.cast[beat.participants[0]], beat.time), key: beat.id, jam: call, beat: beatKey(index) }, beat.id);
+        const row: MessageRow = { ...base(scene.cast[beat.participants[0]], beat.time), key: beat.id, jam: call, beat: beatKey(index) };
+        if (beat.ring) {
+          // Rings in the header until you pick up; the card waits.
+          ringing = true;
+          pendingJamRow = { row, id: beat.id };
+        } else {
+          push(row, beat.id);
+        }
         break;
       }
+      case "jam-answer":
+        ringing = false;
+        if (pendingJamRow) { push(pendingJamRow.row, pendingJamRow.id); pendingJamRow = null; }
+        break;
       case "jam-join":
+        // Joining while it rings is the pick-up too: the card lands now.
+        ringing = false;
+        if (pendingJamRow) { push(pendingJamRow.row, pendingJamRow.id); pendingJamRow = null; }
         if (scriptedJam && !scriptedJam.joined) {
           scriptedJam.joined = true;
           scriptedJam.participants = [me, ...scriptedJam.participants.filter((actor) => actor !== me)];
+          jamPhase = "hero";
         }
+        break;
+      case "jam-deploy":
+        if (scriptedJam) jamPhase = "deploy";
+        if (beat.tab) tab = beat.tab;
+        break;
+      case "jam-dock":
+        jamPhase = "docked";
         break;
       case "jam-end":
         if (scriptedJam) { scriptedJam.endedAt = now; scriptedJam = null; }
         break;
       case "cursor":
       case "title":
+      case "camera":
+      case "type":
+      case "context":
+      case "logo":
         break;
       case "tab":
         tab = beat.tab;
         break;
+      case "speak":
+        speakingNow = scene.cast[beat.who];
+        break;
       case "transcript":
+        speakingNow = null;
         for (const segment of transcript) segment.final = true;
         transcript.push({ who: scene.cast[beat.who], text: beat.text, final: false });
         break;
@@ -171,9 +214,16 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
             row.traces.push(...moving.map((trace) => ({ ...trace, onReply: true })));
           }
         }
-        push(row, beat.id);
+        push(row, beat.id, beat.thread ? thread : beat.room === "dm" ? dm : rows);
         break;
       }
+      case "dm-unread":
+        if (!unreadDms.includes(beat.who)) unreadDms = [...unreadDms, beat.who];
+        break;
+      case "surface":
+        surface = beat.to;
+        if (beat.to.kind === "dm") { const who = beat.to.who; unreadDms = unreadDms.filter((handle) => handle !== who); }
+        break;
       case "card":
         push({ ...base(scene.cast[beat.who], beat.time), key: beat.id, card: beat.card, beat: beatKey(index) }, beat.id);
         break;
@@ -201,7 +251,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, tab, transcript };
+  return { rows, thread, dm, surface, unreadDms, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -384,7 +434,7 @@ type JamActions = { muted: boolean; toggleMute: () => void; end: () => void; joi
 function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamActions }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
   return (
-    <div className="flex w-full flex-col" data-beat={row.beat}>
+    <div className="flex w-full flex-col" data-beat={row.beat} data-row-id={row.key}>
       {/* message-row-frame.tsx: a live call row wears the success wash and a 2px success edge */}
       <div className={`st-land group relative min-w-0 -ml-4 px-4 py-1.5 ${activeCall ? "pl-3.5 pb-1.5 bg-ando-bg-success-subtle border-l-2 border-l-ando-action-success rounded-l-none rounded-r-md" : "rounded-r-md hover:bg-ando-bg-fill-subtle"}`}>
         <div className="flex min-w-0 w-full max-w-full items-start gap-2 overflow-visible">
@@ -479,6 +529,23 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // not on the 10Hz clock the trace line rides.
   const [titleCard, setTitleCard] = useState<TitleCard | null>(null);
   const titleRef = useRef<string | null>(null);
+  // The cut's cards: mounted on the beat (a hard cut), moved per frame.
+  const [typeCard, setTypeCard] = useState<TypeCardOn | null>(null);
+  const typeKeyRef = useRef<string | null>(null);
+  const [logoOn, setLogoOn] = useState(false);
+  const logoOnRef = useRef(false);
+  // The agent's context trace between the type card and the cut back; it
+  // reads its own local time off this ref every frame.
+  const [contextCard, setContextCard] = useState<ContextOn | null>(null);
+  const contextKeyRef = useRef<string | null>(null);
+  const contextLocalRef = useRef(0);
+  // The camera: the whole room on one transform, posed every frame from the
+  // shot that is on. `cameraPose` is what was last applied, so an anchor's
+  // screen rect can be brought back to room px; `anchorCache` keeps the last
+  // place each anchor was seen for the frames it is not in the DOM.
+  const cameraRef = useRef<HTMLDivElement>(null);
+  const cameraPose = useRef({ tx: 0, ty: 0, s: 1 });
+  const anchorCache = useRef(new Map<string, { x: number; y: number }>());
   // The panel tab you clicked yourself overrides the script's until the next tab beat.
   const [tabOverride, setTabOverride] = useState<"thread" | "transcript" | null>(null);
   const pointerRef = useRef<HTMLDivElement>(null);
@@ -498,11 +565,32 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, typing, scriptedJam, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, thread, dm, surface, unreadDms, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const rowRef = useRef<HTMLDivElement>(null);
+  // The Jam panel's column: measured so its thread section can be a set
+  // height in every phase (px to px animates; px to auto would jump).
+  const [rowH, setRowH] = useState(0);
+  const [jamStageH, setJamStageH] = useState(0);
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const measure = () => {
+      setRowH(el.clientHeight);
+      const stage = el.querySelector<HTMLElement>("[data-jam-stage]");
+      if (stage) setJamStageH(stage.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // Re-measure whenever the panel mounts or changes phase: the call stage
+    // is only in the DOM once you have joined, and the docked thread
+    // section is sized from its height.
+  }, [scriptedJam?.id, scriptedJam?.joined, ringing, jamId, jamPhase]);
   const jamTab = tabOverride ?? scriptedTab;
   // The newest transcript segment is still being said; its speaker is live.
   const lastSegment = transcript[transcript.length - 1];
-  const speaking = lastSegment && !lastSegment.final ? lastSegment.who : null;
+  const speaking = talking ?? (lastSegment && !lastSegment.final ? lastSegment.who : null);
   const scriptedTabRef = useRef(scriptedTab);
   useEffect(() => {
     if (scriptedTabRef.current !== scriptedTab) { scriptedTabRef.current = scriptedTab; setTabOverride(null); }
@@ -516,6 +604,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     setSent((current) => [...current, ...entries.map((entry) => ({ ...entry, time, at }))]);
   }, [cursor, total]);
   const send = useCallback((text: string) => land([{ id: `sent-${Date.now()}`, body: text }]), [land]);
+  const sendThread = useCallback((text: string) => land([{ id: `thread-${Date.now()}`, body: text, thread: true }]), [land]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollFrame = useRef<number | null>(null);
@@ -574,7 +663,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const jamCall = scriptedJam ?? liveJam;
   // A scripted Jam docks its panel while it runs; a live one opens on start
   // and can be collapsed.
-  const panelOpen = scriptedJam != null ? scriptedJam.joined && jamPanelOpen !== false : jamPanelOpen === true;
+  const panelOpen = scriptedJam != null ? scriptedJam.joined && !ringing && jamPanelOpen !== false : jamPanelOpen === true;
   // Joining a scripted Jam by hand just opens the panel; the script decides when you are in.
   // Each run's moments, off the current timing: first trace beat, the one
   // that reads the transcript, the one that drafts, and trace-done.
@@ -585,6 +674,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     return start && start.kind === "jam-start" ? [...joiner, ...start.participants.map((handle) => scene.cast[handle])] : [scene.cast[ME]];
   }, [scene]);
   const jamActions: JamActions = { muted: jamMuted, toggleMute: () => setJamMuted((current) => !current), end: endJam, join: () => setJamPanelOpen(true), elapsed: scriptedJam ? (jamElapsed ?? 0) : undefined, tracePhases, traceParticipants, traceVt };
+  // The room as shown: the scene with whatever surface the script has opened.
+  const room = useMemo<Scene>(() => ({ ...scene, surface }), [scene, surface]);
   const jamTarget = scene.surface.kind === "channel" ? `#${scene.surface.name}` : scene.cast[scene.surface.who].name;
 
   // The driver: one rAF loop, one virtual clock, the cursor derived from it
@@ -595,6 +686,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const cursorRef = useRef(0);
   const [scriptedDraft, setScriptedDraft] = useState<string | null>(null);
   const draftRef = useRef<string | null>(null);
+  // Where the typed line is going: the Jam thread's composer or the room's.
+  const [draftInThread, setDraftInThread] = useState(false);
+  const draftInThreadRef = useRef(false);
   useEffect(() => {
     if (!hooks) return;
     let raf = 0;
@@ -616,6 +710,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (next !== cursorRef.current) { cursorRef.current = next; setCursor(next); }
       const draft = scriptedDraftAt(scene, T, vt);
       if (draft !== draftRef.current) { draftRef.current = draft; setScriptedDraft(draft); }
+      const inThread = draft != null && scriptedDraftInThread(scene, T, vt);
+      if (inThread !== draftInThreadRef.current) { draftInThreadRef.current = inThread; setDraftInThread(inThread); }
       const elapsed = jamElapsedAt(scene, T, vt);
       if (elapsed !== elapsedRef.current) { elapsedRef.current = elapsed; setJamElapsed(elapsed); }
       const coarse = Math.floor(vt * 10) / 10;
@@ -623,6 +719,108 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       const card = titleCardAt(scene, T, vt);
       const cardKey = card ? card.headline : null;
       if (cardKey !== titleRef.current) { titleRef.current = cardKey; setTitleCard(card); }
+
+      // The type card: cut in on the beat, each word landing on its own time.
+      const tc = typeCardAt(scene, T, vt);
+      const tcKey = tc?.key ?? null;
+      if (tcKey !== typeKeyRef.current) { typeKeyRef.current = tcKey; setTypeCard(tc); }
+      if (tc) {
+        const line = document.querySelector<HTMLElement>("[data-type-line]");
+        if (line) {
+          const local = vt - tc.t;
+          // The faces first — each pops in and settles — then the words.
+          const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
+          faces.forEach((face, i) => {
+            const p = seg(local, i * FACE_CADENCE, FACE_LAND);
+            face.style.opacity = `${Math.min(1, p * 3)}`;
+            face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
+          });
+          const lead = facesLead(faces.length);
+          const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
+          let pending = 0;
+          words.forEach((word, i) => {
+            const p = ease(seg(local, lead + i * WORD_CADENCE, WORD_LAND));
+            word.style.opacity = `${p}`;
+            word.style.transform = `translateX(${(1 - p) * 44}px)`;
+            if (local < lead + i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
+          });
+          // The line re-centres as it grows: the words still to come are held out of the count.
+          // After its hold it lifts away for whatever takes the white next.
+          const exit = ease(seg(local, tc.hold, TYPE_EXIT));
+          line.style.transform = `translateX(${pending / 2}px) translateY(${-28 * exit}px)`;
+          line.style.opacity = `${1 - exit}`;
+          const stack = document.querySelector<HTMLElement>("[data-type-faces]");
+          if (stack) { stack.style.transform = `translateY(${-28 * exit}px)`; stack.style.opacity = `${1 - exit}`; }
+        }
+      }
+
+      // The context card: mounted on its beat; its clock is a ref it reads itself.
+      const cc = contextAt(scene, T, vt);
+      const ccKey = cc?.key ?? null;
+      if (ccKey !== contextKeyRef.current) { contextKeyRef.current = ccKey; setContextCard(cc); }
+      contextLocalRef.current = cc ? vt - cc.t : 0;
+
+      // The logo: the mark bounces in, then slides over as the wordmark lands.
+      const logoT = logoAt(scene, T, vt);
+      const on = logoT != null;
+      if (on !== logoOnRef.current) { logoOnRef.current = on; setLogoOn(on); }
+      if (logoT != null) {
+        const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
+        const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
+        if (mark && letters) {
+          const local = vt - logoT;
+          const drop = seg(local, 0, 0.62);
+          const slide = ease(seg(local, 0.8, 0.6));
+          const markScale = 0.3 + 0.7 * backOut(drop);
+          mark.style.opacity = `${Math.min(1, drop * 4)}`;
+          mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y * slide}px) scale(${markScale})`;
+          letters.style.opacity = `${slide}`;
+          letters.style.transform = `translate(${LETTERS_OFFSET.x - 24 * (1 - slide)}px, ${LETTERS_OFFSET.y}px)`;
+        }
+      }
+
+      // The camera. Every anchor is read from live layout and brought back
+      // to room px through the pose last applied; a cut snaps, a shot change
+      // glides over 0.9s, and within a shot the push runs on its own ease.
+      const cam = cameraRef.current;
+      if (cam) {
+        const { cur, prev } = shotsAt(scene, T, vt, totalFor(scene)(T));
+        if (!cur) {
+          cam.style.transform = "";
+          cameraPose.current = { tx: 0, ty: 0, s: 1 };
+        } else {
+          const W = cam.clientWidth;
+          const H = cam.clientHeight;
+          const pose0 = cameraPose.current;
+          const resolve = (at: string) => {
+            const el = document.querySelector<HTMLElement>(anchorSelector(at as Parameters<typeof anchorSelector>[0]));
+            if (el) {
+              const r = el.getBoundingClientRect();
+              const c = { x: (r.left + r.width / 2 - pose0.tx) / pose0.s, y: (r.top + r.height / 2 - pose0.ty) / pose0.s };
+              anchorCache.current.set(at, c);
+              return c;
+            }
+            return anchorCache.current.get(at) ?? { x: W / 2, y: H / 2 };
+          };
+          const now = { s: shotScale(cur, vt), c: resolve(cur.at) };
+          let s = now.s;
+          let c = now.c;
+          if (!cur.cut && prev) {
+            const from = { s: shotScale(prev, cur.t), c: resolve(prev.at) };
+            const g = ease(seg(vt, cur.t, 0.9));
+            s = from.s + (now.s - from.s) * g;
+            c = { x: from.c.x + (now.c.x - from.c.x) * g, y: from.c.y + (now.c.y - from.c.y) * g };
+          }
+          let tx = W / 2 - c.x * s;
+          let ty = H / 2 - c.y * s;
+          if (s >= 1) {
+            tx = Math.min(0, Math.max(W - W * s, tx));
+            ty = Math.min(0, Math.max(H - H * s, ty));
+          }
+          cam.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+          cameraPose.current = { tx, ty, s };
+        }
+      }
       // The pointer: per-frame writes, measured from live layout (nothing it
       // aims at is transformed, so rects are safe to read every frame).
       const pointer = pointerRef.current;
@@ -632,7 +830,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           pointer.style.opacity = "0";
         } else {
           const aim = (target: string | null) => {
-            const el = target ? document.querySelector<HTMLElement>(CURSOR_TARGETS[target as keyof typeof CURSOR_TARGETS]) : null;
+            const selector = target == null ? null : target.startsWith("dm:") ? `[data-sidebar-dm="${target.slice(3)}"]` : CURSOR_TARGETS[target as keyof typeof CURSOR_TARGETS];
+            const el = selector ? document.querySelector<HTMLElement>(selector) : null;
             if (!el) return null;
             const r = el.getBoundingClientRect();
             return target === "composer" ? { x: r.left + 28, y: r.top + 22 } : { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -655,7 +854,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             const y = from.y + (to.y - from.y) * e - arc;
             pointerPos.current = { x, y };
             pointer.style.opacity = "1";
-            pointer.style.transform = `translate(${x}px, ${y}px) scale(${1 - 0.15 * pose.press})`;
+            pointer.style.transform = `translate(${x}px, ${y}px) scale(${cameraPose.current.s * (1 - 0.15 * pose.press)})`;
             const glyph = cursorGlyphRef.current;
             const c = CURSOR_GLYPHS[pose.glyph];
             if (glyph && glyph.getAttribute("src") !== c.src) { glyph.src = c.src; glyph.width = c.w; glyph.height = c.h; glyph.style.margin = `${c.dy}px 0 0 ${c.dx}px`; }
@@ -691,26 +890,51 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   }, [onCycleScene]);
 
   return (
-    <div
-      className="relative flex h-dvh w-screen flex-col overflow-hidden bg-ando-bg-nav text-ando-fg-primary"
-      style={{ paddingBottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0 }}
-    >
-      <Topbar />
-      <div className="relative flex min-h-0 flex-1">
-        <Rail me={scene.cast[ME]} />
-        <Sidebar scene={scene} />
+    <div className="relative h-dvh w-screen overflow-hidden bg-ando-bg-nav text-ando-fg-primary">
+      {/* The camera: the whole room on one transform (cards.tsx). */}
+      <div ref={cameraRef} className="absolute inset-x-0 top-0 flex flex-col will-change-transform" style={{ bottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0, transformOrigin: "0 0" }}>
+      {/* No top bar and no rail: the sidebar, the room and the panel are the whole frame. */}
+      <div ref={rowRef} className="relative flex min-h-0 flex-1">
+        <Sidebar scene={room} unreadDms={unreadDms} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
-          <ConversationHeader scene={scene} jamControl={<JamHeaderControl active={jamCall != null} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
+        <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
+          <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
           <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8 }}>
             <div aria-hidden className="mt-auto shrink-0" />
-            {rows.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
+            {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
-          <Composer scene={scene} typing={typing} onSend={send} scripted={scriptedDraft} />
+          <Composer scene={room} typing={typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
         </main>
         {jamCall != null && jamCall.endedAt == null && panelOpen ? (
-          <JamPanel call={jamCall} target={jamTarget} muted={jamMuted} elapsed={jamActions.elapsed} tab={jamTab} transcript={transcript} speaking={speaking} onTab={setTabOverride} onToggleMute={jamActions.toggleMute} onEnd={scriptedJam ? () => setJamPanelOpen(false) : endJam} onCollapse={() => setJamPanelOpen(false)} />
+          <>
+            {/* The panel's column opens in the layout as it docks. */}
+            <div aria-hidden className="shrink-0" style={{ width: jamPhase === "docked" ? "var(--ando-desktop-side-panel-width)" : 0, transition: `width ${JAM_MOVE}` }} />
+            <JamStage phase={jamPhase} row={rowRef}>
+              <JamPanel
+                call={jamCall}
+                target={jamTarget}
+                muted={jamMuted}
+                elapsed={jamActions.elapsed}
+                tab={jamTab}
+                transcript={transcript}
+                speaking={speaking}
+                onTab={setTabOverride}
+                onToggleMute={jamActions.toggleMute}
+                onEnd={scriptedJam ? () => setJamPanelOpen(false) : endJam}
+                onCollapse={() => setJamPanelOpen(false)}
+                docked={jamPhase === "docked"}
+                slideIn={scriptedJam == null}
+                lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
+                composer={jamPhase === "docked"}
+                scripted={draftInThread ? scriptedDraft : null}
+                onSend={sendThread}
+                threadCount={thread.length}
+                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
+              />
+            </JamStage>
+          </>
         ) : null}
+      </div>
       </div>
 
       {titleCard ? (
@@ -720,11 +944,14 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           <span className="mt-3 text-[44px] leading-[1.1] tracking-[-0.01em]" style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}>{titleCard.headline}</span>
         </div>
       ) : null}
+      {typeCard ? <TypeCard card={typeCard} /> : null}
+      {contextCard ? <ContextCard localRef={contextLocalRef} hold={contextCard.hold} /> : null}
+      {logoOn ? <LogoCard /> : null}
       {/* Your pointer, when the script moves it. The brand cursor set from
           /public/cursors (see app/affiliate/mini-ando.tsx); hotspot offsets
           ride the translate point. */}
       {hooks ? (
-        <div ref={pointerRef} className="pointer-events-none fixed left-0 top-0 z-[70] opacity-0 will-change-transform" aria-hidden>
+        <div ref={pointerRef} className="pointer-events-none fixed left-0 top-0 z-[70] opacity-0 will-change-transform" style={{ transformOrigin: "0 0" }} aria-hidden>
           <img ref={cursorGlyphRef} src={CURSOR_GLYPHS.arrow.src} alt="" width={CURSOR_GLYPHS.arrow.w} height={CURSOR_GLYPHS.arrow.h} className="max-w-none drop-shadow-sm" style={{ margin: `${CURSOR_GLYPHS.arrow.dy}px 0 0 ${CURSOR_GLYPHS.arrow.dx}px` }} />
         </div>
       ) : null}

@@ -16,13 +16,16 @@ import { SIDEBAR, SIDEBAR_LOOSE, WORKSPACE, isAgent, type Actor, type Scene, typ
 export function Avatar({ actor, size = 32, online, className }: { actor: Actor; size?: number; online?: boolean; className?: string }) {
   return (
     <span className={["ando-avatar relative inline-flex shrink-0", className].filter(Boolean).join(" ")} style={{ width: size, height: size }}>
-      <img src={actor.avatar} alt="" className="size-full rounded-full object-cover" style={{ borderRadius: isAgent(actor) ? 999 : 999 }} />
+      <img src={actor.avatar} alt="" className={`size-full rounded-full ${actor.avatar.endsWith(".svg") ? "bg-white object-contain" : "object-cover"}`} style={{ borderRadius: 999, padding: actor.avatar.endsWith(".svg") ? Math.round(size * 0.2) : 0 }} />
       {online != null ? (
         <span
           className="ando-avatar__status absolute rounded-full"
           style={{
-            // member-avatar.tsx: online is green-500, offline is border-strong.
+            // member-avatar.tsx: online is green-500, offline is border-strong,
+            // and the dot sits in a ring of the page ground so it reads as
+            // its own shape against the photo.
             background: online ? "var(--color-ando-green-500)" : "var(--color-ando-border-strong)",
+            boxShadow: `0 0 0 ${size >= 32 ? 2 : 1.5}px var(--color-ando-bg-main)`,
             ["--ando-avatar-status-size" as string]: `${Math.round(5 * Math.pow(size / 16, Math.log(8 / 5) / Math.log(2)))}px`,
           }}
         />
@@ -33,7 +36,8 @@ export function Avatar({ actor, size = 32, online, className }: { actor: Actor; 
 
 /** WorkspaceAvatar — rounded-[3px] square. */
 function WorkspaceMark({ size }: { size: number }) {
-  return <img src={WORKSPACE.mark} alt="" className="shrink-0 rounded-[3px] object-cover shadow-xs" style={{ width: size, height: size }} />;
+  // The mark sits on its own white tile: the SVG is the bare glyph.
+  return <img src={WORKSPACE.mark} alt="" className="shrink-0 rounded-[3px] bg-white object-contain shadow-xs" style={{ width: size, height: size, padding: Math.round(size * 0.18) }} />;
 }
 
 /* ------------------------------- topbar -------------------------------- */
@@ -134,14 +138,14 @@ function rowIsActive(row: SidebarRow, surface: Surface) {
 }
 
 /** sidebar-conversation/styles.css — the 32px row. */
-function ConversationRow({ row, scene }: { row: SidebarRow; scene: Scene }) {
+function ConversationRow({ row, scene, unreadDms = [] }: { row: SidebarRow; scene: Scene; unreadDms?: string[] }) {
   const active = rowIsActive(row, scene.surface);
-  const unread = row.kind === "channel" && row.unread === true && !active;
+  const unread = !active && (row.kind === "channel" ? row.unread === true : unreadDms.includes(row.who));
   const muted = row.kind === "channel" && row.muted === true;
   return (
     <li className="ando-sidebar-conversation-row">
       <div className="ando-sidebar-conversation-primary">
-        <span className="ando-sidebar-conversation-button" data-active={active ? "true" : "false"} data-unread={unread ? "true" : "false"} style={muted ? { opacity: 0.55 } : undefined}>
+        <span className="ando-sidebar-conversation-button" data-active={active ? "true" : "false"} data-unread={unread ? "true" : "false"} data-sidebar-dm={row.kind === "dm" ? row.who : undefined} style={muted ? { opacity: 0.55 } : undefined}>
           <span className="ando-sidebar-conversation-main">
             {row.kind === "channel" ? (
               <span className="ando-sidebar-conversation-icon">
@@ -158,6 +162,7 @@ function ConversationRow({ row, scene }: { row: SidebarRow; scene: Scene }) {
               {row.kind === "channel" ? row.name : scene.cast[row.who].name}
             </span>
           </span>
+          {unread && row.kind === "dm" ? <span aria-hidden className="st-land ml-auto mr-1 size-2 shrink-0 rounded-full bg-ando-fg-primary" /> : null}
         </span>
       </div>
     </li>
@@ -165,12 +170,12 @@ function ConversationRow({ row, scene }: { row: SidebarRow; scene: Scene }) {
 }
 
 /** sidebar-folder-section-ui.tsx getFolderHeaderClassName + overline label. */
-function FolderHeader({ label }: { label: string }) {
+function FolderHeader({ label, collapsed = false }: { label: string; collapsed?: boolean }) {
   return (
     <div className="relative flex h-6 items-center gap-2 rounded-[6px] px-2 bg-transparent">
       <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
         <span className="relative size-4 shrink-0">
-          <Icon name="IconSidebarFolderOpen" size={14} fill="filled" className="absolute inset-0 m-auto size-3.5 overflow-visible text-ando-fg-secondary" />
+          <Icon name={collapsed ? "IconSidebarFolder" : "IconSidebarFolderOpen"} size={14} fill="filled" className="absolute inset-0 m-auto size-3.5 overflow-visible text-ando-fg-secondary" />
         </span>
         <span className="kanso-text-overline-11 min-w-0 flex-1 truncate text-ando-fg-secondary">{label}</span>
       </span>
@@ -179,7 +184,7 @@ function FolderHeader({ label }: { label: string }) {
 }
 
 /** global-sidebar-shell + sidebar-panel-header: the 354px panel. */
-export function Sidebar({ scene }: { scene: Scene }) {
+export function Sidebar({ scene, unreadDms = [] }: { scene: Scene; /** DM handles with something new in them. */ unreadDms?: string[] }) {
   return (
     <div className="relative flex h-full shrink-0 flex-col bg-ando-bg-main" style={{ width: 354 }}>
       {/* SidebarPanelHeaderPrimitive: surface header, padding 0 12px 0 10px */}
@@ -205,10 +210,10 @@ export function Sidebar({ scene }: { scene: Scene }) {
         <div className="flex flex-col gap-3">
           {SIDEBAR.map((section) => (
             <div key={section.label} className="flex flex-col">
-              <FolderHeader label={section.label} />
-              <ul className="ando-sidebar-conversation-list mt-1">
+              <FolderHeader label={section.label} collapsed={section.collapsed === true} />
+              {section.collapsed ? null : <ul className="ando-sidebar-conversation-list mt-1">
                 {section.rows.map((row) => (
-                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} />
+                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
                 ))}
                 {section.addRow ? (
                   <li className="ando-sidebar-conversation-row">
@@ -220,13 +225,13 @@ export function Sidebar({ scene }: { scene: Scene }) {
                     </span>
                   </li>
                 ) : null}
-              </ul>
+              </ul>}
             </div>
           ))}
           <div className="mx-2 h-px bg-ando-border-default" />
           <ul className="ando-sidebar-conversation-list">
             {SIDEBAR_LOOSE.map((row) => (
-              <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} />
+              <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
             ))}
           </ul>
         </div>
@@ -365,6 +370,7 @@ export function Composer({ scene, typing, onSend, scripted = null }: { scene: Sc
                 onClick={submit}
                 disabled={!canSend}
                 aria-label={`Send message to ${target}`}
+                data-stage-send
                 className={`ando-button w-7 px-0 ${canSend ? "" : "cursor-not-allowed !bg-ando-bg-fill-muted"}`}
                 data-size="sm"
               >

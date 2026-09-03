@@ -15,7 +15,7 @@ function label(scene: Scene, beat: Beat): string {
   switch (beat.kind) {
     case "mark": return beat.label.toLowerCase();
     case "typing": return `${scene.cast[beat.who].name.split(" ")[0]} typing`;
-    case "say": return scene.cast[beat.who].name.split(" ")[0];
+    case "say": return `${scene.cast[beat.who].name.split(" ")[0]}${beat.thread ? " · thread" : beat.room === "dm" ? " · DM" : ""}`;
     case "card": return `${scene.cast[beat.who].name.split(" ")[0]} card`;
     case "attach": return `${scene.cast[beat.who].name.split(" ")[0]} file`;
     case "react": return beat.emoji;
@@ -23,13 +23,23 @@ function label(scene: Scene, beat: Beat): string {
     case "agent-done": return "run done";
     case "jam-start": return `${scene.cast[beat.participants[0]].name.split(" ")[0]} starts jam`;
     case "jam-join": return "you join";
+    case "jam-answer": return "you pick up";
+    case "dm-unread": return `${scene.cast[beat.who].name} DMs you`;
+    case "surface": return beat.to.kind === "channel" ? `open #${beat.to.name}` : `open ${scene.cast[beat.to.who].name}`;
     case "jam-end": return "jam ends";
+    case "jam-deploy": return "panel unfolds";
+    case "jam-dock": return "panel docks";
     case "cursor": return `cursor → ${beat.to.replace("-", " ")}`;
     case "tab": return `${beat.tab} tab`;
     case "transcript": return `${scene.cast[beat.who].name.split(" ")[0]} says`;
+    case "speak": return `${scene.cast[beat.who].name.split(" ")[0]} talking`;
     case "trace": return beat.label.toLowerCase();
     case "trace-done": return "run done";
     case "title": return "title card";
+    case "camera": return `camera · ${beat.at.replace("-", " ")}`;
+    case "type": return "type card";
+    case "context": return "agent reads the jam";
+    case "logo": return "logo";
   }
 }
 
@@ -37,10 +47,10 @@ function label(scene: Scene, beat: Beat): string {
  *  for typing, the jam-end for a jam. */
 function closerOf(scene: Scene, index: number): number | null {
   const beat = scene.beats[index];
-  if (beat.kind === "typing" || beat.kind === "trace" || beat.kind === "transcript") return index + 1 < scene.beats.length ? index + 1 : null;
-  if (beat.kind === "title") return null;
+  if (beat.kind === "typing" || beat.kind === "trace" || beat.kind === "transcript" || beat.kind === "speak") return index + 1 < scene.beats.length ? index + 1 : null;
+  if (beat.kind === "title" || beat.kind === "type" || beat.kind === "camera" || beat.kind === "logo" || beat.kind === "context") return null;
   if (beat.kind === "jam-start") {
-    const end = scene.beats.findIndex((b, i) => i > index && b.kind === "jam-end");
+    const end = scene.beats.findIndex((b, i) => i > index && (b.kind === "jam-end" || (beat.ring && b.kind === "jam-answer")));
     return end === -1 ? null : end;
   }
   return null;

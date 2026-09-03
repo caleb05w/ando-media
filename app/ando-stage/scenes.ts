@@ -374,21 +374,27 @@ const JAMS_CUT: Scene = {
     // already in it and keeps pouring. The agent can keep up; nobody else can.
     { kind: "jam-join", ms: 300 },
     // The call alone, the two of you talking, long enough to take the UI in.
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 900 },
-    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 825 },
-    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 675 },
+    // From here to the hang-up the transcript is a stream — a line every
+    // 400ms or so while it is on screen, one a second behind the card and
+    // through the thread. That pace is the point: the agent keeps up.
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 600 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 550 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 500 },
+    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 750 },
     // No line lands while the section is moving (its unfold and its dock
     // take 700ms): a slot pushing up against a bottom edge still coming down
     // reads as a stutter.
-    // The back and forth is 4.5 seconds, from the panel unfolding to the
-    // card: two lines in the unfolded panel, the dock, one more. (Every
-    // dwell from the join to the card is the 3s version at 1.5x.)
     { kind: "jam-deploy", tab: "transcript", ms: 1125 },
-    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 750 },
-    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 900 },
-    // Shot 3 — the room comes back; the panel docks; one more line.
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 450 },
+    { kind: "transcript", who: "caleb", text: "fair, we can cut it down", ms: 400 },
+    { kind: "transcript", who: "sara", text: "idea two?", ms: 400 },
+    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 400 },
+    // Shot 3 — the room comes back; the panel docks; four more lines, quick.
     { kind: "jam-dock", ms: 1125 },
-    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 1600 },
+    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 400 },
+    { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 400 },
+    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 400 },
+    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 400 },
     // Shot 4 — white. The middle line.
     // Rule: a card's dwell covers its hold AND its 0.6s lift, plus a breath,
     // so nothing that follows — the cursor's trip to Thread, the press —
@@ -412,22 +418,26 @@ const JAMS_CUT: Scene = {
     // and the transcript keeps filling, seen or not. (A transcript line
     // never sits inside a typing beat's dwell: the indicator reads from
     // the latest beat.)
-    { kind: "transcript", who: "sara", text: "and the agent picks it up from here", ms: 2300 },
-    { kind: "transcript", who: "caleb", text: "right, let's get Tadao on it", ms: 2300 },
+    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 1150 },
+    { kind: "transcript", who: "caleb", text: "two seconds on the logo, no more", ms: 1150 },
+    { kind: "transcript", who: "sara", text: "and the agent picks it up from here", ms: 1150 },
+    { kind: "transcript", who: "caleb", text: "right, let's get Tadao on it", ms: 1150 },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },
     { kind: "transcript", who: "sara", text: "I'll ask him in the thread", ms: 300 },
     { kind: "typing", who: "sara", thread: true, ms: 1200 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 0, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
     { kind: "transcript", who: "caleb", text: "perfect", ms: 400 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
-    { kind: "transcript", who: "sara", text: "he's reading the transcript already", ms: 0 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 600 },
+    { kind: "transcript", who: "sara", text: "he's reading the transcript already", ms: 600 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 0 },
+    { kind: "transcript", who: "caleb", text: "look at it go", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     // The sidebar slides in with Tadao's reply, so it is settled when the DM's unread row lands in it.
     { kind: "sidebar", ms: 0 },
-    { kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 1000, body: [[{ text: "yep! sending you both a dm" }]] },
-    { kind: "transcript", who: "caleb", text: "love that", ms: 1200 },
+    { kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 500, body: [[{ text: "yep! sending you both a dm" }]] },
+    { kind: "transcript", who: "caleb", text: "love that", ms: 500 },
+    { kind: "transcript", who: "sara", text: "he's fast", ms: 700 },
     // Shot 6 — a second after the recap, Tadao does what it said: a DM,
     // unread in the sidebar while the call is still on. You hang up, then
     // open it.

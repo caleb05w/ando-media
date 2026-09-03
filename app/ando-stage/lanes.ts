@@ -24,6 +24,8 @@ function label(scene: Scene, beat: Beat): string {
     case "jam-start": return `${scene.cast[beat.participants[0]].name.split(" ")[0]} starts jam`;
     case "jam-join": return "you join";
     case "jam-end": return "jam ends";
+    case "jam-deploy": return "panel unfolds";
+    case "jam-dock": return "panel docks";
     case "cursor": return `cursor → ${beat.to.replace("-", " ")}`;
     case "tab": return `${beat.tab} tab`;
     case "transcript": return `${scene.cast[beat.who].name.split(" ")[0]} says`;

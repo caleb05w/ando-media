@@ -22,7 +22,8 @@ import { Avatar, Composer, ConversationHeader, Rail, Sidebar, Topbar } from "./c
 import { Icon } from "./glyph";
 import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
-import { ActiveJamCallCard, EndedJamCallCard, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
+import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
+import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -85,10 +86,11 @@ type MessageRow = Extract<Row, { kind: "message" }>;
  *  and scrubs away with everything after that beat. */
 type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string };
 
-type StageState = { rows: Row[]; typing: Actor | null; scriptedJam: JamCall | null; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; typing: Actor | null; scriptedJam: JamCall | null; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
   let scriptedJam: JamCall | null = null;
+  let jamPhase: JamPhase = "docked";
   let tab: "thread" | "transcript" = "thread";
   const transcript: TranscriptSegment[] = [];
   const rows: Row[] = [];
@@ -131,7 +133,14 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
         if (scriptedJam && !scriptedJam.joined) {
           scriptedJam.joined = true;
           scriptedJam.participants = [me, ...scriptedJam.participants.filter((actor) => actor !== me)];
+          jamPhase = "hero";
         }
+        break;
+      case "jam-deploy":
+        if (scriptedJam) jamPhase = "deploy";
+        break;
+      case "jam-dock":
+        jamPhase = "docked";
         break;
       case "jam-end":
         if (scriptedJam) { scriptedJam.endedAt = now; scriptedJam = null; }
@@ -201,7 +210,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, tab, transcript };
+  return { rows, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -498,7 +507,25 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, typing, scriptedJam, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, typing, scriptedJam, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const rowRef = useRef<HTMLDivElement>(null);
+  // The Jam panel's column: measured so its thread section can be a set
+  // height in every phase (px to px animates; px to auto would jump).
+  const [rowH, setRowH] = useState(0);
+  const [jamStageH, setJamStageH] = useState(0);
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const measure = () => {
+      setRowH(el.clientHeight);
+      const stage = el.querySelector<HTMLElement>("[data-jam-stage]");
+      if (stage) setJamStageH(stage.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scriptedJam?.id, jamId]);
   const jamTab = tabOverride ?? scriptedTab;
   // The newest transcript segment is still being said; its speaker is live.
   const lastSegment = transcript[transcript.length - 1];
@@ -696,7 +723,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       style={{ paddingBottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0 }}
     >
       <Topbar />
-      <div className="relative flex min-h-0 flex-1">
+      <div ref={rowRef} className="relative flex min-h-0 flex-1">
         <Rail me={scene.cast[ME]} />
         <Sidebar scene={scene} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
@@ -709,7 +736,28 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           <Composer scene={scene} typing={typing} onSend={send} scripted={scriptedDraft} />
         </main>
         {jamCall != null && jamCall.endedAt == null && panelOpen ? (
-          <JamPanel call={jamCall} target={jamTarget} muted={jamMuted} elapsed={jamActions.elapsed} tab={jamTab} transcript={transcript} speaking={speaking} onTab={setTabOverride} onToggleMute={jamActions.toggleMute} onEnd={scriptedJam ? () => setJamPanelOpen(false) : endJam} onCollapse={() => setJamPanelOpen(false)} />
+          <>
+            {/* The panel's column opens in the layout as it docks. */}
+            <div aria-hidden className="shrink-0" style={{ width: jamPhase === "docked" ? "var(--ando-desktop-side-panel-width)" : 0, transition: `width ${JAM_MOVE}` }} />
+            <JamStage phase={jamPhase} row={rowRef}>
+              <JamPanel
+                call={jamCall}
+                target={jamTarget}
+                muted={jamMuted}
+                elapsed={jamActions.elapsed}
+                tab={jamTab}
+                transcript={transcript}
+                speaking={speaking}
+                onTab={setTabOverride}
+                onToggleMute={jamActions.toggleMute}
+                onEnd={scriptedJam ? () => setJamPanelOpen(false) : endJam}
+                onCollapse={() => setJamPanelOpen(false)}
+                docked={jamPhase === "docked"}
+                slideIn={scriptedJam == null}
+                lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
+              />
+            </JamStage>
+          </>
         ) : null}
       </div>
 

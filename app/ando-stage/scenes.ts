@@ -32,6 +32,11 @@ export type Beat =
   /** You press Join: you enter the call and the panel docks. */
   | { kind: "jam-join"; ms: number }
   | { kind: "jam-end"; ms: number }
+  /** The panel, alone and centred since you joined, unfolds its thread and
+   *  live transcript beneath the call. */
+  | { kind: "jam-deploy"; ms: number }
+  /** The room comes back and the panel takes its seat on the right. */
+  | { kind: "jam-dock"; ms: number }
   /** Your pointer travels to a control (and presses it). Pure in the clock:
    *  the glide runs over the beat's first 0.9s, both directions. */
   | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; ms: number }
@@ -252,12 +257,18 @@ const CHAT_THEN_JAM: Scene = {
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ms: 1300 },
     { kind: "say", id: "j6", who: "caleb", time: "11:07 AM", ms: 900, body: [[{ text: "coming" }]] },
     { kind: "cursor", to: "join-button", glyph: "arrow", press: true, ms: 1200 },
-    { kind: "jam-join", ms: 1600 },
+    // Joining is the hero moment: the card becomes the call, alone and
+    // centred over a dimmed room. Then the thread and live transcript
+    // unfold beneath it, the first line lands while it is still big, and
+    // only then does the room come back with the panel docked on the right.
+    { kind: "jam-join", ms: 2000 },
+    { kind: "jam-deploy", ms: 1400 },
     { kind: "cursor", to: "transcript-tab", glyph: "pointer", press: true, ms: 1100 },
-    { kind: "tab", tab: "transcript", ms: 1000 },
+    { kind: "tab", tab: "transcript", ms: 900 },
     // The Jam is the point: it moves the way talking moves. Short lines,
     // fast turns, the decision made in twenty seconds.
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1000 },
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1200 },
+    { kind: "jam-dock", ms: 1400 },
     { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 1400 },
     { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 1400 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 1300 },

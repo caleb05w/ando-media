@@ -116,7 +116,7 @@ export function JamHeaderControl({ active, participants, onClick }: { active: bo
 export function ActiveJamCallCard({ call, muted, elapsed, onToggleMute, onEnd, onJoin }: { call: JamCall; muted: boolean; elapsed?: number; onToggleMute: () => void; onEnd: () => void; onJoin: () => void }) {
   const duration = useCallDuration(call.startedAt, elapsed);
   return (
-    <div className="ando-card max-w-96 gap-0 bg-ando-bg-main px-3 py-2 select-none cursor-pointer" data-edge="border">
+    <div data-jam-card className="ando-card max-w-96 gap-0 bg-ando-bg-main px-3 py-2 select-none cursor-pointer" data-edge="border">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex h-4 items-center gap-1.5">
@@ -188,7 +188,10 @@ function ControlGroup({ on, icon, label }: { on: boolean; icon: Parameters<typeo
 /** The production ring, animated here as speech (stage.css st-speak-ring). */
 const SPEAKING_RING = "st-speaking";
 
-export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void }) {
+/** Curve and length of every move the panel makes between its phases. */
+export const JAM_MOVE = "700ms cubic-bezier(0.2, 0, 0, 1)";
+
+export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null }) {
   const duration = useCallDuration(call.startedAt, elapsed);
   // transcripts-list.tsx TranscriptAutoFollow: the list stays pinned to the
   // newest segment as they land (and when the tab opens onto a backlog).
@@ -200,9 +203,9 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   }, [transcript.length, lastText, tab]);
   const tabClass = (active: boolean, extra: string) => `ando-tabs__trigger cursor-pointer border-b-0 pb-0 h-7 px-2 flex items-center rounded-md space-x-0 hover:bg-ando-bg-fill-muted ${active ? "bg-ando-bg-fill-muted border-transparent" : ""} ${extra}`;
   return (
-    <div className="st-panel-in flex flex-col h-full shrink-0 bg-ando-bg-elevated border-l border-ando-border-default" style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
+    <div className={`${slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
       {/* Docked stage */}
-      <div className="flex flex-col relative select-none bg-ando-bg-dark">
+      <div className="flex flex-col relative select-none bg-ando-bg-dark shrink-0" data-jam-stage>
         <div className="ando-surface-header" data-variant="overlay">
           <div className="flex items-center justify-between w-full">
             <button type="button" onClick={onCollapse} aria-label="Close jam panel" className="text-ando-fg-white transition-opacity hover:opacity-80"><Icon name="IconSidebarLeftArrow" className="-scale-x-100" /></button>
@@ -244,8 +247,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
         </div>
       </div>
 
-      {/* Thread / Live transcript */}
-      <div className="flex flex-col bg-ando-bg-main flex-1 min-h-0 border-t border-ando-border-default">
+      {/* Thread / Live transcript — folded away while the call is the hero, unfolding to a set height, then filling the column. */}
+      <div className={`flex flex-col bg-ando-bg-main border-t border-ando-border-default ${lowerHeight == null ? "flex-1 min-h-0" : "shrink-0 overflow-hidden"}`} style={lowerHeight == null ? undefined : { height: lowerHeight, transition: `height ${JAM_MOVE}` }} data-jam-lower>
         <div className="ando-surface-header">
           <div className="ando-tabs__list flex items-center space-x-0 gap-3 border-b-0">
             <button type="button" onClick={() => onTab("thread")} data-jam-tab="thread" className={tabClass(tab === "thread", "text-ando-fg-primary")} data-state={tab === "thread" ? "active" : "inactive"}>

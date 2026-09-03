@@ -8,7 +8,7 @@
 // — the scripted draft, who is typing, the run's phase, and two coarse
 // clocks the trace lines read seconds from — set when they change.
 //
-// Layers, bottom to top: the grey ground · the card (a hairline frame,
+// Layers, bottom to top: the grey ground · the card (nothing while the dots are loose,
 // then the agent's card, then the window) · the window's contents
 // (sidebar, header, transcript, composer) · the agent's card · the canvas
 // (dots, hairline, disc) · the agent, travelling · the titles · the logo.
@@ -73,6 +73,18 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   useLayoutEffect(() => {
     timingRef.current = timing;
   }, [timing]);
+
+  // Every face the film will show, decoded up front — the 500px avatars
+  // otherwise decode on the frame they first paint, a 100ms hitch in the
+  // trace's facepile.
+  useEffect(() => {
+    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), "/avatars/jordan.png", "/agent-working/agent-1.png"])];
+    for (const src of faces) {
+      const img = new Image();
+      img.src = src;
+      img.decode().catch(noop);
+    }
+  }, []);
 
   const [scale, setScale] = useState(1);
   useLayoutEffect(() => {
@@ -141,6 +153,18 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const float = floatRef.current;
       if (!ground || !film || !card || !content || !sidebar || !main || !header || !transcript || !composer || !agentCard || !copy || !trace || !float) return;
 
+      /* ── Reads first ───────────────────────────────────────────── */
+      // Every layout read the frame needs, taken before its first style
+      // write — so the browser lays out once per frame, not once per
+      // read-after-write.
+      const copyH = copy.offsetHeight;
+      const traceH = trace.offsetHeight;
+      const headerH = header.offsetHeight;
+      const composerH = composer.offsetHeight; // the box plus its 16px floor
+      const rowH = rowRefs.current.map((refs) => refs.inner?.offsetHeight ?? 0);
+      const avatarEl = rowRefs.current[REPLY_INDEX]?.inner?.querySelector<HTMLElement>("[data-row-avatar]") ?? null;
+      const seatAt = avatarEl ? within(avatarEl, main) : null;
+
       /* ── The frame → the agent's card → the window ─────────────── */
       const tight = ease(seg(vt, T.gather, 0.9));
       const formP = ease(seg(vt, T.form + 0.1, 0.7));
@@ -150,7 +174,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
       // The card's body is whichever of its two bodies is showing — the
       // introduction, then the trace — so its height follows the crossfade.
-      const bodyH = lerp(copy.offsetHeight, trace.offsetHeight, workP);
+      const bodyH = lerp(copyH, traceH, workP);
       const centerH = HERO_H + bodyH;
       const center: Rect = { x: (STAGE.w - AGENT_CARD_W) / 2, y: STAGE.h / 2 - centerH / 2, w: AGENT_CARD_W, h: centerH };
       const frame = mix(FRAME_CLOUD, CARD, tight);
@@ -172,7 +196,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       rect(card);
       rect(content);
       card.style.background = `rgba(255,255,255,${grey})`;
-      card.style.boxShadow = `0 0 0 1px rgba(26,24,23,${lerp(0.1, 0.07, grey)}), 0 ${18 * grey}px ${44 * grey}px rgba(26,24,23,${0.07 * grey})`;
+      // No frame while the dots are loose — the card's ring and shadow arrive
+      // with the card itself.
+      card.style.boxShadow = `0 0 0 1px rgba(26,24,23,${0.07 * grey}), 0 ${18 * grey}px ${44 * grey}px rgba(26,24,23,${0.07 * grey})`;
 
       // The agent's card: its contents live at the centre rect, fading in
       // as the frame arrives there and out as it grows into the window.
@@ -201,11 +227,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
       /* ── The header and the composer's slide ───────────────────── */
       const chatP = ease(seg(vt, T.chat, 0.5));
-      const headerH = header.offsetHeight;
       header.style.transform = `translateY(${-headerH * (1 - chatP)}px)`;
       header.style.opacity = `${chatP}`;
 
-      const composerH = composer.offsetHeight; // the box plus its 16px floor
       const bottomTop = cardH - composerH;
       const slide = ease(seg(vt, T.breakout + 0.2, 0.65));
       const composerTop = lerp(cardH + 12, bottomTop, slide);
@@ -220,7 +244,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         const at = row.lands === "chat" ? T.chat + 0.25 : row.lands === "sara" ? T.sara : row.lands === "send" ? T.send : T.reply;
         const p = ease(seg(vt, at, 0.45));
         if (row.lands === "chat") refs.wrap.style.height = "";
-        else refs.wrap.style.height = `${refs.inner.offsetHeight * p}px`;
+        else refs.wrap.style.height = `${rowH[i] * p}px`;
         refs.inner.style.opacity = `${p}`;
         refs.inner.style.transform = `translateY(${8 * (1 - p)}px)`;
       });
@@ -293,11 +317,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         x = lerp(x, aboveX, e2);
         y = lerp(y, aboveY, e2);
         r = lerp(r, 16, e2);
-        const avatarEl = rowRefs.current[REPLY_INDEX]?.inner?.querySelector<HTMLElement>("[data-row-avatar]") ?? null;
-        if (avatarEl && seat > 0) {
-          const target = within(avatarEl, main);
-          x = lerp(x, paneLeft + target.x + 16, e3);
-          y = lerp(y, cardY + target.y + 16, e3);
+        if (seatAt && seat > 0) {
+          x = lerp(x, paneLeft + seatAt.x + 16, e3);
+          y = lerp(y, cardY + seatAt.y + 16, e3);
         }
         disc = { x, y, r, a: 1 - cross };
         const heroness = cross * (1 - e2);
@@ -374,7 +396,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         <div ref={groundRef} className="absolute inset-0 bg-ando-bg-nav" style={{ opacity: 0 }} />
 
         <div ref={filmRef} className="absolute inset-0" style={{ transformOrigin: "50% 50%" }}>
-          {/* The focus frame — a hairline first, the agent's card, then the window. */}
+          {/* The card — invisible while the dots are loose, then the agent's card, then the window. */}
           <div ref={cardRef} data-cs="card" className="absolute rounded-xl" style={{ left: FRAME_CLOUD.x, top: FRAME_CLOUD.y, width: FRAME_CLOUD.w, height: FRAME_CLOUD.h }} />
 
           {/* The window's contents, clipped to the card. */}
@@ -416,7 +438,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
           {/* The disc, become the agent — hero, then above the composer, then its seat on the reply. */}
-          <img ref={floatRef} src={CAST.ando.avatar} alt="" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 32, height: 32 }} />
+          <img ref={floatRef} src={CAST.ando.avatar} alt="" decoding="async" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 32, height: 32 }} />
 
           <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: CARD.y + 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
             Everything becomes context for your agents.

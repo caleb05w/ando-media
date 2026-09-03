@@ -16,8 +16,8 @@ export function AgentCard({ copyRef, traceRef, traceMs }: { copyRef: React.RefOb
   return (
     <div className="relative overflow-hidden" style={{ width: AGENT_CARD_W }}>
       <div data-cs="agent-hero" className="relative" style={{ height: HERO_H, background: "radial-gradient(120% 90% at 50% 110%, #ffffff 0%, rgba(255,255,255,0) 55%), linear-gradient(165deg, #f4f2ef 0%, #e6e2dd 100%)" }}>
-        {/* A soft sweep, the one flourish. */}
-        <div className="absolute inset-x-[-10%] top-[46%] h-[70%] rounded-[50%] bg-white/55 blur-2xl" />
+        {/* A soft sweep, the one flourish — a gradient, not a filter, so it costs nothing to paint. */}
+        <div className="absolute inset-x-[-10%] top-[38%] h-[90%]" style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%)" }} />
       </div>
       {/* Two bodies share the slot; the scene picks the height and the fade. */}
       <div className="relative">

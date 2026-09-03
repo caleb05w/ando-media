@@ -196,7 +196,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       header.style.opacity = `${chatP}`;
 
       const bottomTop = cardH - composerH;
-      const slide = ease(seg(vt, T.iface + 0.25, 0.7));
+      // The composer is in place well before the pull-back lands the dots on it.
+      const slide = ease(seg(vt, T.iface + 0.05, 0.5));
       const composerTop = lerp(cardH + 12, bottomTop, slide);
       composer.style.top = `${composerTop}px`;
       transcript.style.top = `${headerH}px`;
@@ -234,7 +235,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const ax = agentX(T, vt);
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
-      const P = { x: CARD.x + 16, y: cardY + bottomTop - 19 };
+      // Where the composer's own indicator draws its middle dot, measured
+      // against the rendered TypingIndicator: 21px in from the pane's edge,
+      // 17px up from the composer's box.
+      const P = { x: CARD.x + 21.2, y: cardY + bottomTop - 17 };
       const C = { x: ax, y: LINE_Y };
       const z = zoomed ? lerp(ZOOM, 1, zp) : 1;
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
@@ -282,7 +286,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       };
       fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
       fadeIn(title1Ref.current, T.agent + 0.3, T.indicator + 0.5);
-      fadeIn(title2Ref.current, T.iface + 0.3, T.chat + 0.9);
+      fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
 
       /* ── The canvas: the dots, and the agent's arrival ─────────── */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

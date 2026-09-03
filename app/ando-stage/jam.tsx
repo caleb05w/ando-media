@@ -189,6 +189,21 @@ function ControlGroup({ on, icon, label }: { on: boolean; icon: Parameters<typeo
 /** The production ring, animated here as speech (stage.css st-speak-ring). */
 const SPEAKING_RING = "st-speaking";
 
+/** Keeps a list pinned to its newest line while that line's slot is still
+ *  growing (landing.tsx, 300ms): one write is not enough, the bottom keeps
+ *  moving, so it is chased for the length of the entrance. */
+function chaseBottom(list: HTMLDivElement | null) {
+  if (!list) return;
+  const started = performance.now();
+  let raf = 0;
+  const tick = (now: number) => {
+    list.scrollTop = list.scrollHeight;
+    if (now - started < 380) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
+}
+
 /** Curve and length of every move the panel makes between its phases. */
 export const JAM_MOVE = "700ms cubic-bezier(0.2, 0, 0, 1)";
 
@@ -198,15 +213,9 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   // newest segment as they land (and when the tab opens onto a backlog).
   const transcriptRef = useRef<HTMLDivElement>(null);
   const lastText = transcript[transcript.length - 1]?.text ?? "";
-  useEffect(() => {
-    const list = transcriptRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
-  }, [transcript.length, lastText, tab]);
+  useEffect(() => chaseBottom(transcriptRef.current), [transcript.length, lastText, tab]);
   const threadRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const list = threadRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
-  }, [threadCount, tab]);
+  useEffect(() => chaseBottom(threadRef.current), [threadCount, tab]);
   // The thread composer is real: your draft, or the script's line riding
   // over a read-only editor (the same arrangement as the room's composer).
   const [draft, setDraft] = useState("");

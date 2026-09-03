@@ -45,6 +45,8 @@ export type Beat =
   | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; ms: number }
   /** The Jam panel switches tab. */
   | { kind: "tab"; tab: "thread" | "transcript"; ms: number }
+  /** Someone is talking — the ring on their tile — with nothing transcribed yet. */
+  | { kind: "speak"; who: string; ms: number }
   /** A live-transcript segment lands (the newest one reads as still being spoken). */
   | { kind: "transcript"; who: string; text: string; ms: number }
   /** An agent run under message `on`, its activity line updating per beat. */
@@ -359,6 +361,9 @@ const JAMS_CUT: Scene = {
     // right away. Four lines land before the room comes back.
     { kind: "jam-join", ms: 600 },
     { kind: "jam-deploy", tab: "transcript", ms: 400 },
+    // You start talking before the transcript has anything: the ring on
+    // your tile, "Listening…" under it, then the first line catches up.
+    { kind: "speak", who: "caleb", ms: 1500 },
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1100 },
     { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1600 },
     { kind: "transcript", who: "caleb", text: "no voiceover", ms: 900 },

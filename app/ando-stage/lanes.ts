@@ -30,6 +30,7 @@ function label(scene: Scene, beat: Beat): string {
     case "cursor": return `cursor → ${beat.to.replace("-", " ")}`;
     case "tab": return `${beat.tab} tab`;
     case "transcript": return `${scene.cast[beat.who].name.split(" ")[0]} says`;
+    case "speak": return `${scene.cast[beat.who].name.split(" ")[0]} talking`;
     case "trace": return beat.label.toLowerCase();
     case "trace-done": return "run done";
     case "title": return "title card";
@@ -43,7 +44,7 @@ function label(scene: Scene, beat: Beat): string {
  *  for typing, the jam-end for a jam. */
 function closerOf(scene: Scene, index: number): number | null {
   const beat = scene.beats[index];
-  if (beat.kind === "typing" || beat.kind === "trace" || beat.kind === "transcript") return index + 1 < scene.beats.length ? index + 1 : null;
+  if (beat.kind === "typing" || beat.kind === "trace" || beat.kind === "transcript" || beat.kind === "speak") return index + 1 < scene.beats.length ? index + 1 : null;
   if (beat.kind === "title" || beat.kind === "type" || beat.kind === "camera" || beat.kind === "logo") return null;
   if (beat.kind === "jam-start") {
     const end = scene.beats.findIndex((b, i) => i > index && (b.kind === "jam-end" || (beat.ring && b.kind === "jam-answer")));

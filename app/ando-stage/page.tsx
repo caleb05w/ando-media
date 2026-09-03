@@ -90,11 +90,12 @@ type MessageRow = Extract<Row, { kind: "message" }>;
  *  and scrubs away with everything after that beat. */
 type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string };
 
-type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; typing: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
   let scriptedJam: JamCall | null = null;
   let ringing = false;
+  let speakingNow: Actor | null = null;
   let pendingJamRow: { row: MessageRow; id: string } | null = null;
   let jamPhase: JamPhase = "docked";
   let tab: "thread" | "transcript" = "thread";
@@ -176,7 +177,11 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
       case "tab":
         tab = beat.tab;
         break;
+      case "speak":
+        speakingNow = scene.cast[beat.who];
+        break;
       case "transcript":
+        speakingNow = null;
         for (const segment of transcript) segment.final = true;
         transcript.push({ who: scene.cast[beat.who], text: beat.text, final: false });
         break;
@@ -235,7 +240,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, thread, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, ringing, jamPhase, tab, transcript };
+  return { rows, thread, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -544,7 +549,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, thread, typing, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, thread, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -566,7 +571,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const jamTab = tabOverride ?? scriptedTab;
   // The newest transcript segment is still being said; its speaker is live.
   const lastSegment = transcript[transcript.length - 1];
-  const speaking = lastSegment && !lastSegment.final ? lastSegment.who : null;
+  const speaking = talking ?? (lastSegment && !lastSegment.final ? lastSegment.who : null);
   const scriptedTabRef = useRef(scriptedTab);
   useEffect(() => {
     if (scriptedTabRef.current !== scriptedTab) { scriptedTabRef.current = scriptedTab; setTabOverride(null); }

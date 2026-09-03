@@ -193,13 +193,13 @@ const SPEAKING_RING = "st-speaking";
 /** Keeps a list pinned to its newest line while that line's slot is still
  *  growing (landing.tsx, 300ms): one write is not enough, the bottom keeps
  *  moving, so it is chased for the length of the entrance. */
-function chaseBottom(list: HTMLDivElement | null) {
+function chaseBottom(list: HTMLDivElement | null, ms = 380) {
   if (!list) return;
   const started = performance.now();
   let raf = 0;
   const tick = (now: number) => {
     list.scrollTop = list.scrollHeight;
-    if (now - started < 380) raf = requestAnimationFrame(tick);
+    if (now - started < ms) raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(raf);
@@ -217,6 +217,14 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   useEffect(() => chaseBottom(transcriptRef.current), [transcript.length, lastText, tab]);
   const threadRef = useRef<HTMLDivElement>(null);
   useEffect(() => chaseBottom(threadRef.current), [threadCount, tab]);
+  // While the section unfolds or docks (its height eases over JAM_MOVE), a
+  // list taller than its box would show its top until the box outgrew it,
+  // then snap to the bottom. Pin it to the bottom for the whole move.
+  useEffect(() => {
+    const stopA = chaseBottom(transcriptRef.current, 800);
+    const stopB = chaseBottom(threadRef.current, 800);
+    return () => { stopA?.(); stopB?.(); };
+  }, [lowerHeight]);
   // The thread composer is real: your draft, or the script's line riding
   // over a read-only editor (the same arrangement as the room's composer).
   const [draft, setDraft] = useState("");

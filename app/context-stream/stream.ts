@@ -28,11 +28,14 @@ export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
 export const AGENT_X = CARD.x + Math.round(CARD.w * 0.7);
 export const CENTER_X = STAGE.w / 2;
 export const DOT_R = 2.5;
-/** The agent is /the-library's typing indicator, Orbit v2, at rest — the
- *  face in its disc, drawn at 120px. Its disc's radius on screen sets where
- *  a dot is eaten. */
-export const INDICATOR = VARIANTS.find((v) => v.key === "orbit-v2") ?? VARIANTS[0];
-export const INDICATOR_PX = 120;
+/** The agent is one of /the-library's typing indicators, at rest — the face
+ *  in its disc — drawn at twice the shelf's 120px. Swap the key for another
+ *  study (see app/agent-typing-experience/variants.ts: slingshot, suction,
+ *  orbit, rhythm, gulp, each in v1/v2/v3). Its disc's radius on screen sets
+ *  where a dot is eaten. */
+export const INDICATOR_KEY = "suction-v2";
+export const INDICATOR = VARIANTS.find((v) => v.key === INDICATOR_KEY) ?? VARIANTS[0];
+export const INDICATOR_PX = 240;
 export const AGENT_R = INDICATOR.morph(INDICATOR.morphMs).blob.r * (INDICATOR_PX / 60);
 
 /* ── Curves ─────────────────────────────────────────────────────────── */

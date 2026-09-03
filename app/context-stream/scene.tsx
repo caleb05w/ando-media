@@ -21,7 +21,7 @@ import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, backOut, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -56,6 +56,13 @@ const AGENT_FRAME = INDICATOR.morph(INDICATOR.morphMs);
 /** Where the face has landed on the library's clock. */
 const FACE_AT = TYPE_MS + INDICATOR.morphMs;
 const noop = () => {};
+
+/** A hard pop: overshoots to 1.18 and settles. */
+const pop = (p: number) => {
+  const s = 2.4;
+  const q = clamp01(p) - 1;
+  return q * q * ((s + 1) * q + s) + 1;
+};
 
 /** The agent's frame `t` seconds into `indicator`: at rest before; then
  *  /the-library's animation, `cycleFrame`, played backwards from the face —
@@ -234,7 +241,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // own, and hand over.
       const field = fieldAt(T, vt);
       const ax = agentX(T, vt);
-      const appear = backOut(seg(vt, T.agent - 0.3, 0.45));
+      // The agent pops: from nothing, past full, and settles — fast.
+      const appear = pop(seg(vt, T.agent - 0.05, 0.32));
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       // Where the composer's own indicator draws its middle dot, measured
@@ -250,7 +258,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.3, 0.12)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.05, 0.06)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;

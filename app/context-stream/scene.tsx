@@ -243,8 +243,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       /* ── The agent and the camera ──────────────────────────────── */
       // The agent is /the-library's agent typing indicator, untouched: its
       // own avatar, its own 120px, its own animation. It is born out of the
-      // dots at the end of the line, the stream keeps pouring into it, it
-      // walks to centre stage; at `indicator` its animation plays backwards
+      // dots at the far right of the line, the stream swings back and pours
+      // into it, it walks to centre stage; at `indicator` its animation plays backwards
       // — the face spins out into the dots — and the moment it lands on
       // them the interface starts: the camera is already in on the dots —
       // the same 120px on screen — and pulls back while the window builds
@@ -320,8 +320,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       ctx.lineCap = "round";
       for (const dot of field.marks) {
         ctx.globalAlpha = dot.a;
-        if (dot.sx && dot.sx > 0.5) {
-          // A pouring dot is a streak: its trail is where it just was, upstream.
+        if (dot.sx && Math.abs(dot.sx) > 0.5) {
+          // A pouring dot is a streak: its trail is where it just was.
           ctx.lineWidth = 2 * dot.r;
           ctx.beginPath();
           ctx.moveTo(dot.x + dot.sx, dot.y);

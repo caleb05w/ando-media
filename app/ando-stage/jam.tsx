@@ -191,7 +191,7 @@ const SPEAKING_RING = "st-speaking";
 /** Curve and length of every move the panel makes between its phases. */
 export const JAM_MOVE = "700ms cubic-bezier(0.2, 0, 0, 1)";
 
-export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null }) {
+export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean }) {
   const duration = useCallDuration(call.startedAt, elapsed);
   // transcripts-list.tsx TranscriptAutoFollow: the list stays pinned to the
   // newest segment as they land (and when the tab opens onto a backlog).
@@ -295,7 +295,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
         </div>
         )}
         {/* Thread composer, compact, with the broadcast option */}
-        <div className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
+        {composer ? <div className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
             <div className="relative min-h-[70px]">
               <span className="kanso-text-label-14 absolute left-5 top-4 pointer-events-none text-ando-fg-tertiary">Enter your message</span>
@@ -323,7 +323,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               </div>
             </div>
           </div>
-        </div>
+        </div> : null}
       </div>
     </div>
   );

@@ -5,7 +5,8 @@
 //   hero    — you pressed Join: the card in the transcript grows into the
 //             call itself, alone and centred over a dimmed room. Only the
 //             dark call stage shows; the thread is folded away.
-//   deploy  — the thread and live transcript unfold beneath the call.
+//   deploy  — the thread and live transcript unfold beneath the call
+//             (no composer yet — that comes with the column).
 //   docked  — the room comes back and the panel takes its seat on the
 //             right, its column opening in the layout as it lands.
 //
@@ -20,9 +21,12 @@ import { JAM_MOVE } from "./jam";
 export type JamPhase = "hero" | "deploy" | "docked";
 
 export const PANEL_W = 400;
-/** The thread section's height while the panel is still the hero. */
-export const LOWER_DEPLOYED = 340;
+/** The thread section's height while the panel is still the hero — tabs and
+ *  the transcript, no composer. */
+export const LOWER_DEPLOYED = 250;
 const HERO_SCALE = 1.2;
+/** The light end of the world's sky. */
+const HERO_GROUND = "#dcecfe";
 
 type Rect = { left: number; top: number; width: number; height: number };
 
@@ -107,11 +111,11 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
 
   return (
     <>
-      {/* The room, dimmed while the call is the hero. */}
+      {/* The ground while the call is the hero: the world's daytime sky (affiliate/mini-world.tsx), flat, covering the room. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10"
-        style={{ background: "rgba(26,24,23,0.42)", backdropFilter: "blur(2px)", opacity: floating ? 1 : 0, transition: `opacity ${JAM_MOVE}` }}
+        style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${JAM_MOVE}` }}
       />
       <div
         ref={boxRef}

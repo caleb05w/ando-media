@@ -755,6 +755,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 docked={jamPhase === "docked"}
                 slideIn={scriptedJam == null}
                 lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
+                composer={jamPhase === "docked"}
               />
             </JamStage>
           </>

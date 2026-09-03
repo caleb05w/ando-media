@@ -196,7 +196,7 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
  *  written per frame by the driver via the `data-word` spans. */
 export function TypeCard({ card }: { card: TypeCardOn }) {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[80] flex flex-col items-center justify-center bg-white text-[#1a1817]" aria-hidden data-type-card>
+    <div className="pointer-events-none fixed inset-0 z-[80] flex flex-col items-center justify-center text-[#1a1817]" aria-hidden data-type-card>
       {card.faces.length > 0 ? (
         /* The stack: the product's overlapping faces with a stroke of the ground between them (avatar-group, ring 3px). */
         <div className="mb-7 flex items-center justify-center" data-type-faces>

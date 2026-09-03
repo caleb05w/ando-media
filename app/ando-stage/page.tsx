@@ -61,8 +61,15 @@ type Run = { run: string; who: Actor; task: string; done: boolean };
 type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | "transcript" | null; done: boolean; tool: string | null; /** the row is the agent's own reply */ onReply: boolean; /** the run has moved on to the reply — the line folds away under the ask */ leaving?: boolean };
 
 
-/** Seconds before a type card in which the UI recedes (blur, dim, scale down). */
+/** Seconds before a type card in which the UI recedes (blur, scale down). */
 const CARD_LEAD = 3.0;
+/** The last of those seconds, in which the white washes up over the receded UI — so the card's ground arrives, rather than cutting. */
+const WASH_LEAD = 0.6;
+/** A type card straight before the logo is the closer: it holds its white and its line, and the logo cuts in over it. No exit. */
+function isCloser(scene: Scene, key: string): boolean {
+  const index = Number(key.slice(1));
+  return scene.beats[index + 1]?.kind === "logo";
+}
 /** The stage-clock second of the next type card still ahead of `vt` (null when none). */
 function nextTypeCardAt(scene: Scene, T: Timing, vt: number): number | null {
   for (let index = 0; index < scene.beats.length; index += 1) {
@@ -622,6 +629,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // place each anchor was seen for the frames it is not in the DOM.
   const cameraRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
+  const washRef = useRef<HTMLDivElement>(null);
   const cameraPose = useRef({ tx: 0, ty: 0, s: 1 });
   const anchorCache = useRef(new Map<string, { x: number; y: number }>());
   // The panel tab you clicked yourself overrides the script's until the next tab beat.
@@ -822,7 +830,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
           });
           // The card as a whole lifts away after its last line's hold.
-          const exit = easeInOut(seg(local, tc.hold, TYPE_EXIT));
+          const exit = isCloser(scene, tc.key) ? 0 : easeInOut(seg(local, tc.hold, TYPE_EXIT));
           lines.forEach((line, li) => {
             const start = tc.starts[li];
             const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
@@ -832,7 +840,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             words.forEach((word, i) => {
               const p = ease(seg(local, start + i * WORD_CADENCE, WORD_LAND));
               word.style.opacity = `${p}`;
-              word.style.transform = `translateY(${(1 - p) * 16}px) scale(${0.96 + 0.04 * p})`;
+              word.style.transform = `translateY(${(1 - p) * 16}px) scale(${1.03 - 0.03 * p})`;
               word.style.filter = `blur(${(1 - p) * 8}px)`;
             });
             // The whole line settles up into its seat with its first word.
@@ -840,13 +848,16 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             // A line that has had its hold lifts and blurs away above the next;
             // the last line leaves with the card. The lift eases both ways.
             const last = li === lines.length - 1;
-            const gone = last ? exit : easeInOut(seg(local, tc.ends[li], LINE_EXIT));
+            // The last line leaves first — up and out of focus, the mirror of
+            // how words arrive — in the first 60% of the exit, so the words
+            // are gone before the wash has thinned enough to show the UI.
+            const gone = last ? (isCloser(scene, tc.key) ? 0 : ease(seg(local, tc.hold, TYPE_EXIT * 0.6))) : easeInOut(seg(local, tc.ends[li], LINE_EXIT));
             // Only one ghost at a time: a lifted line is gone for good once the line after it leaves too.
             const buried = li + 1 < lines.length - 1 ? easeInOut(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
             const lift = last ? 28 : 110;
-            line.style.transform = `translateY(${12 * (1 - settle) - lift * gone}px)`;
+            line.style.transform = `translateY(${12 * (1 - settle) - lift * gone}px)${last ? ` scale(${1 + 0.03 * gone})` : ""}`;
             line.style.opacity = `${last ? 1 - gone : (1 - 0.85 * gone) * (1 - buried)}`;
-            line.style.filter = last ? "none" : `blur(${6 * gone}px)`;
+            line.style.filter = `blur(${(last ? 8 : 6) * gone}px)`;
           });
           // The stack lifts with the first line.
           const stack = document.querySelector<HTMLElement>("[data-type-faces]");
@@ -857,9 +868,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             stack.style.opacity = `${lines.length > 1 ? (1 - 0.85 * gone) * (1 - buried) : 1 - gone}`;
             stack.style.filter = lines.length > 1 ? `blur(${6 * gone}px)` : "none";
           }
-          // The white goes with the last line, so the next shot shows through.
-          const card = document.querySelector<HTMLElement>("[data-type-card]");
-          if (card) card.style.opacity = `${1 - exit}`;
+          // The white is the stage's wash (below), thinning with the last line.
         }
       }
 
@@ -895,10 +904,16 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         // and comes back as the card fades out, so the white dissolves onto
         // a UI sharpening into place (never a snap under a one-frame gap).
         const next = nextTypeCardAt(scene, T, vt);
-        const recede = tc ? 1 - ease(seg(vt - tc.t, tc.hold, TYPE_EXIT)) : next == null ? 0 : easeInOut(seg(vt, next - CARD_LEAD, CARD_LEAD));
-        win.style.opacity = `${Math.min(1, p * 1.6) * (1 - 0.4 * recede)}`;
+        const cardExit = tc ? (isCloser(scene, tc.key) ? 0 : easeInOut(seg(vt - tc.t, tc.hold, TYPE_EXIT))) : 0;
+        const recede = tc ? 1 - cardExit : next == null ? 0 : easeInOut(seg(vt, next - CARD_LEAD, CARD_LEAD));
+        win.style.opacity = `${Math.min(1, p * 1.6)}`;
         win.style.transform = `translateY(${20 * (1 - p)}px) scale(${1 - 0.04 * recede})`;
         win.style.filter = recede > 0 ? `blur(${8 * recede}px)` : "none";
+        // The white: up over the receded UI in the last WASH_LEAD before the
+        // card (its ground arriving, not a cut), whole under the card, thinning
+        // with the card's exit as the UI sharpens back. The closer's stays.
+        const wash = washRef.current;
+        if (wash) wash.style.opacity = `${tc ? 1 - cardExit : next == null ? 0 : ease(seg(vt, next - WASH_LEAD, WASH_LEAD))}`;
       }
 
       // The camera. Every anchor is read from live layout and brought back
@@ -1090,6 +1105,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           <span className="mt-3 text-[44px] leading-[1.1] tracking-[-0.01em]" style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}>{titleCard.headline}</span>
         </div>
       ) : null}
+      {/* The type cards' white ground, driven per frame (see the window block in the frame loop). */}
+      <div ref={washRef} aria-hidden className="pointer-events-none fixed inset-0 z-[79] bg-white" style={{ opacity: 0 }} data-stage-wash />
       {typeCard ? <TypeCard card={typeCard} /> : null}
       {contextCard ? <ContextCard localRef={contextLocalRef} hold={contextCard.hold} /> : null}
       {logoOn ? <LogoCard /> : null}

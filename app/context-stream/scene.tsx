@@ -19,7 +19,7 @@ import { Stage } from "../agent-typing-experience/stage";
 import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
-import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
+import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
 import { Logo } from "./logo";
 import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
@@ -36,6 +36,12 @@ const ROOM: Room = {
   cast: CAST,
   beats: [],
 };
+
+/** The film's sidebar: the three people, one folder of three channels. */
+const SIDEBAR_FILM: SidebarSection[] = [
+  { label: "Favorites", rows: [{ kind: "dm", who: "aj", online: true }, { kind: "dm", who: "oli", online: false }, { kind: "dm", who: "sara", online: true }] },
+  { label: "Core", rows: [{ kind: "channel", name: "launch", unread: true }, { kind: "channel", name: "general" }, { kind: "channel", name: "design" }] },
+];
 
 /** Room the studio's pill needs below the stage. */
 const STUDIO_CLEARANCE = 72;
@@ -374,7 +380,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
             {/* The window's contents, clipped to the card. */}
             <div ref={contentRef} className="absolute overflow-hidden rounded-xl" style={{ left: CARD.x, top: CARD.y, width: CARD.w, height: CARD.h, opacity: 0 }}>
               <div ref={sidebarRef} data-cs="sidebar" className="absolute bottom-0 left-0 top-0" style={{ width: SIDEBAR_W, opacity: 0 }}>
-                <Sidebar scene={ROOM} />
+                <Sidebar scene={ROOM} sections={SIDEBAR_FILM} loose={[]} />
               </div>
               <div ref={mainRef} className="absolute bottom-0 right-0 top-0 overflow-hidden" style={{ width: PANE_W }}>
                 <div ref={headerRef} data-cs="header" className="absolute left-0 right-0 top-0" style={{ opacity: 0 }}>

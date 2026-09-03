@@ -277,7 +277,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   const lastText = transcript[transcript.length - 1]?.text ?? "";
   useEffect(() => chaseBottom(transcriptRef.current), [transcript.length, lastText, tab]);
   const threadRef = useRef<HTMLDivElement>(null);
-  useEffect(() => chaseBottom(threadRef.current), [threadCount, tab]);
+  useEffect(() => chaseBottom(threadRef.current), [threadCount, tab, typing]);
   // While the section unfolds or docks (its height eases over JAM_MOVE), a
   // list taller than its box would show its top until the box outgrew it,
   // then snap to the bottom. Pin it to the bottom for the whole move.
@@ -307,9 +307,18 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
     const editor = editorRef.current;
     if (editor) editor.style.height = "";
   }, [draft, onSend]);
-  // The active tab's fill is one shared pill that springs across to whichever tab is pressed.
+  // The active tab's fill is one pill that springs across to whichever tab
+  // is pressed. It is placed by value (offsetLeft/offsetWidth — layout px,
+  // untouched by the hero's scale), not by Motion's layout projection: a
+  // projected element under a scaled, height-transitioning ancestor
+  // re-measures every frame and jitters.
   const tabClass = (active: boolean, extra: string) => `ando-tabs__trigger relative cursor-pointer border-b-0 pb-0 h-7 px-2 flex items-center rounded-md space-x-0 hover:bg-ando-bg-fill-muted ${active ? "border-transparent" : ""} ${extra}`;
-  const tabPill = <motion.span aria-hidden layoutId="jam-tab-pill" className="absolute inset-0 rounded-md bg-ando-bg-fill-muted" transition={{ type: "spring", stiffness: 520, damping: 34 }} />;
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ x: number; w: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = tabsRef.current?.querySelector<HTMLElement>(`[data-jam-tab="${tab}"]`);
+    if (el) setPill({ x: el.offsetLeft, w: el.offsetWidth });
+  }, [tab]);
   return (
     <div className={`${slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
       {/* Docked stage */}
@@ -383,13 +392,12 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
       {/* Thread / Live transcript — folded away while the call is the hero, unfolding to a set height, then filling the column. */}
       <div className={`flex flex-col bg-ando-bg-main border-t border-ando-border-default ${lowerHeight == null ? "flex-1 min-h-0" : "shrink-0 overflow-hidden"}`} style={lowerHeight == null ? undefined : { height: lowerHeight, transition: `height ${JAM_MOVE}` }} data-jam-lower>
         <div className="ando-surface-header">
-          <div className="ando-tabs__list flex items-center space-x-0 gap-3 border-b-0">
+          <div ref={tabsRef} className="ando-tabs__list relative flex items-center space-x-0 gap-3 border-b-0">
+            {pill ? <motion.span aria-hidden className="absolute top-0 h-7 rounded-md bg-ando-bg-fill-muted" initial={false} animate={{ x: pill.x, width: pill.w }} transition={{ type: "spring", stiffness: 520, damping: 34 }} /> : null}
             <button type="button" onClick={() => onTab("thread")} data-jam-tab="thread" className={tabClass(tab === "thread", "text-ando-fg-primary")} data-state={tab === "thread" ? "active" : "inactive"}>
-              {tab === "thread" ? tabPill : null}
               <span className="kanso-text-label-12-md relative inline-flex items-center gap-1.5"><Icon name="IconThread" fill={tab === "thread" ? "filled" : "outlined"} />Thread</span>
             </button>
             <button type="button" onClick={() => onTab("transcript")} data-jam-tab="transcript" className={tabClass(tab === "transcript", "text-ando-rose-600 hover:text-ando-rose-600")} data-state={tab === "transcript" ? "active" : "inactive"}>
-              {tab === "transcript" ? tabPill : null}
               <span className="kanso-text-label-12-md relative inline-flex items-center gap-1.5"><Icon name="IconSquareLinesBottom" fill={tab === "transcript" ? "filled" : "outlined"} />Live transcript</span>
             </button>
           </div>
@@ -414,7 +422,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             ))}
           </div>
         ) : (
-        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" data-jam-thread>
+        /* The typing indicator's clearance eases in and out on the landing curve (as the room's does), so the last row is never under it. */
+        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" style={{ paddingBottom: typing ? 40 : 0, transition: "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" }} data-jam-thread>
           {/* Bottom-anchored like the room: a reply lands at the composer and pushes the join event up. */}
           <div aria-hidden className="mt-auto shrink-0" />
           {/* system-message/index.tsx: join event */}

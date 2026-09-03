@@ -119,7 +119,6 @@
   87%, 93%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.1); }
   100%      { box-shadow: 0 0 0 2px rgba(34,197,94,0.9); }
 }
-}
 
 .st-speaking {
   animation: st-speak-ring 2.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;

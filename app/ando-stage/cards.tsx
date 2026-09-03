@@ -112,11 +112,12 @@ export function ContextCard({ localRef, hold }: { localRef: RefObject<number>; h
 }
 
 /* ── The auto camera — Screen Studio's zoom ──────────────────────────
-   No camera beats needed: a cursor press marked `zoom` pulls the frame in
-   around the thing pressed, 1.6× over 0.9s on an ease-in-out, holds, pans
-   to the next zooming press on the same ease, and eases back out after
-   1.5s without one. Clamped by the driver so the frame never shows past
-   the room's edge. */
+   No camera beats needed: a cursor beat marked `zoom` pulls the frame in
+   around its target as the cursor sets off — 1.6× (or the beat's own
+   scale) over 0.9s on an ease-in-out, so the frame and the hand arrive
+   together — holds, pans to the next zooming press on the same ease, and
+   eases back out 1.5s after the press. Clamped by the driver so the frame
+   never shows past the room's edge. */
 export const AUTO_ZOOM = 1.6;
 export const AUTO_IN = 0.9;
 export const AUTO_HOLD = 1.5;
@@ -124,13 +125,13 @@ export const AUTO_OUT = 0.9;
 /** The cursor's glide before it presses (page.tsx pointerAt). */
 const PRESS_GLIDE = 0.9;
 
-export type Press = { t: number; at: CameraAnchor };
+export type Press = { t: number; at: CameraAnchor; zoom: number };
 
 /** Every zooming press in the scene, in order, with the second it lands. */
 export function pressesOf(scene: Scene, T: Timing): Press[] {
   const out: Press[] = [];
   scene.beats.forEach((beat, index) => {
-    if (beat.kind === "cursor" && beat.press && beat.zoom) out.push({ t: T[beatKey(index)] + PRESS_GLIDE, at: beat.to });
+    if (beat.kind === "cursor" && beat.press && beat.zoom) out.push({ t: T[beatKey(index)], at: beat.to, zoom: beat.zoom === true ? AUTO_ZOOM : beat.zoom });
   });
   return out;
 }
@@ -146,9 +147,9 @@ export function autoPoseAt(presses: Press[], vt: number, resolve: (at: CameraAnc
     const base = { s, c };
     const target = resolve(press.at);
     const zoomIn = easeInOut(seg(vt, press.t, AUTO_IN));
-    const zoomOut = easeInOut(seg(vt, press.t + AUTO_HOLD, AUTO_OUT));
+    const zoomOut = easeInOut(seg(vt, press.t + PRESS_GLIDE + AUTO_HOLD, AUTO_OUT));
     // Where the previous zoom stood when this press landed, not now.
-    s = (base.s + (AUTO_ZOOM - base.s) * zoomIn) * (1 - zoomOut) + 1 * zoomOut;
+    s = (base.s + (press.zoom - base.s) * zoomIn) * (1 - zoomOut) + 1 * zoomOut;
     c = { x: base.c.x + (target.x - base.c.x) * zoomIn, y: base.c.y + (target.y - base.c.y) * zoomIn };
   }
   return { s, c };

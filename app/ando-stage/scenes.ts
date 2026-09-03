@@ -42,7 +42,7 @@ export type Beat =
   | { kind: "jam-dock"; ms: number }
   /** Your pointer travels to a control (and presses it). Pure in the clock:
    *  the glide runs over the beat's first 0.9s, both directions. */
-  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; /** The press pulls the camera in around it (cards.tsx autoPoseAt). */ zoom?: true; ms: number }
+  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; /** The camera pulls in around the target as the cursor sets off for it — `true` for the default 1.6×, or a scale (cards.tsx autoPoseAt). */ zoom?: true | number; ms: number }
   /** The Jam panel switches tab. */
   | { kind: "tab"; tab: "thread" | "transcript"; ms: number }
   /** Someone is talking — the ring on their tile — with nothing transcribed yet. */
@@ -365,7 +365,7 @@ const JAMS_CUT: Scene = {
     // The press IS the join — but first, the card, so a viewer who has
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, zoom: true, ms: 1900 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, zoom: 2.3, ms: 1900 },
     // A card always finishes — its hold and its lift — before the next
     // thing happens; nothing is ever hidden behind one.
     { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2650 },

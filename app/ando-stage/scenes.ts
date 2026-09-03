@@ -360,17 +360,16 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 400, body: [[{ text: "Yeah, I had a few ideas." }]] },
     { kind: "typing", who: "sara", ms: 500 },
     { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 700, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
-    // Sara starts the Jam: the headphones ring, the camera pushes into them
-    // and the cursor grows with it. The press IS the join — but first, the
-    // card, so a viewer who has never seen Ando knows what they are watching.
+    // Sara starts the Jam: the headphones ring and the cursor goes to them.
+    // Every press zooms the frame in around it (the auto camera, cards.tsx).
+    // The press IS the join — but first, the card, so a viewer who has
+    // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
-    { kind: "camera", at: "jam-button", scale: 1.0, push: 0.6, cut: true, ms: 0 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1900 },
     { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },
     // Shot 2 — cut to the sky: the call arrives, the ring trades between
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
-    { kind: "camera", at: "room", scale: 1.0, cut: true, ms: 0 },
     { kind: "jam-join", ms: 200 },
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 500 },
     { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 450 },

@@ -25,7 +25,7 @@ import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
-import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_CADENCE, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, facesLead, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_CADENCE, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, facesLead, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -852,10 +852,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       const cam = cameraRef.current;
       if (cam) {
         const { cur, prev } = shotsAt(scene, T, vt, totalFor(scene)(T));
-        if (!cur) {
-          cam.style.transform = "";
-          cameraPose.current = { tx: 0, ty: 0, s: 1 };
-        } else {
+        {
           const W = cam.clientWidth;
           const H = cam.clientHeight;
           const pose0 = cameraPose.current;
@@ -869,14 +866,24 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             }
             return anchorCache.current.get(at) ?? { x: W / 2, y: H / 2 };
           };
-          const now = { s: shotScale(cur, vt), c: resolve(cur.at) };
-          let s = now.s;
-          let c = now.c;
-          if (!cur.cut && prev) {
-            const from = { s: shotScale(prev, cur.t), c: resolve(prev.at) };
-            const g = ease(seg(vt, cur.t, 0.9));
-            s = from.s + (now.s - from.s) * g;
-            c = { x: from.c.x + (now.c.x - from.c.x) * g, y: from.c.y + (now.c.y - from.c.y) * g };
+          let s = 1;
+          let c = { x: W / 2, y: H / 2 };
+          if (cur) {
+            // A camera beat is on: the shot is the author's.
+            const now = { s: shotScale(cur, vt), c: resolve(cur.at) };
+            s = now.s;
+            c = now.c;
+            if (!cur.cut && prev) {
+              const from = { s: shotScale(prev, cur.t), c: resolve(prev.at) };
+              const g = ease(seg(vt, cur.t, 0.9));
+              s = from.s + (now.s - from.s) * g;
+              c = { x: from.c.x + (now.c.x - from.c.x) * g, y: from.c.y + (now.c.y - from.c.y) * g };
+            }
+          } else {
+            // Otherwise the camera follows the presses, Screen Studio style.
+            const auto = autoPoseAt(pressesOf(scene, T), vt, resolve, { x: W / 2, y: H / 2 });
+            s = auto.s;
+            c = auto.c;
           }
           let tx = W / 2 - c.x * s;
           let ty = H / 2 - c.y * s;
@@ -966,7 +973,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         {/* layout.tsx: main content card, 1px hairline from the panel */}
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
           <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
-          <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8 }}>
+          {/* The typing indicator's clearance eases in and out on the landing curve, so the transcript never jumps when someone stops typing and their line lands. */}
+          <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8, transition: "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" }}>
             <div aria-hidden className="mt-auto shrink-0" />
             {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>

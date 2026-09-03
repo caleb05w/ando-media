@@ -50,11 +50,11 @@ export const DEFAULT_TIMING: Timing = {
   line: 2.3,
   agent: 3.4,
   indicator: 4.4,
-  // The typing state holds for 30s once the morph has landed on the dots.
-  iface: 35.45,
-  chat: 36.85,
-  sidebar: 38.25,
-  reply: 40.45,
-  logo: 43.25,
-  end: 45.85,
+  // The typing state holds for a second once the morph has landed on the dots.
+  iface: 6.45,
+  chat: 7.85,
+  sidebar: 9.25,
+  reply: 11.45,
+  logo: 14.25,
+  end: 16.85,
 };

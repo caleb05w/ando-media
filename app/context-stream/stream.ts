@@ -33,7 +33,7 @@ export const DOT_R = 2.5;
  *  study (see app/agent-typing-experience/variants.ts: slingshot, suction,
  *  orbit, rhythm, gulp, each in v1/v2/v3). Its disc's radius on screen sets
  *  where a dot is eaten. */
-export const INDICATOR_KEY = "suction-v2";
+export const INDICATOR_KEY = "orbit-v2";
 export const INDICATOR = VARIANTS.find((v) => v.key === INDICATOR_KEY) ?? VARIANTS[0];
 export const INDICATOR_PX = 240;
 export const AGENT_R = INDICATOR.morph(INDICATOR.morphMs).blob.r * (INDICATOR_PX / 60);

@@ -342,7 +342,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                     data-agent-speaking={speaking === actor ? "true" : "false"}
                     initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.7 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
                     animate={{ flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
-                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 380, damping: 12, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
+                    transition={you ? { flexGrow: { type: "spring", stiffness: 300, damping: 30, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 380, damping: 16, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
                     style={{ transformOrigin: "50% 50%" }}
                   >
                     <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>

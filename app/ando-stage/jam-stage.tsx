@@ -28,6 +28,8 @@ const HERO_SCALE = 1.2;
 /** The entrance: 2rem below the seat, a touch small, transparent. */
 const ENTER_RISE = 32;
 const ENTER_SCALE = 0.95;
+/** The arrival is quicker than the panel's other moves: the press should feel like it opened the call. */
+const ENTER_MOVE = "420ms cubic-bezier(0.2, 0, 0, 1)";
 /** The sky. The photo at public/ando-stage/sky.jpg when it is there; under
  *  it, a gradient in the photo's own blues with a little grain, so the shot
  *  reads the same before the file lands. */
@@ -94,9 +96,11 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     void box.offsetWidth;
     const raf = requestAnimationFrame(() => {
       const now = latest.current;
-      box.style.transition = MOVE;
+      box.style.transition = `transform ${ENTER_MOVE}, opacity ${ENTER_MOVE}`;
       box.style.opacity = "1";
       box.style.transform = `translateY(0px) scale(${now?.scale ?? heroScale})`;
+      // Back on the panel's own curve once it has arrived.
+      window.setTimeout(() => { box.style.transition = MOVE; }, 450);
     });
     return () => cancelAnimationFrame(raf);
   }, [row]);
@@ -120,7 +124,7 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-10"
-        style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${JAM_MOVE}` }}
+        style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${floating ? ENTER_MOVE : JAM_MOVE}` }}
       >
         <div aria-hidden className="absolute inset-0" style={{ backgroundImage: GRAIN, opacity: 0.16, mixBlendMode: "soft-light" }} />
       </div>

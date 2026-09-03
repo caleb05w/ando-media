@@ -365,7 +365,7 @@ const JAMS_CUT: Scene = {
     // The press IS the join — but first, the card, so a viewer who has
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 900 },
     // Shot 2 — cut to the sky: the call arrives, the ring trades between
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.

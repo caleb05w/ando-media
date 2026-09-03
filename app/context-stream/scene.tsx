@@ -421,7 +421,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         </div>
 
         <div ref={logoRef} data-cs="logo" className="absolute left-1/2 top-1/2" style={{ opacity: 0, transform: "translate(-50%, -50%)" }}>
-          <Logo width={260} />
+          <Logo width={420} />
         </div>
       </div>
     </div>

@@ -88,7 +88,7 @@ type MessageRow = Extract<Row, { kind: "message" }>;
 /** A message you sent from the composer. `at` is the cursor it landed at, so
  *  it keeps its place in the transcript as the scene plays on around it —
  *  and scrubs away with everything after that beat. */
-type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string };
+type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string; /** sent from the Jam panel's thread composer */ thread?: true };
 
 type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
@@ -117,7 +117,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
       if (message.at !== at) continue;
       const who = (message.who && scene.cast[message.who]) || me;
       if (message.jam) push({ ...base(who, message.time), key: message.id, jam: message.jam }, message.id);
-      else push({ ...base(who, message.time), key: message.id, body: message.body.split("\n").map((line) => [{ text: line }]) }, message.id);
+      else push({ ...base(who, message.time), key: message.id, body: message.body.split("\n").map((line) => [{ text: line }]) }, message.id, message.thread ? thread : rows);
     }
   };
 
@@ -591,6 +591,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     setSent((current) => [...current, ...entries.map((entry) => ({ ...entry, time, at }))]);
   }, [cursor, total]);
   const send = useCallback((text: string) => land([{ id: `sent-${Date.now()}`, body: text }]), [land]);
+  const sendThread = useCallback((text: string) => land([{ id: `thread-${Date.now()}`, body: text, thread: true }]), [land]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollFrame = useRef<number | null>(null);
@@ -901,6 +902,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
                 composer={jamPhase === "docked"}
                 scripted={draftInThread ? scriptedDraft : null}
+                onSend={sendThread}
                 threadCount={thread.length}
                 thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
               />

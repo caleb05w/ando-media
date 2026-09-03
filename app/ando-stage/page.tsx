@@ -462,8 +462,10 @@ const bodyLength = (body: Segment[][]) => body.reduce((n, paragraph) => n + para
 
 /** message-row-frame.tsx + message-view-sections.tsx. Lands the way the
  *  landing hero's rows do: the slot grows from nothing so what is above is
- *  pushed up by layout, and the row fades in — no scale. */
-function MessageRowView({ row, jamActions, anchor = "bottom" }: { row: MessageRow; jamActions: JamActions; /** Which edge the row holds while its slot grows: bottom in a bottom-anchored transcript (what is above is pushed up), top in a top-anchored list like the Jam thread (the row reveals downward). */ anchor?: "bottom" | "top" }) {
+ *  pushed up by layout, and the row fades in — no scale. The row holds its
+ *  top edge and clips while the slot grows, so it reveals in reading
+ *  order (avatar, name, then the line) rather than last line first. */
+function MessageRowView({ row, jamActions, anchor = "top" }: { row: MessageRow; jamActions: JamActions; /** Which edge the row holds while its slot grows: bottom in a bottom-anchored transcript (what is above is pushed up), top in a top-anchored list like the Jam thread (the row reveals downward). */ anchor?: "bottom" | "top" }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
   // A typed line reveals itself at TYPE_CPS from the second it landed.
   const total = row.body ? bodyLength(row.body) : 0;

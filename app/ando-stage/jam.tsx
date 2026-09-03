@@ -229,7 +229,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   // over a read-only editor (the same arrangement as the room's composer).
   const [draft, setDraft] = useState("");
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const composerGrown = useRef(false);
+  const [composerGrown, setComposerGrown] = useState(false);
   const shown = scripted ?? draft;
   const canSend = shown.trim().length > 0;
   useLayoutEffect(() => {
@@ -351,7 +351,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             it is never shoved: the section and the composer open together. */}
         {/* Only the thread has a composer — the live transcript is read-only. It grows in
             once, when the panel docks; a tab switch shows it in place. */}
-        {composer && tab === "thread" ? <motion.div className="relative z-10 flex flex-col space-y-2 overflow-hidden px-4 pb-4 pt-2" initial={composerGrown.current ? false : { height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }} onAnimationComplete={() => { composerGrown.current = true; }}>
+        {composer && tab === "thread" ? <motion.div className="relative z-10 flex flex-col space-y-2 overflow-hidden px-4 pb-4 pt-2" initial={composerGrown ? false : { height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }} onAnimationComplete={() => setComposerGrown(true)}>
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
             <div className="relative min-h-[70px]" data-jam-editor>
               {/* Text at label-14 (the product's editor is 16; 14 reads better beside the messages on film), placeholder label-14 tertiary. */}

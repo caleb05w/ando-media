@@ -25,7 +25,7 @@ import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { Landing } from "./landing";
-import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_CADENCE, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, facesLead, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -775,14 +775,15 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         const line = document.querySelector<HTMLElement>("[data-type-line]");
         if (line) {
           const local = vt - tc.t;
-          // The faces first — each pops in and settles — then the words.
+          // Each face pops in with the word it is keyed to.
           const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
-          faces.forEach((face, i) => {
-            const p = seg(local, i * FACE_CADENCE, FACE_LAND);
+          faces.forEach((face) => {
+            const on = Number(face.dataset.on ?? 0);
+            const p = seg(local, on * WORD_CADENCE, FACE_LAND);
             face.style.opacity = `${Math.min(1, p * 3)}`;
             face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
           });
-          const lead = facesLead(faces.length);
+          const lead = 0;
           const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
           let pending = 0;
           words.forEach((word, i) => {

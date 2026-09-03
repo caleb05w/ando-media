@@ -162,11 +162,9 @@ export const WORD_CADENCE = 0.15;
 /** How long a word takes to land. */
 export const WORD_LAND = 0.42;
 
-export type TypeCardOn = { key: string; words: string[]; t: number; hold: number; faces: Actor[] };
-/** Faces pop in one at a time, this far apart, and the words wait for them. */
-export const FACE_CADENCE = 0.12;
-export const FACE_LAND = 0.42;
-export const facesLead = (n: number) => (n === 0 ? 0 : (n - 1) * FACE_CADENCE + 0.3);
+export type TypeCardOn = { key: string; words: string[]; t: number; hold: number; faces: Array<{ actor: Actor; on: number }> };
+/** A face pops in with the word it is keyed to, over this long. */
+export const FACE_LAND = 0.55;
 
 export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | null {
   for (let index = 0; index < scene.beats.length; index += 1) {
@@ -174,7 +172,7 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
     if (beat.kind !== "type") continue;
     const t = T[beatKey(index)];
     if (vt < t || vt > t + beat.hold + TYPE_EXIT) continue;
-    return { key: beatKey(index), words: beat.text.split(" "), t, hold: beat.hold, faces: (beat.faces ?? []).map((handle) => scene.cast[handle]) };
+    return { key: beatKey(index), words: beat.text.split(" "), t, hold: beat.hold, faces: (beat.faces ?? []).map((face) => ({ actor: scene.cast[face.who], on: face.on })) };
   }
   return null;
 }
@@ -189,12 +187,13 @@ export function TypeCard({ card }: { card: TypeCardOn }) {
         <div className="mb-7 flex items-center justify-center" data-type-faces>
           {card.faces.map((face, i) => (
             <img
-              key={face.name}
+              key={face.actor.name}
               data-face
-              src={face.avatar}
+              data-on={face.on}
+              src={face.actor.avatar}
               alt=""
               className="size-14 rounded-full object-cover will-change-transform"
-              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", opacity: 0, background: face.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
+              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", opacity: 0, background: face.actor.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
             />
           ))}
         </div>

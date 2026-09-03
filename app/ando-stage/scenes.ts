@@ -57,7 +57,7 @@ export type Beat =
    *  otherwise it glides from where it was. */
   | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
   /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
-  | { kind: "type"; text: string; hold: number; /** Cast handles shown as an avatar stack above the line — they pop in first. */ faces?: string[]; ms: number }
+  | { kind: "type"; text: string; hold: number; /** An avatar stack above the line: each face pops in as the word at index `on` arrives. */ faces?: Array<{ who: string; on: number }>; ms: number }
   /** The agent reading the jam: the library's context trace on white, run
    *  from its start for `hold` seconds, then a fade back to the room. */
   | { kind: "context"; hold: number; ms: number }
@@ -375,15 +375,16 @@ const JAMS_CUT: Scene = {
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
     { kind: "jam-join", ms: 200 },
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 400 },
-    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 350 },
-    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 250 },
+    // The call alone, the two of you talking, long enough to take the UI in.
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 600 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 550 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 450 },
     // No line lands while the section is moving (its unfold and its dock
     // take 700ms): a slot pushing up against a bottom edge still coming down
     // reads as a stutter.
-    { kind: "jam-deploy", tab: "transcript", ms: 750 },
-    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
-    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1100 },
+    { kind: "jam-deploy", tab: "transcript", ms: 900 },
+    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 900 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1800 },
     // Shot 3 — the room comes back; the panel docks; five more lines, quick.
     { kind: "jam-dock", ms: 750 },
     { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 430 },
@@ -397,7 +398,8 @@ const JAMS_CUT: Scene = {
     // Shot 4 — white. The middle line.
     // The cursor sets off for Thread as the card's white is still fading;
     // once the thread is open, Sara pings Tadao in it.
-    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 2800 },
+    // Jam(0) it(1) out(2) with(3) your(4) human(5) (and(6) agent)(7) teammates(8): you on "your", Sara on "human", Tadao on "agent".
+    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: [{ who: "caleb", on: 4 }, { who: "sara", on: 5 }, { who: "tadao", on: 7 }], hold: 2.8, ms: 3000 },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },
     { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },

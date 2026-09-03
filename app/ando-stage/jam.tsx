@@ -386,14 +386,14 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               </label>
             </div>
             <div className="flex items-center justify-between pb-3 px-2 pt-1">
-              <div className="flex items-center origin-left scale-90">
+              <div className="flex items-center">
                 {(["IconPaperclip1", "Aa", "IconEmojiSmile", "IconGif"] as const).map((item) => (
                   <span key={item} className="ando-button h-7 w-7 shrink-0 !p-0" data-variant="ghost" data-size="sm" aria-hidden>
                     {item === "Aa" ? <span className="flex h-4 w-4 items-center justify-center kanso-text-label-14-sb">Aa</span> : <Icon name={item} />}
                   </span>
                 ))}
               </div>
-              <div className="origin-right scale-90">
+              <div>
                 <span className="ando-button-group shrink-0" data-orientation="horizontal">
                   <button type="button" onClick={submit} disabled={!canSend} data-jam-send aria-label="Send to the jam thread" className={`ando-button w-7 px-0 ${canSend ? "" : "cursor-not-allowed !bg-ando-bg-fill-muted"}`} data-size="sm"><Icon name="IconPaperPlane" fill="filled" size={16} className={canSend ? "text-ando-fg-reverse" : "text-ando-fg-tertiary"} /></button>
                   <span className="ando-button-group__separator" />

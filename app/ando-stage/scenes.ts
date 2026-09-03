@@ -354,7 +354,10 @@ const JAMS_CUT: Scene = {
   beats: [
     // The opening in about two seconds: the link is up, Sara's question
     // shows her typing, your reply types itself, she asks for the jam.
-    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 300, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
+    // Already there when we open, so the channel reads lived-in.
+    { kind: "say", id: "j0a", who: "oli", time: "10:41 AM", ms: 0, body: [[{ text: "morning all ☕️" }]] },
+    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 0, body: [[{ text: "deploy went out clean last night 🎉" }]] },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 300, body: [[{ text: "What do you think of this?" }], [{ text: "Ando Brand · launch video storyboard", link: true }]] },
     { kind: "typing", who: "sara", ms: 500 },
     { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 900, body: [[{ text: "Is this for our launch video?" }]] },
     { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 400, body: [[{ text: "Yeah, I had a few ideas." }]] },
@@ -370,15 +373,15 @@ const JAMS_CUT: Scene = {
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
     { kind: "jam-join", ms: 200 },
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 500 },
-    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 480 },
-    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 400 },
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 400 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 350 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 250 },
     // No line lands while the section is moving (its unfold and its dock
     // take 700ms): a slot pushing up against a bottom edge still coming down
     // reads as a stutter.
     { kind: "jam-deploy", tab: "transcript", ms: 750 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
-    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1650 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1100 },
     // Shot 3 — the room comes back; the panel docks; five more lines, quick.
     { kind: "jam-dock", ms: 750 },
     { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 430 },
@@ -424,12 +427,12 @@ const JAMS_CUT: Scene = {
       ],
     },
     { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 950 },
-    { kind: "jam-end", ms: 500 },
+    { kind: "jam-end", ms: 300 },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 950 },
     { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3000 },
     // Shot 7 — white. The closer, then the logo.
     { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 2.4, ms: 2400 },
-    { kind: "logo", ms: 3000 },
+    { kind: "logo", ms: 2000 },
   ],
 };
 

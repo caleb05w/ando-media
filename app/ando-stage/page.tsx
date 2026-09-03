@@ -62,7 +62,7 @@ type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | 
 
 
 /** Seconds before a type card in which the UI recedes (blur, dim, scale down). */
-const CARD_LEAD = 0.6;
+const CARD_LEAD = 2.5;
 /** The stage-clock second of the next type card still ahead of `vt` (null when none). */
 function nextTypeCardAt(scene: Scene, T: Timing, vt: number): number | null {
   for (let index = 0; index < scene.beats.length; index += 1) {

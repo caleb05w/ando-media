@@ -22,14 +22,17 @@ export const CARD = FRAME_TIGHT;
 export const SIDEBAR_W = 354;
 export const PANE_W = CARD.w;
 export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
-/** The disc — the agent — comes into frame here, at the right, on the line. */
-export const AGENT_X = CARD.x + Math.round(CARD.w * 0.68);
-export const DISC_R = 28;
+/** The disc — the agent — comes into frame here, at the right, on the line,
+ *  then crosses to centre stage while it eats. */
+export const AGENT_X = CARD.x + Math.round(CARD.w * 0.7);
+export const CENTER_X = STAGE.w / 2;
+export const DISC_R = 24;
 export const DOT_R = 2.5;
 /** The agent's card (Ando-Brand 3968-2558), centred on the stream's y; its
  *  face sits on the band. */
-export const AGENT_CARD = { w: 288, h: 342, r: 15, band: 108, inset: 6, faceTop: 48, faceR: 66 } as const;
-export const AGENT_CARD_FACE_Y = LINE_Y - AGENT_CARD.h / 2 + AGENT_CARD.faceTop + AGENT_CARD.faceR;
+export const AGENT_CARD = { w: 288, h: 342, r: 15, band: 108, inset: 6, faceR: 52 } as const;
+/** The face sits on the band's bottom edge, which the film puts on the line. */
+export const AGENT_CARD_TOP = LINE_Y - AGENT_CARD.inset - AGENT_CARD.band;
 
 /* ── Curves ─────────────────────────────────────────────────────────── */
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
@@ -139,8 +142,12 @@ const PAN_DIST = 1100;
 const PAN_DUR = 0.7;
 /** Once the agent is in frame the stream rushes into it — px/s². */
 const ACCEL = 1100;
+/** Where the disc is at `vt`: in at the right, then across to the centre. */
+export function discX(T: Timing, vt: number) {
+  return lerp(AGENT_X, CENTER_X, ease(seg(vt, T.agent + 0.6, 1.0)));
+}
 /** Where a dot is eaten: just inside the disc's left edge. */
-const EAT_X = AGENT_X - DISC_R * 0.55;
+const eatX = (T: Timing, vt: number) => discX(T, vt) - DISC_R * 0.55;
 /** How long a dot's landing rings the disc. */
 const PULSE = 0.22;
 
@@ -170,12 +177,20 @@ function ride(T: Timing, vt: number, x0: number, t0: number): { x: number; eaten
   const tA = Math.max(t0, T.agent);
   const xA = t0 >= T.agent ? x0 : pre(T.agent);
   const uA = tA - T.agent;
-  const d = EAT_X - xA;
+  // The mark runs right, faster and faster; the disc walks left to the
+  // centre and stops. Where they meet is the root of a monotone function —
+  // a bisection finds it to the frame.
+  const gap = (u: number) => xA + DRIFT * (u - uA) + 0.5 * ACCEL * (u * u - uA * uA) - eatX(T, T.agent + u);
   let eatenAt = tA;
-  if (d > 0) {
-    // Solve DRIFT·(u − uA) + ½·ACCEL·(u² − uA²) = d for u.
-    const c = 0.5 * ACCEL * uA * uA + DRIFT * uA + d;
-    eatenAt = T.agent + (-DRIFT + Math.sqrt(DRIFT * DRIFT + 2 * ACCEL * c)) / ACCEL;
+  if (gap(uA) < 0) {
+    let lo = uA;
+    let hi = uA + 6;
+    for (let i = 0; i < 26; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (gap(mid) < 0) lo = mid;
+      else hi = mid;
+    }
+    eatenAt = T.agent + (lo + hi) / 2;
   }
   const x = xA + DRIFT * (vt - tA) + rush(T, vt) - rush(T, tA);
   return { x, eatenAt };
@@ -214,7 +229,7 @@ export function fieldAt(T: Timing, vt: number): Field {
       return null;
     }
     // Into the disc: the last few px shrink, so the landing reads as a swallow.
-    const near = eatenAt == null ? 0 : clamp01((x - (EAT_X - 14)) / 14);
+    const near = eatenAt == null ? 0 : clamp01((x - (eatX(T, vt) - 14)) / 14);
     return { x, y: LINE_Y, a: edgeAlpha(x), r: r * (1 - 0.5 * near) };
   };
 
@@ -245,23 +260,21 @@ export function fieldAt(T: Timing, vt: number): Field {
     const arrive = start + FLOW_DUR;
     // The flight is drawn against the camera: it curves in with the world.
     const shift = (t: number) => camX(T, t) - camX(T, start);
+    // Once the disc is in and walking left, a late inflow joins the line
+    // short of it — never behind it, where nothing would eat it.
+    const tx = arrive > T.agent ? Math.min(flow.tx, discX(T, arrive) - DISC_R - 40 + shift(arrive)) : flow.tx;
     if (q < 1) {
       const e = ease(q);
-      const x = bezier(flow.ox, flow.ox + 20, flow.tx - 170, flow.tx, e) - shift(vt);
+      const x = bezier(flow.ox, flow.ox + 20, tx - 170, tx, e) - shift(vt);
       const y = bezier(flow.oy, flow.oy + (LINE_Y - flow.oy) * 0.62, LINE_Y, LINE_Y, e);
       marks.push({ x, y, a: Math.min(1, q / 0.15), r: DOT_R });
       return;
     }
-    const seat = seated(flow.tx - shift(arrive), arrive, DOT_R);
+    const seat = seated(tx - shift(arrive), arrive, DOT_R);
     if (!seat) return;
     const landing = Math.sin(Math.PI * seg(vt, arrive, 0.3));
     marks.push({ ...seat, r: seat.r + 1.4 * landing });
   });
 
   return { marks, eaten: total > 0 ? eatenCount / total : 0, pulse: Math.min(2, pulse) };
-}
-
-/** The hairline the stream runs along — in with the stream, gone before the disc. */
-export function hairlineAt(T: Timing, vt: number) {
-  return ease(seg(vt, T.stream, 0.5)) * (1 - ease(seg(vt, T.agent - 0.35, 0.35)));
 }

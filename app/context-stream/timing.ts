@@ -9,17 +9,17 @@ export type Timing = {
   gather: number;
   /** Every dot is seated; the line starts to flow. */
   line: number;
-  /** Things curve in from off-frame and join the line. Caption. */
+  /** Things curve in from off-frame and join the line. */
   stream: number;
   /** The camera pans right, fast — the line streaks left. */
   pan: number;
   /** The agent comes into frame at the right; the stream runs into it. First title. */
   agent: number;
-  /** The disc becomes the agent's card: the face, the name. */
+  /** The disc becomes the face; the card opens out around it. */
   card: number;
   /** The card hands its face to the typing indicator, which runs its cycle. */
   indicator: number;
-  /** "so we built an interface around that": the window, the composer, the indicator finds its line. */
+  /** "so we built an interface around that": the camera pulls back from the indicator as the window builds around it. */
   iface: number;
   /** Header and the first message arrive. */
   chat: number;

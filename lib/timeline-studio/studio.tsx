@@ -250,6 +250,13 @@ export function Studio<T extends Record<string, number>>({
   const snap = (v: number) => Math.round(v / snapStep) * snapStep;
 
   const [timing, setTiming] = useState<T>(defaultTiming);
+  // A page's beats can be renamed under a running studio (Fast Refresh keeps
+  // this state); a timing missing any current beat is reset rather than
+  // handed to lanes that will read it.
+  useEffect(() => {
+    if (Object.keys(defaultTiming).every((key) => key in timing)) return;
+    setTiming(defaultTiming);
+  }, [defaultTiming, timing]);
   const [run, setRun] = useState(0);
   const [paused, setPaused] = useState(false);
   const [speedStr, setSpeedStr] = useState("1");
@@ -429,7 +436,8 @@ export function Studio<T extends Record<string, number>>({
   };
   const loadTake = (s: SavedTake<T>) => {
     pushHistory();
-    setTiming(s.timing);
+    // Saved before a beat was added: the new beat keeps its default.
+    setTiming({ ...defaultTiming, ...s.timing });
     setRange(s.window ? { a: s.window[0], b: s.window[1] } : null);
     setTakesOpen(false);
     replay();

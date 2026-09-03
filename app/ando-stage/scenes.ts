@@ -363,35 +363,33 @@ const JAMS_CUT: Scene = {
     // under it at once on the Live transcript tab, and the talking starts
     // right away. Four lines land before the room comes back.
     { kind: "jam-join", ms: 600 },
-    { kind: "jam-deploy", tab: "transcript", ms: 400 },
-    // You start talking before the transcript has anything: the ring on
-    // your tile, "Listening…" under it, then the first line catches up.
-    { kind: "speak", who: "caleb", ms: 3000 },
-    // Then it pours. Short lines, fast turns, two people talking over each
-    // other the way a real call does — more than anyone can keep up with,
-    // which is the point: the agent can.
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 700 },
-    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 800 },
-    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 750 },
-    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 700 },
-    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 900 },
+    { kind: "jam-deploy", tab: "transcript", ms: 200 },
+    // The transcript starts the moment the panel opens, and it pours:
+    // short lines, fast turns, two people talking over each other the way
+    // a real call does — more than anyone can keep up with, which is the
+    // point. The agent can.
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 550 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 600 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 550 },
+    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 650 },
     // Shot 3 — the room comes back; the panel docks; the jam does not slow down.
-    { kind: "jam-dock", ms: 600 },
-    { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 650 },
-    { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 650 },
-    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 700 },
-    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 550 },
-    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 550 },
-    { kind: "transcript", who: "sara", text: "that one. and the golden ticket as the close", ms: 850 },
-    { kind: "transcript", who: "caleb", text: "wait, ticket before or after the import", ms: 750 },
-    { kind: "transcript", who: "sara", text: "after. import, agent, ticket", ms: 700 },
-    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 700 },
-    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 650 },
-    { kind: "transcript", who: "caleb", text: "and the door mark at the very end", ms: 700 },
-    { kind: "transcript", who: "sara", text: "two seconds on the logo, no more", ms: 700 },
-    { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 600 },
-    { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 650 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 900 },
+    { kind: "jam-dock", ms: 450 },
+    { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 430 },
+    { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 450 },
+    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 470 },
+    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 380 },
+    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 380 },
+    { kind: "transcript", who: "sara", text: "that one. and the golden ticket as the close", ms: 560 },
+    { kind: "transcript", who: "caleb", text: "wait, ticket before or after the import", ms: 500 },
+    { kind: "transcript", who: "sara", text: "after. import, agent, ticket", ms: 470 },
+    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 470 },
+    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 440 },
+    { kind: "transcript", who: "caleb", text: "and the door mark at the very end", ms: 470 },
+    { kind: "transcript", who: "sara", text: "two seconds on the logo, no more", ms: 470 },
+    { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 400 },
+    { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 430 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 600 },
     // Shot 4 — white. One line, word by word.
     { kind: "type", text: "Your agents were in the jam.", hold: 2.2, ms: 2200 },
     // The line lifts away and the agent's context trace takes the white:

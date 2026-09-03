@@ -359,7 +359,7 @@ const JAMS_CUT: Scene = {
     // A first-time viewer needs a moment to see the room before anything
     // moves: a beat on the channel, then your line types at a readable pace.
     { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 2600, body: [[{ text: "deploy went out clean last night 🎉" }]] },
-    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 700, body: [[{ text: "Hey, wanna jam on this idea I had for our launch vid" }]] },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 700, body: [[{ text: "@Sara Du", mention: true }, { text: " hey, wanna jam on this idea I had for our launch vid" }]] },
     { kind: "typing", who: "sara", ms: 800 },
     { kind: "say", id: "j5", who: "sara", time: "11:06 AM", ms: 1900, body: [[{ text: "Sure, calling now!" }]] },
     // Sara starts the Jam: the headphones ring and the cursor goes to them.

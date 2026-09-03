@@ -25,7 +25,7 @@ import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { Landing } from "./landing";
-import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, LINE_EXIT, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, LINE_EXIT, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, easeInOut, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -608,7 +608,6 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // may have moved or gone (the Join button after you join) — so every move
   // is continuous. The origin is captured when a new cursor beat begins.
   const pointerPos = useRef<{ x: number; y: number } | null>(null);
-  const pressedAt = useRef<number | null>(null);
   const pointerGlide = useRef<{ at: number; origin: { x: number; y: number } } | null>(null);
   // Wall time the current take started.
   const [mounted] = useState(() => Date.now());
@@ -798,33 +797,37 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
           });
           // The card as a whole lifts away after its last line's hold.
-          const exit = ease(seg(local, tc.hold, TYPE_EXIT));
+          const exit = easeInOut(seg(local, tc.hold, TYPE_EXIT));
           lines.forEach((line, li) => {
             const start = tc.starts[li];
             const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
-            let pending = 0;
+            // The line sits centred at its full width from the start; each
+            // word rises out of a blur into its place (no sideways slide, and
+            // the line never re-centres as words arrive — that stepped).
             words.forEach((word, i) => {
               const p = ease(seg(local, start + i * WORD_CADENCE, WORD_LAND));
               word.style.opacity = `${p}`;
-              word.style.transform = `translateX(${(1 - p) * 44}px)`;
-              if (local < start + i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
+              word.style.transform = `translateY(${(1 - p) * 16}px) scale(${0.96 + 0.04 * p})`;
+              word.style.filter = `blur(${(1 - p) * 8}px)`;
             });
+            // The whole line settles up into its seat with its first word.
+            const settle = ease(seg(local, start, WORD_LAND + 0.2));
             // A line that has had its hold lifts and blurs away above the next;
-            // the last line leaves with the card.
+            // the last line leaves with the card. The lift eases both ways.
             const last = li === lines.length - 1;
-            const gone = last ? exit : ease(seg(local, tc.ends[li], LINE_EXIT));
+            const gone = last ? exit : easeInOut(seg(local, tc.ends[li], LINE_EXIT));
             // Only one ghost at a time: a lifted line is gone for good once the line after it leaves too.
-            const buried = li + 1 < lines.length - 1 ? ease(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
+            const buried = li + 1 < lines.length - 1 ? easeInOut(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
             const lift = last ? 28 : 110;
-            line.style.transform = `translateX(${pending / 2}px) translateY(${-lift * gone}px)`;
+            line.style.transform = `translateY(${12 * (1 - settle) - lift * gone}px)`;
             line.style.opacity = `${last ? 1 - gone : (1 - 0.85 * gone) * (1 - buried)}`;
             line.style.filter = last ? "none" : `blur(${6 * gone}px)`;
           });
           // The stack lifts with the first line.
           const stack = document.querySelector<HTMLElement>("[data-type-faces]");
           if (stack) {
-            const gone = lines.length > 1 ? ease(seg(local, tc.ends[0], LINE_EXIT)) : exit;
-            const buried = lines.length > 2 ? ease(seg(local, tc.ends[1], LINE_EXIT)) : lines.length === 2 ? exit : 0;
+            const gone = lines.length > 1 ? easeInOut(seg(local, tc.ends[0], LINE_EXIT)) : exit;
+            const buried = lines.length > 2 ? easeInOut(seg(local, tc.ends[1], LINE_EXIT)) : lines.length === 2 ? exit : 0;
             stack.style.transform = `translateY(${-(lines.length > 1 ? 110 : 28) * gone}px)`;
             stack.style.opacity = `${lines.length > 1 ? (1 - 0.85 * gone) * (1 - buried) : 1 - gone}`;
             stack.style.filter = lines.length > 1 ? `blur(${6 * gone}px)` : "none";
@@ -930,14 +933,6 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             return target === "composer" ? { x: r.left + 28, y: r.top + 22 } : { x: r.left + r.width / 2, y: r.top + r.height / 2 };
           };
           const to = aim(pose.to);
-          // The press lands on the control too: a squash that springs back
-          // (stage.css st-press), once per press beat.
-          if (pose.press > 0 && pressedAt.current !== pose.at) {
-            pressedAt.current = pose.at;
-            const selector = pose.to.startsWith("dm:") ? `[data-sidebar-dm="${pose.to.slice(3)}"]` : CURSOR_TARGETS[pose.to as keyof typeof CURSOR_TARGETS];
-            const el = selector ? document.querySelector<HTMLElement>(selector) : null;
-            if (el) { el.classList.remove("st-press"); void el.offsetWidth; el.classList.add("st-press"); el.addEventListener("animationend", () => el.classList.remove("st-press"), { once: true }); }
-          }
           if (to) {
             // New beat: leave from where we are. Scrubbed into a beat cold,
             // the best guess is the previous target's live position, then

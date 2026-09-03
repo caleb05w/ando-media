@@ -124,15 +124,6 @@
   animation: st-speak-ring 2.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* A pressed control: it gives under the cursor and springs back. */
-@keyframes st-press {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(0.9); }
-  70%  { transform: scale(1.04); }
-  100% { transform: scale(1); }
-}
-.st-press { animation: st-press 400ms cubic-bezier(0.2, 0, 0, 1); }
-
 /* The caret behind the script's typing: a steady blink, held solid while
  * letters are landing (the keystroke restarts it). */
 @keyframes st-caret {

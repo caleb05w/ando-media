@@ -351,11 +351,11 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
         {composer ? <motion.div className="relative z-10 flex flex-col space-y-2 overflow-hidden px-4 pb-4 pt-2" initial={{ height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }}>
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
             <div className="relative min-h-[70px]" data-jam-editor>
-              {/* As the product's inline editor: text at label-16, the placeholder at label-14 tertiary (thread-composer-controls-presentation.tsx). */}
+              {/* Text at label-14 (the product's editor is 16; 14 reads better beside the messages on film), placeholder label-14 tertiary. */}
               {scripted != null ? (
-                <div aria-hidden className="kanso-text-label-16 pointer-events-none absolute inset-x-0 top-0 whitespace-pre-wrap break-words px-5 pt-4 pb-1 text-ando-fg-primary">
+                <div aria-hidden className="kanso-text-label-14 pointer-events-none absolute inset-x-0 top-0 whitespace-pre-wrap break-words px-5 pt-4 pb-1 text-ando-fg-primary">
                   {scripted}
-                  <span className="st-caret ml-px inline-block h-[18px] w-px translate-y-[3px] bg-ando-fg-primary" />
+                  <span className="st-caret ml-px inline-block h-[16px] w-px translate-y-[3px] bg-ando-fg-primary" />
                 </div>
               ) : shown.length === 0 ? (
                 <span className="kanso-text-label-14 pointer-events-none absolute left-5 top-4 text-ando-fg-tertiary">Enter your message</span>
@@ -373,7 +373,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                 }}
                 rows={1}
                 aria-label="Message the jam thread"
-                className={`kanso-text-label-16 block w-full resize-none bg-transparent px-5 pt-4 pb-1 outline-none ${scripted != null ? "text-transparent caret-transparent" : "text-ando-fg-primary"}`}
+                className={`kanso-text-label-14 block w-full resize-none bg-transparent px-5 pt-4 pb-1 outline-none ${scripted != null ? "text-transparent caret-transparent" : "text-ando-fg-primary"}`}
               />
             </div>
             <div className="px-3 pt-2">

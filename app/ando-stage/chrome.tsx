@@ -326,15 +326,15 @@ export function Composer({ scene, typing, onSend, scripted = null }: { scene: Sc
         {typing ? <TypingIndicator actor={typing} /> : null}
         <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
           <div className="relative min-h-[70px]">
-            {/* EditorContent: kanso-text-label-16, px-5 pt-4. A textarea that
+            {/* EditorContent: kanso-text-label-14 here (the product's is 16 — 14 sits better beside 14px messages on film), px-5 pt-4. A textarea that
                 grows with its content stands in for the ProseMirror editor. */}
             {/* While the script types, the text itself sits in a mirror over
                 the (transparent) editor so a caret can ride the last letter —
                 a read-only textarea shows none. */}
             {scripted != null ? (
-              <div aria-hidden className="kanso-text-label-16 pointer-events-none absolute inset-x-0 top-0 whitespace-pre-wrap break-words px-5 pt-4 pb-1 text-ando-fg-primary">
+              <div aria-hidden className="kanso-text-label-14 pointer-events-none absolute inset-x-0 top-0 whitespace-pre-wrap break-words px-5 pt-4 pb-1 text-ando-fg-primary">
                 {scripted}
-                <span className="st-caret ml-px inline-block h-[18px] w-px translate-y-[3px] bg-ando-fg-primary" />
+                <span className="st-caret ml-px inline-block h-[16px] w-px translate-y-[3px] bg-ando-fg-primary" />
               </div>
             ) : null}
             <textarea
@@ -351,7 +351,7 @@ export function Composer({ scene, typing, onSend, scripted = null }: { scene: Sc
               rows={1}
               aria-label={`Message ${target}`}
               data-stage-editor
-              className={`kanso-text-label-16 block w-full resize-none bg-transparent px-5 pt-4 pb-1 outline-none ${scripted != null ? "text-transparent caret-transparent" : "text-ando-fg-primary"}`}
+              className={`kanso-text-label-14 block w-full resize-none bg-transparent px-5 pt-4 pb-1 outline-none ${scripted != null ? "text-transparent caret-transparent" : "text-ando-fg-primary"}`}
               style={{ minHeight: 44 }}
             />
             {shown.length === 0 ? (

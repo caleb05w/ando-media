@@ -343,8 +343,8 @@ const CHAT_THEN_JAM: Scene = {
 const JAMS_CUT: Scene = {
   id: "jams-cut",
   name: "Jams launch — the cut",
-  blurb: "Join, transcript, agent recap, tickets, logo. Thirty seconds.",
-  surface: { kind: "dm", who: "sara" },
+  blurb: "Join, transcript, agent recap, tickets, logo. In #marketing, where the agent already is.",
+  surface: { kind: "channel", name: "marketing", members: 9 },
   cast: CAST,
   beats: [
     // Every line earns its keystrokes: yours type into the composer over

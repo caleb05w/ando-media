@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Studio, type Hooks } from "../../lib/timeline-studio/studio";
 import { lanesFor } from "./lanes";
 import "./stage.css";
-import { Avatar, Composer, ConversationHeader, Rail, Sidebar, Topbar } from "./chrome";
+import { Avatar, Composer, ConversationHeader, Sidebar } from "./chrome";
 import { Icon } from "./glyph";
 import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
@@ -870,9 +870,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     <div className="relative h-dvh w-screen overflow-hidden bg-ando-bg-nav text-ando-fg-primary">
       {/* The camera: the whole room on one transform (cards.tsx). */}
       <div ref={cameraRef} className="absolute inset-x-0 top-0 flex flex-col will-change-transform" style={{ bottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0, transformOrigin: "0 0" }}>
-      <Topbar />
+      {/* No top bar and no rail: the sidebar, the room and the panel are the whole frame. */}
       <div ref={rowRef} className="relative flex min-h-0 flex-1">
-        <Rail me={scene.cast[ME]} />
         <Sidebar scene={scene} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>

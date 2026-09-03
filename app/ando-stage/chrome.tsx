@@ -21,8 +21,11 @@ export function Avatar({ actor, size = 32, online, className }: { actor: Actor; 
         <span
           className="ando-avatar__status absolute rounded-full"
           style={{
-            // member-avatar.tsx: online is green-500, offline is border-strong.
+            // member-avatar.tsx: online is green-500, offline is border-strong,
+            // and the dot sits in a ring of the page ground so it reads as
+            // its own shape against the photo.
             background: online ? "var(--color-ando-green-500)" : "var(--color-ando-border-strong)",
+            boxShadow: `0 0 0 ${size >= 32 ? 2 : 1.5}px var(--color-ando-bg-main)`,
             ["--ando-avatar-status-size" as string]: `${Math.round(5 * Math.pow(size / 16, Math.log(8 / 5) / Math.log(2)))}px`,
           }}
         />

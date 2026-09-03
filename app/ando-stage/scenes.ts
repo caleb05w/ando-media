@@ -408,13 +408,12 @@ const JAMS_CUT: Scene = {
         [{ text: "• No voiceover" }],
       ],
     },
-    // Shot 6 — the jam ends, and Tadao does what it said: a DM, unread in
-    // the sidebar. You open it.
-    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 1000 },
-    { kind: "jam-end", ms: 900 },
+    // Shot 6 — a second after the recap, Tadao does what it said: a DM,
+    // unread in the sidebar while the call is still on. You hang up, then
+    // open it.
     { kind: "dm-unread", who: "tadao", ms: 0 },
     {
-      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 900,
+      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1600,
       body: [
         [{ text: "Follow-ups from the jam, on you:" }],
         [{ text: "1. Cut the video, agent first" }],
@@ -423,6 +422,8 @@ const JAMS_CUT: Scene = {
         [{ text: "I can remind you again tomorrow." }],
       ],
     },
+    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "jam-end", ms: 900 },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 1000 },
     { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3400 },
     // Shot 7 — white. The closer, then the logo.

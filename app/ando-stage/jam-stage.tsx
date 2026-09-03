@@ -74,11 +74,15 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
   const innerRef = useRef<HTMLDivElement>(null);
   const startedAsHero = useRef(phase !== "docked");
   const latest = useRef<{ rect: Rect; scale: number } | null>(null);
+  const skyRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (!startedAsHero.current) return;
     const box = boxRef.current;
     const rowEl = row.current;
     if (!box || !rowEl) return;
+    // The sky arrives with the call, not a frame before it.
+    const sky = skyRef.current;
+    if (sky) { sky.style.transition = "none"; sky.style.opacity = "0"; }
     // The seat, measured here and now: the row has not been measured into
     // state yet on this first frame, and a box left on that zero-size
     // guess would transition in from the top-left corner.
@@ -96,6 +100,7 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     void box.offsetWidth;
     const raf = requestAnimationFrame(() => {
       const now = latest.current;
+      if (sky) { sky.style.transition = `opacity ${ENTER_MOVE}`; sky.style.opacity = "1"; }
       box.style.transition = `transform ${ENTER_MOVE}, opacity ${ENTER_MOVE}`;
       box.style.opacity = "1";
       box.style.transform = `translateY(0px) scale(${now?.scale ?? heroScale})`;
@@ -122,11 +127,13 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     <>
       {/* The ground while the call is the hero: the world's daytime sky (affiliate/mini-world.tsx), flat, covering the whole room — `fixed` inside the camera's transform resolves against the camera, so the top bar goes under too. */}
       <div
+        ref={skyRef}
         aria-hidden
         className="pointer-events-none fixed inset-0 z-10"
         style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${floating ? ENTER_MOVE : JAM_MOVE}` }}
       >
-        <div aria-hidden className="absolute inset-0" style={{ backgroundImage: GRAIN, opacity: 0.16, mixBlendMode: "soft-light" }} />
+        {/* Plain grain, no blend mode: a blend over the whole room is recomposited every frame the box animates. */}
+        <div aria-hidden className="absolute inset-0" style={{ backgroundImage: GRAIN, opacity: 0.07 }} />
       </div>
       <div
         ref={boxRef}
@@ -139,7 +146,7 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
           transform: `translateY(0px) scale(${scale})`,
           transformOrigin: "50% 50%",
           borderRadius: floating ? 12 : 0,
-          boxShadow: floating ? "0 24px 64px rgba(26,24,23,0.28), 0 0 0 1px rgba(26,24,23,0.08)" : "none",
+          boxShadow: floating ? "0 16px 32px rgba(26,24,23,0.22), 0 0 0 1px rgba(26,24,23,0.08)" : "none",
           opacity: ready ? 1 : 0,
           transition: ready ? MOVE : "none",
         }}

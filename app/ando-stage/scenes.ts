@@ -386,7 +386,7 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 900 },
     // Shot 3 — the room comes back; the panel docks; one more line.
     { kind: "jam-dock", ms: 1125 },
-    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 600 },
+    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 1600 },
     // Shot 4 — white. The middle line.
     // Rule: a card's dwell covers its hold AND its 0.6s lift, plus a breath,
     // so nothing that follows — the cursor's trip to Thread, the press —

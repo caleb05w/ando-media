@@ -73,9 +73,9 @@ export const ROWS: RowDef[] = [
   },
 ];
 
-/** How the chat rows stagger in after `chat`. */
-export const CHAT_LEAD = 0.25;
-export const CHAT_STAGGER = 0.4;
+/** How the chat rows stagger in after `chat` — with air between them. */
+export const CHAT_LEAD = 0.4;
+export const CHAT_STAGGER = 0.9;
 
 /** The agent's run under the ask: 0 not yet, 1 reading, 2 done. */
 export type RunPhase = 0 | 1 | 2;
@@ -84,7 +84,25 @@ export type RunPhase = 0 | 1 | 2;
 export const READ_FROM: Actor[] = [CAST.sara, CAST.oli, CAST.aj];
 
 /** When the run starts: once the ask has landed. */
-export const runStart = (T: Timing) => T.chat + CHAT_LEAD + 2 * CHAT_STAGGER + 0.45;
+export const runStart = (T: Timing) => T.chat + CHAT_LEAD + 2 * CHAT_STAGGER + 0.5;
+
+/** The value-prop run, beside the agent at "Everything becomes context":
+ *  the library's context-trace copy on the product's trace line, one step
+ *  at a time, the sources piled inline where they are read. Never done —
+ *  it folds back into the agent while still drafting. */
+export function valuePhasesFor(T: Timing): TracePhases {
+  return {
+    start: T.trace + 0.3,
+    steps: [
+      { t: T.trace + 0.3, label: "Starting agent session", icon: null },
+      { t: T.trace + 1.1, label: "Reading today's jam…", icon: "transcript" },
+      { t: T.trace + 2.5, label: "Checking company policies…", icon: "read" },
+      { t: T.trace + 3.6, label: "Reading the call transcripts…", icon: "transcript" },
+      { t: T.trace + 4.8, label: "Drafting the standup summary…", icon: "write" },
+    ],
+    done: T.collapse + 10,
+  };
+}
 
 /** The run's steps on the film clock, from the beats. */
 export function tracePhasesFor(T: Timing): TracePhases {

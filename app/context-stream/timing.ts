@@ -13,9 +13,9 @@ export type Timing = {
   line: number;
   /** The agent is born out of the dots at the end of the line; the stream keeps pouring into it. First title. */
   agent: number;
-  /** The agent takes the seat of the context trace, which draws out and runs: the sources, the reading, the draft. */
+  /** The trace line draws out beside the agent and narrates the run: the sources, the reading, the draft. */
   trace: number;
-  /** The trace folds back into its seat and the agent grows out of it. */
+  /** The trace line folds back into the agent. */
   collapse: number;
   /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
   indicator: number;
@@ -56,13 +56,13 @@ export const DEFAULT_TIMING: Timing = {
   line: 2.3,
   agent: 3.4,
   trace: 4.6,
-  collapse: 11.8,
-  indicator: 12.9,
+  collapse: 10.2,
+  indicator: 11.2,
   // The typing state holds for a second once the morph has landed on the dots.
-  iface: 14.95,
-  chat: 16.35,
-  sidebar: 17.75,
-  reply: 19.95,
-  logo: 22.75,
-  end: 25.35,
+  iface: 13.25,
+  chat: 14.65,
+  sidebar: 18.05,
+  reply: 20.85,
+  logo: 24.0,
+  end: 26.6,
 };

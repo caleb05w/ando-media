@@ -40,16 +40,6 @@ export const INDICATOR_KEY = "orbit-v2";
 export const INDICATOR = VARIANTS.find((v) => v.key === INDICATOR_KEY) ?? VARIANTS[0];
 export const INDICATOR_PX = 240;
 export const AGENT_R = INDICATOR.morph(INDICATOR.morphMs).blob.r * (INDICATOR_PX / 60);
-/** The context trace — the library's pill, scaled up so its 22px seat is
- *  the agent's face (the agent never shrinks). Its line row sits low on
- *  the stage, since the drawer opens upward, tall at this scale. `x` is the
- *  unscaled pill's left; the seat's centre is the scale's origin. */
-export const TRACE_SCALE = (2 * AGENT_R) / 22;
-export const TRACE_W = 320;
-export const TRACE_SEAT_INSET = 12 + 11;
-export const TRACE_LINE_Y = 590;
-export const PILL = { x: CENTER_X - TRACE_SEAT_INSET - ((TRACE_W - 2 * TRACE_SEAT_INSET) / 2) * TRACE_SCALE, lineY: TRACE_LINE_Y, w: TRACE_W, h: 48 } as const;
-export const SEAT = { x: PILL.x + TRACE_SEAT_INSET, y: TRACE_LINE_Y, d: 22 } as const;
 
 /* ── Curves ─────────────────────────────────────────────────────────── */
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));

@@ -19,10 +19,3 @@
 .cs-stage textarea {
   caret-color: transparent;
 }
-
-/* The context trace, in the film: no ring, no shadow — it sits on the
- * white as a shape of its own. */
-.cs-stage [data-trace] .ct-light {
-  box-shadow: none;
-  border-color: transparent;
-}

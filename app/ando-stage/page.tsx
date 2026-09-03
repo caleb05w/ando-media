@@ -61,6 +61,18 @@ type Run = { run: string; who: Actor; task: string; done: boolean };
 type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | "transcript" | null; done: boolean; tool: string | null; /** the row is the agent's own reply */ onReply: boolean; /** the run has moved on to the reply — the line folds away under the ask */ leaving?: boolean };
 
 
+/** Seconds before a type card in which the UI recedes (blur, dim, scale down). */
+const CARD_LEAD = 0.6;
+/** The stage-clock second of the next type card still ahead of `vt` (null when none). */
+function nextTypeCardAt(scene: Scene, T: Timing, vt: number): number | null {
+  for (let index = 0; index < scene.beats.length; index += 1) {
+    if (scene.beats[index].kind !== "type") continue;
+    const t = T[beatKey(index)];
+    if (t > vt) return t;
+  }
+  return null;
+}
+
 /** Agent lines type out at this pace once they land (the landing hero: 55 cps; faster here so a recap fits its beat). */
 const TYPE_CPS = 110;
 
@@ -877,8 +889,15 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (win) {
         // The window rises 20px into place, no scale, on a quartic ease-out.
         const p = 1 - Math.pow(1 - seg(vt, 0.15, 0.6), 4);
-        win.style.opacity = `${Math.min(1, p * 1.6)}`;
-        win.style.transform = `translateY(${20 * (1 - p)}px)`;
+        // ...and in the CARD_LEAD before a type card cuts in, the whole UI
+        // recedes: it blurs, dims and eases down a touch, so the card lands
+        // on something already letting go. It is back the frame the card is
+        // up (the card covers it) — so the card's exit reveals it whole.
+        const next = nextTypeCardAt(scene, T, vt);
+        const recede = next == null ? 0 : easeInOut(seg(vt, next - CARD_LEAD, CARD_LEAD));
+        win.style.opacity = `${Math.min(1, p * 1.6) * (1 - 0.4 * recede)}`;
+        win.style.transform = `translateY(${20 * (1 - p)}px) scale(${1 - 0.04 * recede})`;
+        win.style.filter = recede > 0 ? `blur(${8 * recede}px)` : "none";
       }
 
       // The camera. Every anchor is read from live layout and brought back

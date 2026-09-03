@@ -1,0 +1,226 @@
+.ando-sidebar-conversation-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.ando-sidebar-conversation-section-header {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  height: 24px;
+  min-width: 0;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.ando-sidebar-conversation-section-header__visual {
+  align-items: center;
+  color: currentColor;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+.ando-sidebar-conversation-section-header__label {
+  flex: 1 1 auto;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ando-sidebar-conversation-section-header__actions {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.ando-sidebar-conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.ando-sidebar-conversation-row {
+  isolation: isolate;
+  list-style: none;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.ando-sidebar-conversation-primary {
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.ando-sidebar-conversation-button {
+  --avatar-ring-bg: transparent;
+  align-items: center;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  gap: 10px;
+  height: 32px;
+  line-height: var(--type-style-text-label-14-line-height);
+  min-width: 0;
+  outline: none;
+  overflow: hidden;
+  padding: 8px;
+  text-align: left;
+  transition:
+    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    padding 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    padding-right 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+
+.ando-sidebar-conversation-button[data-size="sm"] {
+  font-size: var(--type-style-text-label-12-font-size);
+  height: 28px;
+  line-height: var(--type-style-text-label-12-line-height);
+}
+
+.ando-sidebar-conversation-button:hover,
+.ando-sidebar-conversation-button:focus-visible,
+.ando-sidebar-conversation-button[data-state="open"],
+.ando-sidebar-conversation-primary:hover .ando-sidebar-conversation-button,
+.ando-sidebar-conversation-primary:focus-within
+  .ando-sidebar-conversation-button,
+.ando-sidebar-conversation-primary:has([data-state="open"])
+  .ando-sidebar-conversation-button {
+  --avatar-ring-bg: var(--ando-sidebar-conversation-background-hover);
+  background: var(--ando-sidebar-conversation-background-hover);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-sidebar-conversation-button[data-active="true"] {
+  --avatar-ring-bg: var(--ando-sidebar-conversation-background-active);
+  background: var(--ando-sidebar-conversation-background-active);
+  color: var(--color-ando-fg-primary);
+  font-weight: 500;
+}
+
+.ando-sidebar-conversation-button[data-active="true"]:hover,
+.ando-sidebar-conversation-button[data-active="true"]:focus-visible,
+.ando-sidebar-conversation-button[data-active="true"][data-state="open"],
+.ando-sidebar-conversation-primary:hover
+  .ando-sidebar-conversation-button[data-active="true"],
+.ando-sidebar-conversation-primary:focus-within
+  .ando-sidebar-conversation-button[data-active="true"],
+.ando-sidebar-conversation-primary:has([data-state="open"])
+  .ando-sidebar-conversation-button[data-active="true"] {
+  --avatar-ring-bg: var(--ando-sidebar-conversation-background-active);
+  background: var(--ando-sidebar-conversation-background-active);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-sidebar-conversation-button[data-hover-action-space="true"]:hover,
+.ando-sidebar-conversation-button[data-hover-action-space="true"]:focus-visible,
+.ando-sidebar-conversation-button[data-hover-action-space="true"][data-state="open"],
+.ando-sidebar-conversation-primary:hover
+  .ando-sidebar-conversation-button[data-hover-action-space="true"],
+.ando-sidebar-conversation-primary:focus-within
+  .ando-sidebar-conversation-button[data-hover-action-space="true"],
+.ando-sidebar-conversation-primary:has([data-state="open"])
+  .ando-sidebar-conversation-button[data-hover-action-space="true"] {
+  padding-right: 44px;
+}
+
+.ando-sidebar-conversation-button:disabled,
+.ando-sidebar-conversation-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-sidebar-conversation-main {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ando-sidebar-conversation-icon {
+  align-items: center;
+  color: var(--color-ando-fg-tertiary);
+  display: flex;
+  flex: 0 0 auto;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+.ando-sidebar-conversation-channel-icon {
+  display: block;
+  flex: 0 0 auto;
+  height: 16px;
+  width: 16px;
+}
+
+.ando-sidebar-conversation-button[data-active="true"]
+  .ando-sidebar-conversation-icon,
+.ando-sidebar-conversation-button[data-unread="true"]
+  .ando-sidebar-conversation-icon {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-sidebar-conversation-label {
+  color: var(--color-ando-fg-tertiary);
+  flex: 1 1 auto;
+  font-weight: 400;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    font-weight 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.ando-sidebar-conversation-label[data-selected="true"] {
+  color: var(--color-ando-fg-primary);
+  font-weight: 400;
+}
+
+.ando-sidebar-conversation-label[data-unread="true"] {
+  color: var(--color-ando-fg-primary);
+  font-weight: var(--type-style-text-label-14-unread-font-weight);
+}
+
+.ando-sidebar-conversation-trailing {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  margin-left: -12px;
+  min-width: 0;
+}

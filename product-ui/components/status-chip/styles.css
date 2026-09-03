@@ -1,0 +1,55 @@
+/* Squared lifecycle status chip: overline-10 caps in a 16px-tall
+   radius-xxs tinted box (the Ando Bridge invitation-table spec).
+   Distinct from FeedbackBadge, whose anatomy is a rounded
+   sentence-case pill. */
+.ando-status-chip {
+  align-items: center;
+  border-radius: var(--radius-xxs);
+  display: inline-flex;
+  font-size: var(--type-style-text-overline-10-font-size, 10px);
+  font-weight: var(--type-style-text-overline-10-font-weight, 500);
+  gap: 3px;
+  height: 16px;
+  letter-spacing: var(--type-style-text-overline-10-letter-spacing, 0.1em);
+  line-height: var(--type-style-text-overline-10-line-height, 14px);
+  padding: 0 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ando-status-chip__leading {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* 12px on the registry's 24-unit grid renders the default 1.5 stroke at
+   exactly 0.75px; forcing it here keeps every passed-in glyph on spec. */
+.ando-status-chip__leading > * {
+  height: 12px;
+  width: 12px;
+}
+
+.ando-status-chip[data-tone="neutral"] {
+  background: var(--color-ando-bg-fill-muted);
+  color: var(--color-ando-fg-secondary);
+}
+
+.ando-status-chip[data-tone="success"] {
+  background: var(--color-ando-bg-success-subtle);
+  color: var(--color-ando-fg-success);
+}
+
+.ando-status-chip[data-tone="warning"] {
+  background: var(--color-ando-bg-warning);
+  /* fg-warning falls below AA after the translucent background blends with
+     muted product surfaces; the label already names the state explicitly. */
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-status-chip[data-tone="danger"] {
+  /* The subtle danger pair misses AA for this 10px label in both themes.
+     The established action pair preserves semantic tone at readable contrast. */
+  background: var(--color-ando-action-danger);
+  color: var(--color-ando-fg-white);
+}

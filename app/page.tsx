@@ -25,6 +25,27 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/context-stream",
+    week: "2026-08-31",
+    title: "Agent context",
+    tag: "Motion",
+    brief: "Dots become a stream, the stream becomes the app.",
+  },
+  {
+    href: "/ando-stage",
+    week: "2026-08-31",
+    title: "Jams launch",
+    tag: "Prototype",
+    brief: "Scripted launch conversations in the real Ando window.",
+  },
+  {
+    href: "/affiliate-announcement",
+    week: "2026-08-31",
+    title: "Affiliate announcement",
+    tag: "Prototype",
+    brief: "The wheel + its timeline studio + one-click mp4 export.",
+  },
+  {
     href: "/affiliate-world",
     week: "2026-08-31",
     title: "Affiliate world",

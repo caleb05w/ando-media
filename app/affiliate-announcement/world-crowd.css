@@ -1,0 +1,61 @@
+/* The crowd's arrival — each disc scales in on the house ease, the
+   stagger radiating outward from the centre of the crowd. `backwards`
+   keeps a disc invisible until its turn. */
+@keyframes aw-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.aw-enter {
+  animation: aw-enter 0.5s cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+/* The stroll — once in, each face walks a small circle around its
+   packed spot (rotate → step out → counter-rotate keeps it upright).
+   Pace, phase, radius, and direction come in as per-face variables,
+   so the crowd breathes without ever breaking the solve. */
+@keyframes aw-orbit {
+  from {
+    transform: rotate(0turn) translateX(var(--aw-orbit-r, 2.5px)) rotate(0turn);
+  }
+  to {
+    transform: rotate(1turn) translateX(var(--aw-orbit-r, 2.5px)) rotate(-1turn);
+  }
+}
+
+.aw-orbit {
+  animation: aw-orbit var(--aw-orbit-t, 13s) linear var(--aw-orbit-d, 0s)
+    infinite;
+}
+
+/* Faces are doors — under the pointer the stroll pauses so one can
+   be caught. */
+.aw-item:hover .aw-orbit {
+  animation-play-state: paused;
+}
+
+/* The open world's seats — the accent ring (the page's one blue).
+   An outline with an offset, not a shadow stack: the gap between face
+   and ring stays transparent, so it dims with the page under the
+   sheet's scrim instead of glowing white through it. */
+.aw-item--picked img {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.aw-item--picked {
+  z-index: 50;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-enter,
+  .aw-orbit {
+    animation: none;
+  }
+}

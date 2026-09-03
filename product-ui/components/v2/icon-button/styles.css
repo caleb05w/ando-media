@@ -1,0 +1,34 @@
+.ando-icon-button-v2 {
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.ando-icon-button-v2[data-size="xs"] {
+  width: 24px;
+}
+
+.ando-icon-button-v2[data-size="sm"] {
+  width: 28px;
+}
+
+.ando-icon-button-v2[data-size="md"] {
+  width: 32px;
+}
+
+.ando-icon-button-v2[data-size="lg"] {
+  width: 40px;
+}
+
+.ando-icon-button-v2__visual {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ando-icon-button-v2__visual > svg {
+  display: block;
+  height: 1em;
+  width: 1em;
+}

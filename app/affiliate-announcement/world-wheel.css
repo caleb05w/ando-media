@@ -1,0 +1,125 @@
+/* Iteration 6 — the wheel. The Brand dot wheel's geometry, ported
+   from ando-media's /landing-page-animations. The ring's size and
+   crest line are derived per mount in world-wheel.tsx (the close-up
+   crest dot must equal the intro avatar exactly, and the avatar's
+   centre sits 90px into the band) — only the static chrome lives
+   here. The ring lays out at close-up size and the frame loop
+   scales it DOWN, keeping the face bitmaps sharp for the landing. */
+
+/* The text-beat rise (inherited from the retired bloom iteration) —
+   per-element delay via --wb-delay; the driver seeks it via WAAPI. */
+@keyframes wb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wb-rise {
+  animation: wb-rise 0.5s cubic-bezier(0.2, 0, 0, 1) var(--wb-delay, 0s)
+    both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-rise {
+    animation: none;
+  }
+}
+
+.ww-band {
+  position: absolute;
+  /* the anchor: the avatar's centre sits 220px into the band —
+     keep in sync with BAND_ANCHOR in world-wheel.tsx. The extra
+     headroom is the departure's runway: drifting, swelling dots
+     need ~130px past the crest before they finish dissolving. */
+  top: calc(50% - 220px);
+  left: 50%;
+  z-index: 10;
+  width: 1240px;
+  height: 400px;
+  overflow: hidden;
+  transform: translateX(-50%);
+  /* nothing may be SLICED by the band's box — content dissolves
+     into the edges: deep soft ramps on all four sides, sized so a
+     departing dot fades out well before any hard edge. The top
+     ramp ends above the crest dot's top edge (~166px in), so the
+     member never dims. */
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent,
+      #000 140px,
+      #000 calc(100% - 140px),
+      transparent
+    ),
+    linear-gradient(
+      to bottom,
+      transparent,
+      #000 150px,
+      #000 calc(100% - 60px),
+      transparent
+    );
+  mask-composite: intersect;
+}
+
+.ww-band--out {
+  opacity: 0;
+}
+
+/* Driven mode — the wheel's per-frame driver owns every transform
+   and opacity it writes, so the CSS transitions those elements
+   carry elsewhere must stand down or they'd rubber-band each
+   frame's write. */
+.ww-drive .wb-glide,
+.ww-drive .wb-below,
+.ww-drive .wb-face,
+.ww-drive.ww-drive .ww-band {
+  transition: none;
+}
+
+/* The wheel — untransformed centre on the crest line; the frame
+   loop pushes it down by (radius × scale) so the top dot stays
+   pinned at the crest while the wheel grows beneath the band.
+   Size, top, and margin are written inline at mount. */
+.ww-ring {
+  position: absolute;
+  left: 50%;
+  will-change: transform;
+}
+
+.ww-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* the departing dots swell and drift past the viewBox — the svg
+     may not clip them (the band's soft mask owns the edges) */
+  overflow: visible;
+}
+
+/* Faces stay upright while they orbit — the rotation cancels the
+   ring's spin (written per frame) plus this dot's own offset. The
+   circular crop is a CSS basic shape so it RIDES the per-dot
+   transform — a userSpaceOnUse clipPath stays behind when the dot
+   drifts and slices the face into crescents. */
+.ww-avatar {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(calc((var(--ww-spin, 0deg) + var(--ww-da, 0deg)) * -1));
+  clip-path: circle(50%);
+}
+
+/* The dissolve — dots sink into white toward the band's foot, the
+   storyboard's Rectangle 1 as one quiet wash. */
+.ww-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 30%, #fff 88%);
+}
+
+/* The touch-down settle, the shrink, and the parting words are all
+   written per frame by the driver in world-wheel.tsx — no CSS
+   motion of their own here. */

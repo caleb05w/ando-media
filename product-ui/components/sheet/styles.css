@@ -1,0 +1,116 @@
+.ando-sheet__title {
+  color: var(--color-ando-fg-primary);
+  font-size: var(--text-xl);
+  font-weight: 650;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ando-sheet__overlay {
+  background: var(--color-ando-alpha-d12);
+}
+
+.ando-sheet__content {
+  --ando-sheet-closed-transform: translateX(100%);
+  animation: ando-ui-sheet-enter var(--motion-duration-moderate) ease-out;
+  background: var(--color-ando-bg-main);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-ando-fg-primary);
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  position: fixed;
+  z-index: var(--ando-z-overlay-content);
+}
+
+.ando-sheet__content[data-state="closed"] {
+  animation: ando-ui-sheet-exit var(--motion-duration-fast) ease-out;
+}
+
+.ando-sheet__content[data-side="right"],
+.ando-sheet__content[data-side="left"] {
+  bottom: 0;
+  height: 100%;
+  top: 0;
+  width: var(--ando-mobile-sheet-side-width);
+}
+
+.ando-sheet__content[data-side="right"] {
+  --ando-sheet-closed-transform: translateX(100%);
+  right: 0;
+}
+
+.ando-sheet__content[data-side="left"] {
+  --ando-sheet-closed-transform: translateX(-100%);
+  left: 0;
+}
+
+.ando-sheet__content[data-side="top"],
+.ando-sheet__content[data-side="bottom"] {
+  left: 0;
+  max-height: var(--ando-mobile-sheet-block-max-height);
+  right: 0;
+}
+
+.ando-sheet__content[data-side="top"] {
+  --ando-sheet-closed-transform: translateY(-100%);
+  top: 0;
+}
+
+.ando-sheet__content[data-side="bottom"] {
+  --ando-sheet-closed-transform: translateY(100%);
+  bottom: 0;
+}
+
+.ando-sheet__header,
+.ando-sheet__footer {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+}
+
+.ando-sheet__footer {
+  margin-top: auto;
+}
+
+.ando-sheet__close {
+  align-items: center;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  outline: none;
+  width: 32px;
+}
+
+.ando-sheet__content-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+.ando-sheet__close-icon {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  height: 10px;
+  width: 10px;
+}
+
+.ando-sheet__close[data-side="right"] .ando-sheet__close-icon {
+  transform: rotate(135deg);
+}
+
+.ando-sheet__close[data-side="left"] .ando-sheet__close-icon {
+  transform: rotate(-45deg);
+}
+
+.ando-sheet__close[data-side="top"] .ando-sheet__close-icon {
+  transform: rotate(45deg);
+}
+
+.ando-sheet__close[data-side="bottom"] .ando-sheet__close-icon {
+  transform: rotate(225deg);
+}

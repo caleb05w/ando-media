@@ -1,0 +1,54 @@
+.ando-switch-v2 {
+  align-items: center;
+  background: var(--color-ando-action-secondary);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  outline: none;
+  padding: 3px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.ando-switch-v2[data-size="sm"] {
+  height: 18px;
+  width: 30px;
+}
+
+.ando-switch-v2[data-size="md"] {
+  height: 24px;
+  width: 42px;
+}
+
+.ando-switch-v2[data-state="checked"] {
+  background: var(--color-ando-bg-brand);
+}
+
+.ando-switch-v2[data-invalid="true"] {
+  border-color: var(--color-ando-fg-danger);
+}
+
+.ando-switch-v2:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ando-switch-v2__thumb {
+  align-items: center;
+  background: var(--color-ando-bg-white);
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
+  display: inline-flex;
+  height: 100%;
+  justify-content: center;
+  transition: transform var(--motion-duration-fast)
+    var(--motion-easing-standard);
+  width: calc(50% - 1px);
+}
+
+.ando-switch-v2[data-state="checked"] .ando-switch-v2__thumb {
+  transform: translateX(calc(100% + 2px));
+}

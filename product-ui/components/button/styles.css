@@ -1,0 +1,143 @@
+.ando-button {
+  align-items: center;
+  background: var(--color-ando-action-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-reverse);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+  min-width: 0;
+  outline: none;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  white-space: nowrap;
+}
+
+/* Typography defaults sit at zero specificity so a kanso-text-* label class
+   passed via className (same ui layer, class specificity) can restate the
+   button's type without attribute pins or !important. */
+:where(.ando-button) {
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+}
+
+.ando-button:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-ando-action-primary-hover);
+}
+
+/* 24px, for controls that sit inside a row built around that height — the
+   Studio agent tile's app cluster and the automations section header, both of
+   which hand-rolled this size before it existed. Padding is tighter than sm's
+   10px because at 24px the icon+label pair is most of the control. */
+.ando-button[data-size="xs"] {
+  height: 24px;
+  padding: 0 8px;
+}
+
+.ando-button[data-size="sm"] {
+  height: 28px;
+  padding: 0 10px;
+}
+
+.ando-button[data-size="md"] {
+  height: 32px;
+  padding: 0 8px;
+}
+
+.ando-button[data-size="lg"] {
+  height: 40px;
+  padding: 0 18px;
+}
+
+/* After the base :where block so lg wins among the zero-specificity
+   typography defaults, while consumer label classes still override. */
+:where(.ando-button[data-size="lg"]) {
+  font-size: var(--type-style-text-label-16-font-size);
+}
+
+/* Same zero-specificity treatment as lg, in the other direction: 14px type in
+   a 24px control leaves no room for its own descenders. */
+:where(.ando-button[data-size="xs"]) {
+  font-size: var(--type-style-text-label-12-font-size);
+  font-weight: var(--type-style-text-label-12-font-weight);
+  line-height: var(--type-style-text-label-12-line-height);
+}
+
+.ando-button[data-variant="secondary"] {
+  background: var(--color-ando-action-secondary);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-button[data-variant="secondary"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-secondary-hover);
+}
+
+.ando-button[data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-ando-fg-secondary);
+}
+
+.ando-button[data-variant="ghost"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-ghost-hover);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-button[data-variant="outline"] {
+  background: var(--color-ando-action-white);
+  border: 1px solid var(--color-ando-border-default);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-button[data-variant="outline"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  /* Not action-white-hover: its dark-theme value is light-100, which would
+     flash a dark outline button to near-white on hover. */
+  background: var(--color-ando-bg-fill-subtle);
+  border-color: var(--color-ando-border-strong);
+}
+
+.ando-button[data-variant="plain"] {
+  background: transparent;
+  border-radius: 0;
+  color: inherit;
+  gap: 0;
+  height: auto;
+  padding: 0;
+  transition: none;
+  white-space: normal;
+}
+
+.ando-button[data-variant="plain"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: transparent;
+  color: inherit;
+}
+
+.ando-button[data-variant="destructive"] {
+  background: var(--color-ando-action-danger);
+  color: var(--color-ando-fg-white);
+}
+
+.ando-button[data-variant="destructive"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-danger-hover);
+}
+
+.ando-button__visual {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+}

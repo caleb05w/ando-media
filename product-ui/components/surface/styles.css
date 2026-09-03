@@ -1,0 +1,113 @@
+.ando-surface-frame {
+  background: var(--color-ando-bg-main);
+  color: var(--color-ando-fg-primary);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.ando-surface-frame__header,
+.ando-surface-frame__footer {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.ando-surface-frame__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.ando-surface-frame__footer {
+  border-top: 1px solid var(--color-ando-border-default);
+}
+
+.ando-surface-header {
+  align-items: center;
+  background: var(--color-ando-bg-main);
+  border-bottom: 1px solid var(--color-ando-border-default);
+  color: var(--color-ando-fg-primary);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  height: var(--ando-surface-header-height);
+  min-height: var(--ando-surface-header-height);
+  min-width: 0;
+  padding: 0 16px;
+  width: 100%;
+}
+
+/* Overlay tone for headers that sit on a dark surface (e.g. jam video bars):
+   transparent background, reversed foreground, and no divider. */
+.ando-surface-header[data-variant="overlay"] {
+  background: transparent;
+  border-bottom: none;
+  color: var(--color-ando-fg-reverse);
+}
+
+.ando-surface-header__leading,
+.ando-surface-header__actions {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.ando-surface-header__actions {
+  gap: 4px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.ando-surface-header__content {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ando-surface-header__title,
+.ando-surface-header__subtitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-surface-header__title {
+  color: var(--color-ando-fg-primary);
+  font-size: var(--type-style-text-label-14-md-font-size);
+  font-weight: var(--type-style-text-label-14-md-font-weight);
+  line-height: var(--type-style-text-label-14-md-line-height);
+}
+
+.ando-surface-header__subtitle {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--text-sm);
+  line-height: calc(var(--text-sm) * 1.3333333333);
+}
+
+.ando-surface-header-skeleton__leading {
+  height: 16px;
+  width: 16px;
+}
+
+.ando-surface-header-skeleton__title {
+  height: 20px;
+  width: 120px;
+}
+
+.ando-surface-header-skeleton__subtitle {
+  height: 14px;
+  width: 88px;
+}
+
+.ando-surface-header-skeleton__actions {
+  height: 24px;
+  width: 24px;
+}

@@ -1,0 +1,46 @@
+@layer components {
+  .ando-chart {
+    display: block;
+    min-height: 180px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ando-chart-visual {
+    height: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ando-chart-tooltip {
+    align-items: center;
+    background: var(--color-ando-bg-elevated);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    color: var(--color-ando-fg-primary);
+    display: flex;
+    font-size: var(--type-style-text-label-12-font-size);
+    font-weight: var(--type-style-text-label-12-font-weight);
+    line-height: var(--type-style-text-label-12-line-height);
+    gap: 12px;
+    justify-content: space-between;
+    max-width: 240px;
+    padding: 8px 10px;
+  }
+
+  .ando-chart-tooltip strong {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ando-chart-sr-only {
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}

@@ -1,0 +1,429 @@
+// /ando-stage — the scripts.
+//
+// A scene is a surface (a channel or a DM) plus an ordered list of beats.
+// Playback applies beats 0..cursor and renders the result, so every frame is
+// a pure function of one integer — scrubbing backwards lands on exactly the
+// state playing forwards produced. Beat `ms` is the beat's own dwell.
+
+const AV = "/avatars";
+
+export type Actor = { name: string; avatar: string; agent?: true };
+
+export type Segment = { text: string; link?: boolean; mention?: boolean; /** an @-mention of an agent reads in agent purple */ agent?: boolean };
+
+export type LaunchCard = {
+  eyebrow: string;
+  title: string;
+  blurb: string;
+  bullets?: string[];
+  cta?: string;
+  band: "spark" | "ticket" | "grid";
+};
+
+export type Attachment =
+  | { type: "image"; filename: string; bytes: number; src: string; width: number; height: number }
+  | { type: "video"; filename: string; bytes: number; poster: string; width: number; height: number };
+
+export type Beat =
+  | { kind: "mark"; label: string; ms: number; tone?: "attention" }
+  /** Someone opens a Jam. `participants` are who is in it at that moment;
+   *  the card is authored by the first. You are in it only after `jam-join`. */
+  | { kind: "jam-start"; id: string; time: string; participants: string[]; ms: number }
+  /** You press Join: you enter the call and the panel docks. */
+  | { kind: "jam-join"; ms: number }
+  | { kind: "jam-end"; ms: number }
+  /** Your pointer travels to a control (and presses it). Pure in the clock:
+   *  the glide runs over the beat's first 0.9s, both directions. */
+  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; ms: number }
+  /** The Jam panel switches tab. */
+  | { kind: "tab"; tab: "thread" | "transcript"; ms: number }
+  /** A live-transcript segment lands (the newest one reads as still being spoken). */
+  | { kind: "transcript"; who: string; text: string; ms: number }
+  /** An agent run under message `on`, its activity line updating per beat. */
+  | { kind: "trace"; run: string; on: string; who: string; label: string; icon?: "read" | "write" | "transcript"; ms: number }
+  | { kind: "trace-done"; run: string; tool: string; ms: number }
+  /** A full-frame title card over the app, held for `hold` seconds. */
+  | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
+  | { kind: "typing"; who: string; ms: number }
+  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; ms: number }
+  | { kind: "card"; id: string; who: string; time: string; card: LaunchCard; ms: number }
+  /** A file lands. Optional body posts as the message text above it. */
+  | { kind: "attach"; id: string; who: string; time: string; body?: Segment[][]; attachment: Attachment; ms: number }
+  | { kind: "react"; on: string; emoji: string; count: number; ms: number }
+  | { kind: "agent"; run: string; on: string; who: string; task: string; ms: number }
+  | { kind: "agent-done"; run: string; id: string; time: string; body: Segment[][]; ms: number };
+
+/** What the main pane is: a channel (hashtag, member count) or a 1:1 DM
+ *  (the other person's avatar and name, headphones instead of members). */
+export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "hang-up";
+
+export type Surface =
+  | { kind: "channel"; name: string; members: number; private?: boolean }
+  | { kind: "dm"; who: string };
+
+export type SidebarRow =
+  | { kind: "channel"; name: string; private?: boolean; unread?: boolean; muted?: boolean }
+  | { kind: "dm"; who: string; online?: boolean };
+
+export type SidebarSection = { label: string; rows: SidebarRow[]; addRow?: boolean };
+
+export type Scene = {
+  id: string;
+  name: string;
+  blurb: string;
+  surface: Surface;
+  cast: Record<string, Actor>;
+  beats: Beat[];
+};
+
+export const WORKSPACE = { name: "Ando Corp.", mark: `${AV}/agent-2.png` };
+export const ME = "caleb";
+
+export const CAST = {
+  sara: { name: "Sara Du", avatar: `${AV}/sara.png` },
+  caleb: { name: "Caleb Wu", avatar: `${AV}/caleb.png` },
+  oli: { name: "Oliver", avatar: `${AV}/oli.png` },
+  aj: { name: "AJ", avatar: `${AV}/aj.png` },
+  alex: { name: "Alex", avatar: `${AV}/alex.png` },
+  ando: { name: "Ando", avatar: `${AV}/agent-1.png`, agent: true },
+  scout: { name: "Scout", avatar: `${AV}/agent-2.png`, agent: true },
+  tadao: { name: "Tadao", avatar: `${AV}/agent-1.png`, agent: true },
+} as const satisfies Record<string, Actor>;
+
+export function isAgent(actor: Actor): boolean {
+  return actor.agent === true;
+}
+
+/** The rail's sections, built from the cast. The active row is whichever
+ *  matches the scene's surface. */
+export const SIDEBAR: SidebarSection[] = [
+  { label: "Channels", rows: [], addRow: true },
+  { label: "Favorites", rows: [{ kind: "dm", who: "aj", online: true }, { kind: "dm", who: "oli", online: false }, { kind: "dm", who: "sara", online: true }] },
+  { label: "Core", rows: [{ kind: "channel", name: "launch", unread: true }, { kind: "channel", name: "general" }, { kind: "channel", name: "design" }, { kind: "channel", name: "bugs" }] },
+  { label: "Secondary", rows: [{ kind: "channel", name: "sf-team", private: true }, { kind: "channel", name: "social" }, { kind: "channel", name: "daily-updates", muted: true }, { kind: "channel", name: "gratitude" }] },
+];
+
+export const SIDEBAR_LOOSE: SidebarRow[] = [
+  { kind: "channel", name: "team", private: true },
+  { kind: "channel", name: "ando-wins" },
+  { kind: "channel", name: "slack" },
+  { kind: "channel", name: "marketing" },
+  { kind: "channel", name: "studio" },
+  { kind: "dm", who: "alex" },
+  { kind: "channel", name: "access" },
+];
+
+/* ------------------------------- scenes ------------------------------- */
+
+const LAUNCH_DAY: Scene = {
+  id: "launch-day",
+  name: "Launch day",
+  blurb: "The announcement lands in #launch and the room reacts.",
+  surface: { kind: "channel", name: "launch", members: 24 },
+  cast: CAST,
+  beats: [
+    { kind: "mark", label: "TODAY", ms: 900 },
+    { kind: "typing", who: "sara", ms: 1100 },
+    {
+      kind: "card", id: "m1", who: "sara", time: "9:02 AM", ms: 2800,
+      card: {
+        band: "spark", eyebrow: "New in Ando", title: "Agents in every conversation",
+        blurb: "Mention an agent anywhere you already talk and it works in the thread — reading the channel, doing the task, posting what it found.",
+        bullets: ["Runs stay pinned to the message that started them", "Every result is a message anyone can read and reply to", "No new surface to learn — it is the conversation"],
+        cta: "Read the announcement",
+      },
+    },
+    { kind: "react", on: "m1", emoji: "🎉", count: 7, ms: 520 },
+    { kind: "react", on: "m1", emoji: "🚀", count: 4, ms: 460 },
+    { kind: "typing", who: "caleb", ms: 850 },
+    {
+      kind: "attach", id: "m2", who: "caleb", time: "9:03 AM", ms: 2600,
+      body: [[{ text: "Demo video is up. Cut is 41 seconds." }]],
+      attachment: { type: "video", filename: "agents-launch-cut-final.mp4", bytes: 18_400_000, poster: "/ando-stage/demo-still.svg", width: 720, height: 450 },
+    },
+    { kind: "say", id: "m3", who: "aj", time: "9:04 AM", ms: 1800, body: [[{ text: "Embargo lifts in eight minutes. Press list is queued." }]] },
+    { kind: "agent", run: "r1", on: "m1", who: "scout", task: "Watching launch mentions across the web", ms: 2900 },
+    { kind: "typing", who: "oli", ms: 900 },
+    { kind: "say", id: "m4", who: "oli", time: "9:11 AM", ms: 1900, body: [[{ text: "Signups just crossed a thousand for the hour." }]] },
+    {
+      kind: "agent-done", run: "r1", id: "m5", time: "9:32 AM", ms: 2900,
+      body: [[{ text: "First thirty minutes of the launch:" }], [{ text: "1,904 signups · 61% from the demo video" }], [{ text: "212 mentions, 8 of them from accounts over 50k" }], [{ text: "Top question, asked 34 times: “does it work with my existing channels?”" }]],
+    },
+    { kind: "react", on: "m5", emoji: "👀", count: 3, ms: 520 },
+    { kind: "typing", who: "sara", ms: 1000 },
+    { kind: "say", id: "m6", who: "sara", time: "9:33 AM", ms: 2400, body: [[{ text: "That last one is the follow-up post. " }, { text: "@caleb", mention: true }, { text: " can you queue it for noon?" }]] },
+    { kind: "say", id: "m7", who: "caleb", time: "9:33 AM", ms: 1800, body: [[{ text: "On it." }]] },
+  ],
+};
+
+const FOUNDER_DM: Scene = {
+  id: "founder-dm",
+  name: "Founder DM",
+  blurb: "A 1:1 with Sara — copy review over screenshots.",
+  surface: { kind: "dm", who: "sara" },
+  cast: CAST,
+  beats: [
+    { kind: "mark", label: "TODAY", ms: 850 },
+    { kind: "say", id: "m1", who: "sara", time: "11:12 AM", ms: 2200, body: [[{ text: "Can you send me the invite page one more time? Want to read it cold." }]] },
+    { kind: "typing", who: "caleb", ms: 1000 },
+    {
+      kind: "attach", id: "m2", who: "caleb", time: "11:14 AM", ms: 2800,
+      body: [[{ text: "Here — this is the body copy I liked for the affiliate invites." }]],
+      attachment: { type: "image", filename: "CleanShot 2026-09-02 at 11.13.48@2x.png", bytes: 340_889, src: "/ando-stage/launch-shot.svg", width: 720, height: 560 },
+    },
+    { kind: "typing", who: "sara", ms: 900 },
+    { kind: "say", id: "m3", who: "sara", time: "11:14 AM", ms: 1500, body: [[{ text: "oo yea" }]] },
+    { kind: "say", id: "m4", who: "sara", time: "11:14 AM", ms: 1700, body: [[{ text: "definitely" }]] },
+    { kind: "react", on: "m2", emoji: "❤️", count: 1, ms: 500 },
+    { kind: "typing", who: "sara", ms: 1000 },
+    { kind: "say", id: "m5", who: "sara", time: "11:15 AM", ms: 2400, body: [[{ text: "“One invite. Make it count.” is the whole thing. Lead with it, lose the second paragraph." }]] },
+    { kind: "say", id: "m6", who: "caleb", time: "11:15 AM", ms: 1600, body: [[{ text: "Cutting it now." }]] },
+    { kind: "agent", run: "r1", on: "m6", who: "ando", task: "Updating the invite page copy in Studio", ms: 2600 },
+    { kind: "agent-done", run: "r1", id: "m7", time: "11:16 AM", ms: 2400, body: [[{ text: "Updated " }, { text: "ando.so/invite", link: true }, { text: " — headline now leads, second paragraph removed. Preview is live for the team." }]] },
+    { kind: "react", on: "m7", emoji: "✅", count: 2, ms: 520 },
+  ],
+};
+
+const GOLDEN_TICKETS: Scene = {
+  id: "golden-tickets",
+  name: "Golden tickets",
+  blurb: "An invite-only launch in #marketing, watched live.",
+  surface: { kind: "channel", name: "marketing", members: 9 },
+  cast: CAST,
+  beats: [
+    { kind: "mark", label: "TODAY", ms: 850 },
+    { kind: "typing", who: "sara", ms: 1000 },
+    {
+      kind: "card", id: "m1", who: "sara", time: "8:59 AM", ms: 3000,
+      card: {
+        band: "ticket", eyebrow: "Launching in one minute", title: "Golden tickets",
+        blurb: "Every member gets exactly one invite. Not a referral code — a page with your name on it, and one seat behind it.",
+        bullets: ["ando.so/@yourname goes live the moment you claim it", "One ticket per member. When it is used, it is gone", "Handles are first-come, and they never come back"],
+        cta: "ando.so/@sara",
+      },
+    },
+    { kind: "react", on: "m1", emoji: "🎟️", count: 12, ms: 540 },
+    { kind: "say", id: "m2", who: "alex", time: "9:00 AM", ms: 2000, body: [[{ text: "Invites are out. Nine thousand tickets, all live at once." }]] },
+    { kind: "agent", run: "r1", on: "m1", who: "scout", task: "Watching handle claims", ms: 2800 },
+    { kind: "typing", who: "caleb", ms: 900 },
+    {
+      kind: "attach", id: "m3", who: "caleb", time: "9:06 AM", ms: 2600,
+      body: [[{ text: "Claim page is holding — p95 is 180ms, no errors." }]],
+      attachment: { type: "image", filename: "claim-page-p95.png", bytes: 212_400, src: "/ando-stage/launch-shot.svg", width: 720, height: 560 },
+    },
+    { kind: "agent-done", run: "r1", id: "m4", time: "9:20 AM", ms: 2900, body: [[{ text: "Twenty minutes in:" }], [{ text: "412 handles claimed · 89 tickets already spent" }], [{ text: "Median time from claim to invite sent: 4 minutes" }], [{ text: "Nine of the ten most-shared pages belong to members who joined this week" }]] },
+    { kind: "react", on: "m4", emoji: "🚀", count: 6, ms: 540 },
+    { kind: "typing", who: "sara", ms: 950 },
+    { kind: "say", id: "m5", who: "sara", time: "9:21 AM", ms: 2400, body: [[{ text: "The newest people are doing the inviting. That is the whole thesis, on day one." }]] },
+    { kind: "say", id: "m6", who: "alex", time: "9:22 AM", ms: 1900, body: [[{ text: "Screenshotting that line for the deck." }]] },
+  ],
+};
+
+/** The stage as it ships right now: a 1:1 with Sara and nothing scripted —
+ *  the transcript is whatever you send. */
+const BLANK: Scene = {
+  id: "blank",
+  name: "Stage",
+  blurb: "An empty conversation. Type to fill it.",
+  surface: { kind: "dm", who: "sara" },
+  cast: CAST,
+  beats: [],
+};
+
+/** The storyboard (Ando Brand 3963-1565): Caleb sends the launch-video ideas,
+ *  the back-and-forth stalls in two lines, Sara opens a Jam, the ideas get
+ *  settled out loud with the transcript running, a title card lands, then
+ *  Sara asks Tadao to summarize — and Tadao files the tickets. */
+const CHAT_THEN_JAM: Scene = {
+  id: "chat-then-jam",
+  name: "Bring your agents to jams",
+  blurb: "The launch-video conversation, from DM to Jam to tickets.",
+  surface: { kind: "dm", who: "sara" },
+  cast: CAST,
+  beats: [
+    { kind: "mark", label: "TODAY", ms: 4600 },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 1500, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
+    { kind: "typing", who: "sara", ms: 900 },
+    { kind: "say", id: "j2", who: "sara", time: "11:06 AM", ms: 550, body: [[{ text: "Wait, which parts?" }]] },
+    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 1300, body: [[{ text: "Is this for our launch video?" }]] },
+    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 1000, body: [[{ text: "Yeah, I had a few ideas." }]] },
+    { kind: "typing", who: "sara", ms: 1000 },
+    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1200, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
+    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ms: 1300 },
+    { kind: "say", id: "j6", who: "caleb", time: "11:07 AM", ms: 900, body: [[{ text: "coming" }]] },
+    { kind: "cursor", to: "join-button", glyph: "arrow", press: true, ms: 1200 },
+    { kind: "jam-join", ms: 1600 },
+    { kind: "cursor", to: "transcript-tab", glyph: "pointer", press: true, ms: 1100 },
+    { kind: "tab", tab: "transcript", ms: 1000 },
+    // The Jam is the point: it moves the way talking moves. Short lines,
+    // fast turns, the decision made in twenty seconds.
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1000 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 1400 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 1400 },
+    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 1300 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1900 },
+    { kind: "transcript", who: "caleb", text: "fair", ms: 800 },
+    { kind: "transcript", who: "sara", text: "what's two", ms: 900 },
+    { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1900 },
+    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 1000 },
+    { kind: "transcript", who: "sara", text: "that one", ms: 900 },
+    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 1500 },
+    { kind: "transcript", who: "caleb", text: "so agent, import, ticket", ms: 1300 },
+    { kind: "transcript", who: "sara", text: "ship it", ms: 1200 },
+    { kind: "title", eyebrow: "Jams are live transcribed", sub: "So agents can join in on jams.", headline: "Bring your agents to jams.", hold: 4.2, ms: 4800 },
+    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 1300 },
+    { kind: "jam-end", ms: 1500 },
+    { kind: "typing", who: "sara", ms: 1400 },
+    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", ms: 1200, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize the issues we talked about?" }]] },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Starting agent session", ms: 1800 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 2800 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 1200 },
+    { kind: "typing", who: "tadao", ms: 2000 },
+    { kind: "trace-done", run: "t1", tool: "Post Message", ms: 300 },
+    {
+      kind: "say", id: "j8", who: "tadao", time: "11:13 AM", ms: 3200,
+      body: [
+        [{ text: "Quick recap of the jam:" }],
+        [{ text: "Three launch-video ideas from the Figma — the Slack import coming apart, an agent answering in a thread, and the golden ticket as the close." }],
+        [{ text: "You landed on: cold open on the agent, the import in the middle, the ticket as the call to action." }],
+      ],
+    },
+    { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Triaging into Linear…", icon: "write", ms: 2600 },
+    { kind: "typing", who: "tadao", ms: 1600 },
+    { kind: "trace-done", run: "t2", tool: "Create Issue", ms: 300 },
+    {
+      kind: "say", id: "j9", who: "tadao", time: "11:13 AM", ms: 7000,
+      body: [
+        [{ text: "Filed three tickets:" }],
+        [{ text: "AND-7110", link: true }, { text: " — Launch video: agent cold open" }],
+        [{ text: "AND-7111", link: true }, { text: " — Launch video: Slack import sequence" }],
+        [{ text: "AND-7112", link: true }, { text: " — Launch video: golden ticket close" }],
+      ],
+    },
+  ],
+};
+
+export const SCENES: Scene[] = [CHAT_THEN_JAM, BLANK];
+
+/* ------------------------- timing, for the Studio ------------------------- */
+
+/** One number per beat: the second it lands. Built from the script's dwells
+ *  so a scene written as "hold this for 900ms" starts out on the same clock
+ *  the Studio then edits. */
+export type Timing = Record<string, number>;
+
+export const beatKey = (index: number) => `t${index}`;
+
+export function defaultTiming(scene: Scene): Timing {
+  const timing: Timing = {};
+  let t = 0.5; // lead-in
+  scene.beats.forEach((beat, index) => {
+    timing[beatKey(index)] = Math.round(t * 100) / 100;
+    t += beat.ms / 1000;
+  });
+  return timing;
+}
+
+export function totalFor(scene: Scene) {
+  return (T: Timing) => {
+    const last = scene.beats.length - 1;
+    return last < 0 ? 0 : T[beatKey(last)] + scene.beats[last].ms / 1000;
+  };
+}
+
+/** What you (ME) are typing at `vt`, or null. Your lines never show an
+ *  indicator — you are the one typing — so instead the next line of yours
+ *  types itself into the composer over the gap before it lands, at a pace
+ *  set by its length, and sends on the beat. Pure in the clock, so it
+ *  scrubs: drag back and the letters un-type. */
+/** How long each keystroke takes relative to the mean: a small deterministic
+ *  wobble per character, a breath after a space, a longer one after
+ *  punctuation. Pure in the text, so it scrubs. */
+function keyWeights(text: string): number[] {
+  const weights: number[] = [];
+  for (let i = 0; i < text.length; i += 1) {
+    const prev = i > 0 ? text[i - 1] : "";
+    // A cheap hash of the position gives the wobble without any randomness.
+    const wobble = 0.72 + (((i * 2654435761) >>> 0) % 1000) / 1000 * 0.7;
+    const pause = prev === " " ? 1.5 : /[,;:]/.test(prev) ? 2.2 : /[.!?]/.test(prev) ? 3.2 : prev === "\n" ? 3.6 : 1;
+    weights.push(wobble * pause);
+  }
+  return weights;
+}
+
+/** A beat of stillness between the last keystroke and the send. */
+export const SEND_HOLD = 0.4;
+
+export function scriptedDraftAt(scene: Scene, T: Timing, vt: number): string | null {
+  const next = cursorAt(scene, T, vt);
+  const beat = scene.beats[next];
+  if (beat == null || beat.kind !== "say" || beat.who !== ME) return null;
+  const text = beat.body.map((paragraph) => paragraph.map((segment) => segment.text).join("")).join("\n");
+  // Keystroke plan: prose is typed a character at a time; a link is pasted —
+  // it lands as one chunk after a short reach for the clipboard.
+  const steps: Array<{ n: number; w: number }> = [];
+  let offset = 0;
+  beat.body.forEach((paragraph, pIndex) => {
+    if (pIndex > 0) { steps.push({ n: 1, w: 3.6 }); offset += 1; }
+    for (const segment of paragraph) {
+      if (segment.link) { steps.push({ n: segment.text.length, w: 4 }); }
+      else for (const w of keyWeights(text.slice(offset, offset + segment.text.length))) steps.push({ n: 1, w });
+      offset += segment.text.length;
+    }
+  });
+  const keyed = steps.filter((step) => step.n === 1).length;
+  const start = T[beatKey(next)];
+  const prevEnd = next > 0 ? T[beatKey(next - 1)] : 0;
+  const room = start - prevEnd - 0.15;
+  const hold = Math.min(SEND_HOLD, Math.max(0, room - 0.3));
+  const window = Math.max(0.25, Math.min(room - hold, 0.07 * keyed + 0.5));
+  const from = start - hold - window;
+  if (vt < from) return null;
+  const total = steps.reduce((sum, step) => sum + step.w, 0);
+  const budget = Math.min(1, (vt - from) / window) * total;
+  let spent = 0;
+  let chars = 0;
+  for (const step of steps) { if (spent + step.w > budget) break; spent += step.w; chars += step.n; }
+  if (vt >= start - hold) chars = text.length;
+  return chars > 0 ? text.slice(0, chars) : null;
+}
+
+/** The pointer at `vt`: which target it is gliding to, how far along, and
+ *  whether it is pressing. Null before the first cursor beat. */
+export function pointerAt(scene: Scene, T: Timing, vt: number): { from: CursorTarget | null; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; progress: number; press: number; at: number } | null {
+  let prev: CursorTarget | null = null;
+  let current: { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number } | null = null;
+  scene.beats.forEach((beat, index) => {
+    if (beat.kind !== "cursor" || T[beatKey(index)] > vt) return;
+    if (current) prev = current.to;
+    current = { to: beat.to, glyph: beat.glyph, press: beat.press === true, at: T[beatKey(index)] };
+  });
+  if (!current) return null;
+  const c = current as { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number };
+  const glide = 0.9;
+  const progress = Math.min(1, Math.max(0, (vt - c.at) / glide));
+  const pressT = c.press ? Math.min(1, Math.max(0, (vt - c.at - glide) / 0.16)) : 0;
+  return { from: prev, to: c.to, glyph: c.glyph, progress, press: c.press ? Math.sin(Math.PI * pressT) : 0, at: c.at };
+}
+
+/** Seconds the scripted Jam has been open at `vt`, or null when none is. */
+export function jamElapsedAt(scene: Scene, T: Timing, vt: number): number | null {
+  let start: number | null = null;
+  scene.beats.forEach((beat, index) => {
+    if (T[beatKey(index)] > vt) return;
+    if (beat.kind === "jam-start") start = T[beatKey(index)];
+    if (beat.kind === "jam-end") start = null;
+  });
+  return start == null ? null : Math.max(0, Math.floor(vt - start));
+}
+
+/** Beats landed by `vt`: the cursor, derived from the clock every frame. */
+export function cursorAt(scene: Scene, T: Timing, vt: number): number {
+  let n = 0;
+  while (n < scene.beats.length && T[beatKey(n)] <= vt) n += 1;
+  return n;
+}
+
+/** The scripted launch takes, parked. Put any of them back in SCENES and the
+ *  director bar returns with it. */
+export const ARCHIVED_SCENES: Scene[] = [LAUNCH_DAY, FOUNDER_DM, GOLDEN_TICKETS];

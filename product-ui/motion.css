@@ -1,0 +1,231 @@
+@keyframes ando-ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ando-ui-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ando-ui-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ando-ui-overlay-enter {
+  from {
+    opacity: 0;
+    transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(1);
+  }
+}
+
+@keyframes ando-ui-overlay-exit {
+  from {
+    opacity: 1;
+    transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(0.95);
+  }
+}
+
+/* Flyout-family open/close. Deliberately separate from `ando-ui-overlay-*`:
+ * dropdowns, selects, comboboxes and tooltips animate together at their own
+ * scale and duration, while dialogs keep the overlay pair unchanged. Editing
+ * the overlay keyframes instead would move every modal in the app. */
+/* The shrink is a variable so a panel pinned to its trigger's width can opt
+ * out of it entirely (`--ando-flyout-scale: 1`), leaving the 8px translate
+ * and the opacity fade to carry the entrance.
+ *
+ * These panels grow from a corner, so the scale delta becomes absolute travel
+ * at the far edge — 3% of a 575px width-matched panel is a 17px horizontal
+ * sweep against 3px of vertical movement, which reads as a sideways slide
+ * rather than a shrink. Scaling a panel whose size is defined by its trigger
+ * also contradicts the contract: its dimensions are not its own to animate.
+ * Unpinned panels, whose size really is their own, keep the full shrink. */
+@keyframes ando-ui-flyout-enter {
+  from {
+    opacity: 0;
+    transform: var(--ando-overlay-base-transform, translate(0, 0))
+      scale(var(--ando-flyout-scale, 0.97));
+  }
+
+  to {
+    opacity: 1;
+    transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(1);
+  }
+}
+
+@keyframes ando-ui-flyout-exit {
+  from {
+    opacity: 1;
+    transform: var(--ando-overlay-base-transform, translate(0, 0)) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: var(--ando-overlay-base-transform, translate(0, 0))
+      scale(var(--ando-flyout-scale, 0.97));
+  }
+}
+
+@keyframes ando-ui-sheet-enter {
+  from {
+    transform: var(--ando-sheet-closed-transform);
+  }
+
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes ando-ui-sheet-exit {
+  from {
+    transform: translate(0, 0);
+  }
+
+  to {
+    transform: var(--ando-sheet-closed-transform);
+  }
+}
+
+@keyframes ando-ui-slide-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(var(--ando-flyout-scale, 0.97));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ando-ui-slide-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(var(--ando-flyout-scale, 0.97));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes ando-ui-slide-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(8px) scale(var(--ando-flyout-scale, 0.97));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes ando-ui-slide-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(var(--ando-flyout-scale, 0.97));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ando-ui-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+      .ando-button,
+      .ando-button__spinner,
+      .ando-checkbox,
+      .ando-collapsible__content,
+      .ando-combobox__content,
+      .ando-command-bar__segment,
+      .ando-context-menu__content,
+      .ando-context-menu__item,
+      .ando-dialog__close,
+      .ando-dialog__content,
+      .ando-dialog__overlay,
+      .ando-dropdown-menu__content,
+      .ando-dropdown-menu__item,
+      .ando-file-preview__action-bar,
+      .ando-floating-surface,
+      .ando-file-preview__trigger,
+      .ando-icon-button,
+      .ando-icon-button__spinner,
+      .ando-input,
+      .ando-link-preview__body,
+      .ando-link-preview__remove,
+      .ando-hover-card__content,
+      .ando-link-preview__skeleton-line,
+      .ando-popover__content,
+      .ando-radio-group__item,
+      .ando-selectable-flyout__action-button,
+      .ando-selectable-flyout__chevron,
+      .ando-selectable-flyout__loading-indicator,
+      .ando-selectable-flyout__loading-line,
+      .ando-selectable-flyout__option-button,
+      .ando-selectable-flyout__trigger,
+      .ando-selectable-flyout__trigger-action,
+      .ando-sheet__close,
+      .ando-sheet__content,
+      .ando-sheet__overlay,
+      .ando-sidebar-channel-row__action,
+      .ando-sidebar-channel-row__button,
+      .ando-sidebar-channel-row__link,
+      .ando-sidebar-menu-action,
+      .ando-sidebar-menu-button,
+      .ando-sidebar-panel-switcher__tab,
+      .ando-sidebar-panel-switcher__unread-dot,
+      .ando-sidebar-panel-switcher__unread-dot-frame,
+      .ando-stepper__unread-dot,
+      .ando-stepper__unread-dot-frame,
+      .ando-sidebar-rail-attention-dot,
+      .ando-sidebar-rail-button,
+      .ando-sidebar-rail-button__visual,
+      .ando-select-v2__content,
+      .ando-progress__indicator,
+      .ando-skeleton,
+      .ando-status-indicator,
+      .ando-slider__thumb,
+      .ando-switch,
+      .ando-switch__thumb,
+      .ando-tabs__trigger,
+      .ando-textarea,
+      .ando-tooltip__content,
+      .ando-unread-count-badge,
+      .ando-unread-dot
+    ) {
+    animation: none;
+    transition-duration: 0ms;
+  }
+}

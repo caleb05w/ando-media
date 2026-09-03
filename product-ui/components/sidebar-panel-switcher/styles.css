@@ -1,0 +1,142 @@
+.ando-sidebar-menu-badge,
+.ando-sidebar-channel-row__badge,
+.ando-sidebar-rail-button__badge {
+  align-items: center;
+  background: var(--color-ando-alpha-d6);
+  border-radius: var(--radius-xs);
+  color: var(--color-ando-fg-secondary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: 650;
+  justify-content: center;
+  line-height: 1;
+  min-height: 16px;
+  min-width: 16px;
+  padding: 0 4px;
+}
+
+/* Tabs stretch to the full header height so the active underline lands on the
+   header divider instead of floating above it. `align-self` covers flex/grid
+   parents; `height` covers block parents (the surface-header title slot), where
+   align-self is ignored. Both fall back to content height if the parent has no
+   definite height. */
+.ando-sidebar-panel-switcher {
+  align-items: stretch;
+  align-self: stretch;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 2px;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ando-sidebar-panel-switcher__tab {
+  align-items: center;
+  background: transparent;
+  border-radius: 999px;
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 1 auto;
+  font-size: var(--type-style-text-label-13-font-size);
+  font-weight: var(--type-style-text-label-13-font-weight);
+  justify-content: center;
+  line-height: var(--type-style-text-label-13-line-height);
+  min-width: 0;
+  outline: none;
+  padding: 0 10px;
+  position: relative;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.ando-sidebar-panel-switcher__tab:hover {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-sidebar-panel-switcher__tab[data-active="true"] {
+  color: var(--color-ando-fg-primary);
+}
+
+/* Underline marks the active tab; it sits on the tab's baseline edge rather
+   than filling the tab, so the header divider stays readable behind it. */
+.ando-sidebar-panel-switcher__indicator {
+  background: var(--color-ando-fg-primary);
+  bottom: 0;
+  display: block;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transition: background-color var(--motion-duration-fast)
+    var(--motion-easing-standard);
+}
+
+.ando-sidebar-panel-switcher__label {
+  align-items: center;
+  display: inline-flex;
+  flex: 1 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.ando-sidebar-panel-switcher__label-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-sidebar-panel-switcher__tab[data-active="true"]
+  .ando-sidebar-panel-switcher__label-text {
+  font-weight: 500;
+}
+
+.ando-sidebar-panel-switcher__badge {
+  color: var(--color-ando-fg-secondary);
+  flex: 0 0 auto;
+  font-size: var(--type-style-text-label-13-font-size);
+  font-weight: var(--type-style-text-label-13-font-weight);
+  line-height: var(--type-style-text-label-13-line-height);
+  margin-left: 6px;
+}
+
+.ando-sidebar-panel-switcher__unread-dot {
+  left: 0;
+  position: absolute;
+  transform: scale(0.55);
+  transition: transform var(--motion-duration-fast)
+    var(--motion-easing-standard);
+}
+
+.ando-sidebar-panel-switcher__unread-dot-frame {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 5px;
+  opacity: 0;
+  overflow: hidden;
+  position: relative;
+  transition:
+    margin-left var(--motion-duration-fast) var(--motion-easing-standard),
+    opacity var(--motion-duration-fast) var(--motion-easing-standard),
+    width var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 0;
+}
+
+.ando-sidebar-panel-switcher__unread-dot-frame[data-visible="true"] {
+  margin-left: 7px;
+  opacity: 1;
+  width: 5px;
+}
+
+.ando-sidebar-panel-switcher__unread-dot-frame[data-visible="true"]
+  .ando-sidebar-panel-switcher__unread-dot {
+  transform: scale(1);
+}

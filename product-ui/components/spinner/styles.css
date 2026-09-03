@@ -1,0 +1,18 @@
+.ando-spinner {
+  animation: ando-spinner-spin 1s linear infinite;
+  color: currentColor;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ando-spinner {
+    animation-duration: 8s;
+  }
+}
+
+@keyframes ando-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

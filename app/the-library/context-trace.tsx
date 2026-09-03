@@ -167,7 +167,7 @@ function statusLine(vt: number): string {
 // source marks from the context spec. currentColor throughout so a row
 // dims as one ink.
 
-function PhoneGlyph() {
+export function PhoneGlyph() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
       <path
@@ -181,7 +181,7 @@ function PhoneGlyph() {
   );
 }
 
-function MicGlyph() {
+export function MicGlyph() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
       <rect
@@ -227,7 +227,7 @@ function NotebookGlyph() {
 // Richer-context piles (Ando brand node 3450-6201): while a source is
 // being read, its pieces pop in staggered — the call's participants,
 // or the app logos of the files being read. One disc grammar for all.
-function Pile({ items }: { items: React.ReactNode[] }) {
+export function Pile({ items }: { items: React.ReactNode[] }) {
   // Right-aligned at the row's end, per Figma 3509-2184: ~17px discs
   // on a 14.4px pitch.
   return (
@@ -258,7 +258,7 @@ function SparkleDisc() {
   );
 }
 
-function Face({ name }: { name: string }) {
+export function Face({ name }: { name: string }) {
   return <img src={`/avatars/${name}.png`} alt="" className="size-full object-cover" />;
 }
 
@@ -349,7 +349,7 @@ function DocsDisc() {
   );
 }
 
-function ChevronGlyph() {
+export function ChevronGlyph() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
       <path
@@ -367,7 +367,7 @@ function ChevronGlyph() {
 // The context ring — takes the agent's seat while context is being
 // pulled (Ando brand node 3507-2127). Each source folded into the
 // trace fills a third of the ring.
-function ContextRing({ filled, total }: { filled: number; total: number }) {
+export function ContextRing({ filled, total }: { filled: number; total: number }) {
   const r = 6;
   const c = 2 * Math.PI * r;
   return (
@@ -402,7 +402,7 @@ function ContextRing({ filled, total }: { filled: number; total: number }) {
 // solid 14px disc — the radius shrinks as the stroke grows, so the
 // outer edge stays a circle (never clipping square) — then the check
 // draws through it. One continuous object, no pop, no swap.
-function CheckDisc() {
+export function CheckDisc() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="shrink-0">
       <circle

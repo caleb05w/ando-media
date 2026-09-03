@@ -1,0 +1,34 @@
+/* Double class so this wins over .ando-surface-header's `padding: 0 16px`
+   regardless of stylesheet import order. */
+.ando-surface-header.ando-sidebar-panel-header {
+  background: var(--color-ando-bg-main);
+  padding: 0 12px 0 10px;
+}
+
+/* The switcher slots stretch to the header height so the active tab's
+   underline lands on the header divider rather than floating above it. */
+.ando-sidebar-panel-header__content {
+  align-self: stretch;
+  min-width: 0;
+}
+
+/* Double class so this wins over .ando-surface-header__title's
+   `overflow: hidden` (same specificity, later import order otherwise). */
+.ando-surface-header__title.ando-sidebar-panel-header__switcher {
+  align-items: stretch;
+  display: flex;
+  isolation: isolate;
+  min-width: 0;
+  /* Clip horizontally only (label truncation). Vertical overflow stays
+     visible so the switcher's active underline can drop 1px past the slot
+     and paint over the header's bottom divider — the same overlap mechanics
+     the stepper's trigger uses against its own track elsewhere. */
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+/* Doubled selector so the row's gap beats SurfaceHeader's base 4px, which
+   otherwise wins on stylesheet order. */
+.ando-sidebar-panel-header .ando-sidebar-panel-header__actions {
+  gap: 8px;
+}

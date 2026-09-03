@@ -1,0 +1,5 @@
+.ando-url-input-v2__prefix {
+  background: var(--color-ando-bg-fill-subtle);
+  border-right: 1px solid var(--color-ando-border-alpha);
+  color: var(--color-ando-fg-tertiary);
+}

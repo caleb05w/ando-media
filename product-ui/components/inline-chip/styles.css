@@ -1,0 +1,175 @@
+/* Inline chip — mention/channel pills that live inside prose (AND-4840).
+   The container is a row-reversed inline-flex: the label is first in the
+   DOM, so with align-items: baseline the flex container takes its baseline
+   from the label text and aligns with the surrounding prose exactly. The
+   leading icon is DOM-last (rendered on the visual left by row-reverse) and
+   is re-centered via align-self, so it can never become the baseline source
+   nor stretch the line box. Padding is asymmetric (2px icon side / 3px text
+   side) for optical balance. */
+.ando-inline-chip {
+  align-items: baseline;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  column-gap: 1px;
+  display: inline-flex;
+  flex-direction: row-reverse;
+  font-family: inherit;
+  font-size: var(--type-style-text-label-14-md-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-md-font-weight, 500);
+  height: 20px;
+  line-height: var(--type-style-text-label-14-md-line-height, 20px);
+  max-width: 100%;
+  padding: 0 3px 0 2px;
+  position: relative;
+  text-align: inherit;
+}
+
+/* Label and icon are positioned so they paint above the inset ::before fill. */
+.ando-inline-chip__label {
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-inline-chip__icon {
+  align-self: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Selectable prefix proxy: an invisible "#" / "@" that sits in flow so the icon
+   participates in text selection, with the real glyph overlaid on top. The box
+   is held at the glyph's width (min-width) and the prefix is centered, so the
+   overlaid 14px glyph never overflows into the label — the icon→label gap stays
+   consistent regardless of how wide the prefix character is. */
+.ando-inline-chip__icon-select {
+  color: transparent;
+  display: inline-block;
+  min-width: 14px;
+  text-align: center;
+}
+
+.ando-inline-chip__icon-glyph {
+  display: inline-flex;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Paint text glyphs without adding a duplicate text node beside the selectable
+   proxy. This preserves correct plain-text and rich-HTML clipboard output. */
+.ando-inline-chip [data-inline-chip-text-glyph]::before {
+  content: attr(data-inline-chip-text-glyph);
+}
+
+.ando-inline-chip__icon > svg,
+.ando-inline-chip__icon-glyph > svg {
+  height: 14px;
+  width: 14px;
+}
+
+/* Channel glyphs (hashtag / lock-hashtag) fill the full 16px icon slot per the
+   Design System Links/ChannelLinks spec; all other chip glyphs stay at 14px
+   inside the slot (bubble, group, DM, chain-link, provider logos). The
+   selectable proxy widens with the glyph so the overlay never leaks into the
+   label. */
+.ando-inline-chip__icon.ando-inline-chip__icon--slot-fill svg {
+  height: 16px;
+  width: 16px;
+}
+
+.ando-inline-chip__icon--slot-fill .ando-inline-chip__icon-select {
+  min-width: 16px;
+}
+
+/* The colored fill is painted by an absolutely positioned ::before covering
+   the full 20px chip box (Design System `Links`/`Mentions` spec) while the
+   label stays exactly on the prose baseline. Each filled variant declares its
+   fill pair as custom properties; the shared ::before / hover rules consume
+   them so hover always darkens within the variant's own family. */
+.ando-inline-chip--mention,
+.ando-inline-chip--channel,
+.ando-inline-chip--website {
+  --inline-chip-fill: var(--color-ando-action-mention-tag);
+  --inline-chip-fill-hover: var(--color-ando-action-mention-tag-hover);
+  color: var(--color-ando-fg-on-mention-tag);
+}
+
+.ando-inline-chip--agent {
+  --inline-chip-fill: var(--color-ando-action-agent-tag);
+  --inline-chip-fill-hover: var(--color-ando-action-agent-tag-hover);
+  color: var(--color-ando-fg-on-agent-tag);
+}
+
+.ando-inline-chip--muted {
+  --inline-chip-fill: var(--color-ando-bg-fill-muted);
+  --inline-chip-fill-hover: var(--color-ando-bg-fill-strong);
+  color: var(--color-ando-fg-secondary);
+}
+
+/* Link chips inherit the base max-width: 100% — they may span the full line.
+   Length control is handled at the label level: bare URLs render a condensed
+   Slack-style form (host + leading segments + … + tail + trimmed query), so
+   the CSS ellipsis is only a last resort for narrow containers. */
+
+/* Icon-slot chips (channel / website / muted) follow the Design System Links
+   anatomy: a 2px container inset, the 14px glyph centered in a 16px slot
+   (+1px), and a 2px-padded label — flattened here to 3px leading edge, 3px
+   icon→label gap, 4px trailing edge. Mention/agent chips stay on the tighter
+   base metrics: in Figma they are a plain "@name" text run with no icon slot,
+   so the @ glyph hugs the label like a letterform. */
+.ando-inline-chip--channel,
+.ando-inline-chip--website,
+.ando-inline-chip--muted {
+  column-gap: 3px;
+  padding: 0 4px 0 3px;
+}
+
+/* No-access chips italicize the inaccessible name. */
+.ando-inline-chip--italic .ando-inline-chip__label {
+  font-style: italic;
+  /* Keep the final slanted glyph inside the label's overflow boundary. */
+  padding-inline-end: 1px;
+}
+
+/* Icon-led chips (those with a selectable prefix) put the icon first in the
+   DOM for correct copy order; switch off the row-reverse so it stays visually
+   left of the label. */
+.ando-inline-chip--icon-lead {
+  flex-direction: row;
+}
+
+.ando-inline-chip--mention::before,
+.ando-inline-chip--channel::before,
+.ando-inline-chip--website::before,
+.ando-inline-chip--agent::before,
+.ando-inline-chip--muted::before {
+  background: var(--inline-chip-fill);
+  border-radius: var(--radius-xxs, 2px);
+  content: "";
+  /* 19px fill — 1px shaved off the bottom of the 20px line box — so chips on
+     consecutive 20px prose lines keep a 1px separation instead of fusing. */
+  inset: 0 0 1px;
+  position: absolute;
+}
+
+/* Interactive chips darken the existing fill on hover — no second background
+   layered on top of the chip box. */
+.ando-inline-chip--hoverable:hover::before {
+  background: var(--inline-chip-fill-hover);
+}
+
+/* Selection paints INSIDE chips like Slack's mention spans: the label and the
+   transparent icon proxy are ordinary selectable text, so a translucent
+   ::selection tint (owned by the app's prose styles) sweeps across prose and
+   chip fills as one continuous band. Chips must NOT be user-select: all —
+   atomically-selected elements get no internal selection paint and read as
+   holes in the band. The full-box `--in-selection` paint is app-owned CSS
+   (apps/web globals.css) since the selection-highlight mechanism lives there. */

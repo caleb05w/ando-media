@@ -1,0 +1,109 @@
+.ando-table-v2__container {
+  overflow-x: auto;
+  position: relative;
+  width: 100%;
+}
+
+.ando-table-v2 {
+  /* Separated borders, drawn by the cells. Tailwind's preflight collapses
+     tables by default, and a collapsed border belongs to the table grid rather
+     than to the element that declared it — so a `position: sticky` header
+     leaves its own bottom rule behind with the rows it is pinned over. Every
+     surface that frames this table freezes its header (the Studio sections,
+     `data-table`), so the rules below sit on `> *` and travel with the cell.
+     With no vertical rules and zero spacing this renders identically to the
+     collapsed model it replaces. */
+  border-collapse: separate;
+  border-spacing: 0;
+  caption-side: bottom;
+  color: var(--color-ando-fg-primary);
+  font-size: var(--type-style-text-label-14-font-size);
+  line-height: var(--type-style-text-label-14-line-height);
+  text-align: left;
+  width: 100%;
+}
+
+.ando-table-v2__header .ando-table-v2__row > * {
+  border-bottom: 1px solid var(--color-ando-border-default);
+}
+
+/* Column headers follow the Studio table spec: minimal fill, secondary
+   foreground, all-caps overline type. */
+.ando-table-v2__header .ando-table-v2__head {
+  background: var(--color-ando-bg-fill-minimal);
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--type-style-text-overline-11-font-size, 11px);
+  font-weight: var(--type-style-text-overline-11-font-weight, 500);
+  letter-spacing: var(--type-style-text-overline-11-letter-spacing, 0.1em);
+  line-height: var(--type-style-text-overline-11-line-height, 14px);
+  text-transform: var(--type-style-text-overline-11-text-transform, uppercase);
+}
+
+.ando-table-v2__body .ando-table-v2__row:last-child > * {
+  border-bottom: 0;
+}
+
+.ando-table-v2__footer {
+  background: color-mix(in srgb, var(--color-ando-bg-fill-subtle) 50%, transparent);
+  font-weight: var(--type-style-text-label-14-font-weight, 500);
+}
+
+.ando-table-v2__footer .ando-table-v2__row:first-child > * {
+  border-top: 1px solid var(--color-ando-border-default);
+}
+
+.ando-table-v2__footer .ando-table-v2__row:last-child > * {
+  border-bottom: 0;
+}
+
+.ando-table-v2__row {
+  transition: background-color var(--motion-duration-fast)
+    var(--motion-easing-standard);
+}
+
+.ando-table-v2__row > * {
+  border-bottom: 1px solid var(--color-ando-border-default);
+}
+
+.ando-table-v2__row:hover,
+.ando-table-v2__row:has([aria-expanded="true"]) {
+  background: color-mix(in srgb, var(--color-ando-bg-fill-subtle) 50%, transparent);
+}
+
+.ando-table-v2__row[data-state="selected"] {
+  background: color-mix(in srgb, var(--color-ando-bg-fill-subtle) 50%, transparent);
+}
+
+.ando-table-v2__head {
+  color: var(--color-ando-fg-primary);
+  font-weight: var(--type-style-text-label-14-font-weight, 500);
+  height: 40px;
+  padding: 0 8px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ando-table-v2__head:has([role="checkbox"]),
+.ando-table-v2__cell:has([role="checkbox"]) {
+  line-height: 0;
+  padding-right: 0;
+}
+
+.ando-table-v2__head > [role="checkbox"],
+.ando-table-v2__cell > [role="checkbox"] {
+  vertical-align: middle;
+}
+
+.ando-table-v2__cell {
+  padding: 8px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ando-table-v2__caption {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--type-style-text-label-14-font-size);
+  line-height: var(--type-style-text-label-14-line-height);
+  margin-top: 16px;
+}

@@ -1,0 +1,69 @@
+/* Segmented control: a filled single-select track (iOS-style). The raised
+   card under the active segment is one indicator element that slides between
+   equal-width segments — transform-only so the switch never does layout
+   work, ~200ms with a decisive ease-out for a user-initiated change. */
+.ando-segmented-control {
+  display: flex;
+  flex-direction: column;
+}
+
+.ando-segmented-control__list {
+  background: var(--color-ando-bg-fill-muted);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: 6px;
+  padding: 2px;
+  position: relative;
+}
+
+.ando-segmented-control__indicator {
+  background: var(--color-ando-bg-main);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-xs);
+  height: calc(100% - 4px);
+  left: 2px;
+  pointer-events: none;
+  position: absolute;
+  top: 2px;
+  transition: transform 200ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.ando-segmented-control__item {
+  background: transparent;
+  border-radius: var(--radius-xs);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  flex: 1 1 0;
+  font-size: var(--type-style-text-label-13-font-size);
+  font-weight: var(--type-style-text-label-13-font-weight);
+  height: 28px;
+  line-height: var(--type-style-text-label-13-line-height);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  position: relative;
+  text-overflow: ellipsis;
+  transition: color 150ms ease;
+  white-space: nowrap;
+}
+
+.ando-segmented-control__item:hover {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-segmented-control__item[data-state="active"] {
+  color: var(--color-ando-fg-primary);
+  font-weight: var(--type-style-text-label-13-md-font-weight);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ando-segmented-control__indicator,
+  .ando-segmented-control__item {
+    transition: none;
+  }
+}
+
+.ando-segmented-control__content {
+  color: var(--color-ando-fg-primary);
+  outline: none;
+}

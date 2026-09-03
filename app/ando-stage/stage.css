@@ -1,0 +1,165 @@
+/* /ando-stage — motion for the staged transcript.
+ *
+ * Everything here is entry motion for something that just landed. The stage
+ * is scrubbable, so each of these runs on mount: scrub back and forward and a
+ * row replays its arrival, which is exactly what a take needs. */
+
+/* The brand entrance signature — opacity, a small rise, and a blur clearing —
+ * on the ladder's short duration. Used for every row that lands. */
+@keyframes st-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.st-row-in {
+  animation: st-row-in 420ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* An agent at work: the ring orbits while the run is open, and simply stops —
+ * sealed — when it closes. Dash pattern lives on the element. */
+@keyframes st-orbit {
+  to { transform: rotate(360deg); }
+}
+
+.st-orbit {
+  transform-origin: 50% 50%;
+  animation: st-orbit 2.6s linear infinite;
+}
+
+/* The run's own progress bar: an indeterminate sweep, because the honest
+ * answer to "how far along" is that the agent does not know either. */
+@keyframes st-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+.st-sweep {
+  animation: st-sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* A reaction landing — small, an overshoot, settle. Same grammar as the
+ * affiliate stats deck's reaction row. */
+@keyframes st-react-in {
+  0%   { opacity: 0; transform: scale(0.4); }
+  60%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.st-react-in {
+  animation: st-react-in 320ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Launch-card band. Three squares breathing through the brand palette — the
+ * card's only motion, so it draws the eye to the post and nowhere else. */
+@keyframes st-band {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50%      { opacity: 1;    transform: translateY(-4px); }
+}
+
+.st-band-cell {
+  animation: st-band 3.4s cubic-bezier(0.2, 0, 0, 1) infinite;
+  animation-delay: calc(var(--i, 0) * 0.28s);
+}
+
+/* A message landing. Short and quiet — a fade with a 4px settle, no blur —
+ * enough to take the edge off a row appearing from nothing, not enough to
+ * read as motion. Runs on mount, so live sends, scripted lines and Jam cards
+ * all take it; the product's own rows are static, this is the stage's one
+ * concession to being watched. */
+@keyframes st-land {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.st-land {
+  animation: st-land 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* The Jam panel docking in from the right — a short slide with a fade. */
+@keyframes st-panel-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.st-panel-in {
+  animation: st-panel-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* The live-call glyph: five bars breathing like a level meter. Each bar
+ * scales about its middle on its own phase, so the shape never repeats
+ * cleanly — it reads as a voice, not a metronome. */
+@keyframes st-voice {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+
+.st-voice-bar {
+  transform-origin: 50% 50%;
+  animation: st-voice var(--st-voice-duration, 900ms) ease-in-out infinite;
+  animation-delay: var(--st-voice-delay, 0ms);
+}
+
+/* Someone talking: the green ring comes and goes the way a voice does —
+ * phrases and breaths, not a metronome. The holds and gaps are uneven so
+ * the pattern never quite repeats. */
+@keyframes st-speak-ring {
+  0%, 14%   { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
+  18%, 24%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.15), 0 0 0 6px rgba(34,197,94,0.03); }
+  28%, 50%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
+  55%, 60%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.2), 0 0 0 6px rgba(34,197,94,0.04); }
+  64%, 82%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
+  87%, 93%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.1), 0 0 0 6px rgba(34,197,94,0.02); }
+  100%      { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
+}
+
+.st-speaking {
+  animation: st-speak-ring 2.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* The caret behind the script's typing: a steady blink, held solid while
+ * letters are landing (the keystroke restarts it). */
+@keyframes st-caret {
+  0%, 55%  { opacity: 1; }
+  56%, 100% { opacity: 0; }
+}
+
+.st-caret {
+  animation: st-caret 1.05s steps(1, end) infinite;
+}
+
+/* The director bar arriving from the floor. */
+@keyframes st-director-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.st-director-in {
+  animation: st-director-in 260ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-row-in,
+  .st-land,
+  .st-panel-in,
+  .st-react-in,
+  .st-director-in {
+    animation-duration: 0.01s;
+  }
+  /* Loops carry no information the still frame lacks — the ring is already
+     dashed, the band already coloured. */
+  .st-speaking,
+  .st-orbit,
+  .st-sweep,
+  .st-band-cell {
+    animation: none;
+  }
+  .st-band-cell { opacity: 0.7; }
+}

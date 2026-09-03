@@ -1,0 +1,93 @@
+.ando-alert-dialog__overlay {
+  animation: ando-ui-fade-in var(--motion-duration-fast) ease-out;
+  background: var(--color-ando-alpha-d10);
+  inset: 0;
+  position: fixed;
+  z-index: var(--ando-z-overlay-backdrop);
+}
+
+.ando-alert-dialog__overlay[data-state="closed"] {
+  animation: ando-ui-fade-out var(--motion-duration-fast) ease-out;
+}
+
+.ando-alert-dialog__content {
+  --ando-alert-dialog-center-transform: translate(-50%, -50%);
+  --ando-overlay-base-transform: var(--ando-alert-dialog-center-transform);
+  animation: ando-ui-overlay-enter var(--motion-duration-fast) ease-out;
+  background: var(--color-ando-bg-elevated);
+  /* No border: --shadow-xl's first layer already draws the 1px border-alpha
+     hairline; a border on top doubles the edge. */
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-ando-fg-primary);
+  display: grid;
+  left: 50%;
+  max-height: min(90vh, 720px);
+  outline: none;
+  overflow: auto;
+  position: fixed;
+  top: 50%;
+  transform: var(--ando-alert-dialog-center-transform);
+  width: min(440px, calc(100vw - 32px));
+  z-index: var(--ando-z-overlay-content);
+}
+
+.ando-alert-dialog__content[data-state="closed"] {
+  animation: ando-ui-overlay-exit var(--motion-duration-fast) ease-out;
+}
+
+.ando-alert-dialog__header,
+.ando-alert-dialog__footer {
+  display: flex;
+}
+
+.ando-alert-dialog__header {
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.ando-alert-dialog__header--iconic {
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 8px;
+  padding: 16px;
+}
+
+.ando-alert-dialog__header-icon {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  height: var(--type-style-text-label-14-md-line-height, 20px);
+  justify-content: center;
+  width: 28px;
+}
+
+.ando-alert-dialog__header-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ando-alert-dialog__footer {
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 12px 16px 16px;
+}
+
+.ando-alert-dialog__title {
+  color: var(--color-ando-fg-primary);
+  font-size: var(--type-style-text-label-14-md-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-md-font-weight, 500);
+  line-height: var(--type-style-text-label-14-md-line-height, 20px);
+  margin: 0;
+}
+
+.ando-alert-dialog__description {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  margin: 0;
+}

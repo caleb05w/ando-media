@@ -1,0 +1,183 @@
+.ando-tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+/* flex-end, not center: every trigger's underline must land on the track
+   whatever its content height. Centering floats a shorter one above the
+   line and turns the -1px overlap below into a half pixel. */
+.ando-tabs__list {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--color-ando-border-default);
+  display: inline-flex;
+  gap: 20px;
+}
+
+.ando-tabs__trigger {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  font-size: var(--type-style-text-label-16-font-size);
+  font-weight: 600;
+  outline: none;
+  padding: 0 0 10px;
+}
+
+/* Drops the active underline onto the track's own pixel row instead of
+   stacking it one row above. Doubled class to survive
+   .ando-unstyled-button's `margin: 0`, which the standalone Stepper's
+   triggers inherit at equal specificity. */
+.ando-tabs__trigger.ando-tabs__trigger {
+  margin-bottom: -1px;
+}
+
+.ando-tabs__trigger:hover {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-tabs__trigger[data-state="active"] {
+  border-color: var(--color-ando-border-brand);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-tabs__content {
+  color: var(--color-ando-fg-primary);
+  outline: none;
+  padding-top: 16px;
+}
+
+/* Stepper: the product tab row composed over the Tabs primitives. The list
+   is a full-width flex track so the active underline sits on a continuous
+   line instead of a floating content-width segment. */
+.ando-stepper__list {
+  display: flex;
+}
+
+.ando-stepper__trigger {
+  align-items: center;
+  display: inline-flex;
+  position: relative;
+}
+
+/* String labels reserve their active-weight (500) width via a hidden bold
+   ghost stacked under the visible text, so toggling the active tab never
+   changes trigger width — the underline, dot, and neighboring tabs stay
+   put while the visible text just thickens in place. */
+.ando-stepper__label {
+  display: inline-grid;
+  justify-items: start;
+}
+
+.ando-stepper__label-ghost,
+.ando-stepper__label-text {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+/* Every size now keeps one weight across states, so the ghost inherits and
+   the width reservation is a no-op. If a size ever bolds its active label
+   again, pin this back to that active weight to restore the reservation. */
+.ando-stepper__label-ghost {
+  font-weight: inherit;
+  visibility: hidden;
+}
+
+/* Count pill: 18px badge chip per the channel-details Figma spec. The 1px
+   top padding is the spec's optical centering for the 12px numerals. */
+.ando-stepper__count {
+  align-items: center;
+  background: var(--color-ando-bg-badge);
+  /* Squared, not a pill: the count reads as a metadata chip alongside
+     StatusChip and the tab counts in settings, which all sit on radius-xxs. */
+  border-radius: var(--radius-xxs);
+  color: var(--color-ando-fg-tertiary);
+  display: inline-flex;
+  font-size: var(--type-style-text-label-12-md-font-size);
+  font-weight: var(--type-style-text-label-12-md-font-weight);
+  height: 18px;
+  justify-content: center;
+  line-height: var(--type-style-text-label-12-md-line-height);
+  margin-left: 8px;
+  padding: 1px 6px 0;
+}
+
+.ando-stepper__trigger[data-state="active"] .ando-stepper__count {
+  color: var(--color-ando-fg-secondary);
+}
+
+/* Unread dot: an overlay badge, not layout (the Apple pattern — app-icon and
+   tab-bar badges float over adjacent space). The frame is absolutely
+   positioned tight against the label's trailing edge, centered on the compact
+   sizes' 20px text line, so it occupies no flow space: no dead gap when
+   absent, no layout shift when it appears, and the trigger's underline spans
+   exactly the label. Only the dot animates: it scales in and away with the
+   same ease-in-out transition. */
+.ando-stepper__unread-dot-frame {
+  height: 5px;
+  left: 100%;
+  margin-left: 8px;
+  position: absolute;
+  top: 7.5px;
+  width: 5px;
+}
+
+.ando-stepper__unread-dot {
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: scale(0);
+  transition: transform var(--motion-duration-fast) ease-in-out;
+}
+
+.ando-stepper__unread-dot-frame[data-visible="true"] .ando-stepper__unread-dot {
+  transform: scale(1);
+}
+
+/* Compact side-panel tabs: constant 450 weight in both states (selection is
+   carried by color + underline, so labels never reflow), 1px foreground
+   underline. `sm` and `xs` share every property below and differ ONLY in
+   font-size — `sm` is 14px (channel details), `xs` is 13px (the
+   global-sidebar Conversations/Threads switcher). Keep the shared rules
+   grouped so the two sizes can't drift apart on anything but text size. */
+.ando-tabs--sm .ando-tabs__list,
+.ando-tabs--xs .ando-tabs__list {
+  gap: 24px;
+}
+
+.ando-tabs--sm .ando-tabs__trigger,
+.ando-tabs--xs .ando-tabs__trigger {
+  border-bottom-width: 1px;
+  color: var(--color-ando-fg-tertiary);
+  font-weight: 450;
+  line-height: 20px;
+  padding: 0 0 12px;
+}
+
+.ando-tabs--sm .ando-tabs__trigger {
+  font-size: var(--type-style-text-label-14-font-size);
+}
+
+.ando-tabs--xs .ando-tabs__trigger {
+  font-size: var(--type-style-text-label-13-font-size);
+}
+
+.ando-tabs--sm .ando-tabs__trigger:hover,
+.ando-tabs--xs .ando-tabs__trigger:hover {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-tabs--sm .ando-tabs__trigger[data-state="active"],
+.ando-tabs--xs .ando-tabs__trigger[data-state="active"] {
+  border-color: var(--color-ando-fg-primary);
+  color: var(--color-ando-fg-primary);
+}
+
+/* Disabled steps remain legible as a preview, but hover must not make them
+   look selectable. This follows the compact hover rules so it wins there too. */
+.ando-tabs__trigger:disabled,
+.ando-tabs__trigger:disabled:hover {
+  color: var(--color-ando-fg-tertiary);
+  cursor: default;
+}

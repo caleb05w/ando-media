@@ -1,0 +1,10 @@
+.ando-context-menu__content {
+  box-shadow: var(--shadow-lg);
+  max-height: var(--radix-context-menu-content-available-height, 360px);
+  min-width: 168px;
+  transform-origin: var(--radix-context-menu-content-transform-origin, center);
+}
+
+.ando-context-menu__item {
+  cursor: default;
+}

@@ -1,0 +1,39 @@
+.ando-unread-dot {
+  background: var(--color-ando-bg-brand);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-unread-dot[data-size="xs"] {
+  height: 5px;
+  width: 5px;
+}
+
+.ando-unread-dot[data-size="sm"] {
+  height: 6px;
+  width: 6px;
+}
+
+.ando-unread-dot[data-pulse="true"] {
+  animation: ando-ui-pulse 1.4s ease-in-out infinite;
+}
+
+.ando-unread-count-badge {
+  align-items: center;
+  background: var(--color-ando-bg-brand);
+  border-radius: 999px;
+  color: var(--color-ando-fg-white);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  height: 16px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 16px;
+  padding: 0 5px;
+  text-align: center;
+}

@@ -1,0 +1,21 @@
+/* /context-stream — the film's few rules. Everything that moves is written
+ * per frame by scene.tsx; nothing here transitions, so a scrub lands
+ * exactly where the clock says. */
+
+.cs-stage {
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Driver-owned elements never ease on their own. */
+.cs-stage [data-cs],
+.cs-stage [data-cs] *,
+.cs-stage [data-row],
+.cs-stage [data-row] * {
+  transition: none !important;
+}
+
+/* The product's textarea has a caret; the scripted draft should not. */
+.cs-stage textarea {
+  caret-color: transparent;
+}

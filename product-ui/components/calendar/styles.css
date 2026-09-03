@@ -1,0 +1,206 @@
+.ando-calendar {
+  display: block;
+  --cell-size: 32px;
+  --cell-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ando-fg-primary);
+  width: fit-content;
+}
+
+.ando-calendar__months {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .ando-calendar__months {
+    flex-direction: row;
+  }
+}
+
+.ando-calendar__month {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.ando-calendar__nav {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  inset-inline: 0;
+  justify-content: space-between;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.ando-calendar__nav-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--cell-radius);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: var(--cell-size);
+  justify-content: center;
+  padding: 0;
+  width: var(--cell-size);
+}
+
+.ando-calendar__nav-button:hover:not([disabled]) {
+  background: var(--color-ando-bg-fill-subtle);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-calendar__nav-button[disabled] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.ando-calendar__month-caption {
+  align-items: center;
+  display: flex;
+  height: var(--cell-size);
+  justify-content: center;
+  padding-inline: var(--cell-size);
+  width: 100%;
+}
+
+.ando-calendar__caption-label {
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+}
+
+.ando-calendar__dropdowns {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  height: var(--cell-size);
+  justify-content: center;
+}
+
+.ando-calendar__dropdown-root {
+  border-radius: var(--cell-radius);
+  position: relative;
+}
+
+.ando-calendar__dropdown {
+  cursor: pointer;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.ando-calendar__month-grid {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.ando-calendar__weekdays,
+.ando-calendar__week {
+  display: flex;
+  width: 100%;
+}
+
+.ando-calendar__week {
+  margin-top: 6px;
+}
+
+.ando-calendar__weekday {
+  align-items: center;
+  border-radius: var(--cell-radius);
+  color: var(--color-ando-fg-tertiary);
+  display: flex;
+  flex: 1;
+  font-size: var(--type-style-text-label-12-font-size);
+  font-weight: var(--type-style-text-label-12-font-weight);
+  height: var(--cell-size);
+  justify-content: center;
+  line-height: var(--type-style-text-label-12-line-height);
+  user-select: none;
+}
+
+.ando-calendar__day {
+  aspect-ratio: 1;
+  height: var(--cell-size);
+  padding: 0;
+  position: relative;
+  text-align: center;
+  width: var(--cell-size);
+}
+
+.ando-calendar__day-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--cell-radius);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  height: var(--cell-size);
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: var(--cell-size);
+  z-index: 1;
+}
+
+.ando-calendar__day-button:hover:not([disabled]) {
+  background: var(--color-ando-bg-fill-subtle);
+}
+
+.ando-calendar__selected .ando-calendar__day-button,
+.ando-calendar__range-start .ando-calendar__day-button,
+.ando-calendar__range-end .ando-calendar__day-button {
+  background: var(--color-ando-action-primary);
+  color: var(--color-ando-fg-white);
+}
+
+.ando-calendar__range-middle .ando-calendar__day-button {
+  background: var(--color-ando-bg-fill-muted);
+  border-radius: 0;
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-calendar__range-start .ando-calendar__day-button {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.ando-calendar__range-end .ando-calendar__day-button {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+.ando-calendar__today:not(.ando-calendar__selected)
+  .ando-calendar__day-button {
+  box-shadow: inset 0 0 0 1px var(--color-ando-border-strong);
+}
+
+.ando-calendar__outside .ando-calendar__day-button {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-calendar__disabled .ando-calendar__day-button,
+.ando-calendar__day-button[disabled] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.ando-calendar__hidden {
+  visibility: hidden;
+}
+
+.ando-calendar__week-number-header,
+.ando-calendar__week-number {
+  color: var(--color-ando-fg-tertiary);
+  user-select: none;
+  width: var(--cell-size);
+}

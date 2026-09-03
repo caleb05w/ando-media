@@ -1,0 +1,153 @@
+.ando-tooltip__positioner {
+  z-index: var(--ando-z-tooltip);
+}
+
+.ando-tooltip__content {
+  animation: ando-ui-slide-from-bottom var(--motion-duration-base) ease-out;
+  background: var(--color-ando-bg-dark-elevated);
+  border-radius: 999px;
+  /* Figma color/shadow/12 — always-dark surface, so the shadow is
+     theme-invariant and has no ring, unlike the shared elevation tokens. */
+  box-shadow: 0 2px 6px 0 rgba(16, 16, 16, 0.12);
+  color: var(--color-ando-fg-white);
+  max-width: min(280px, calc(100vw - 24px));
+  outline: none;
+  overflow: hidden;
+  padding: 6px 14px;
+  pointer-events: auto;
+  /* Copy that outgrows the capsule elides on one line rather than clipping
+     mid-word. Labels stay a fixed shape at any length, and a value too long to
+     read here — a URL, a path — is recoverable from the control itself
+     (context menu, copy action). Prose that must be read in full opts into
+     `multiline` instead of relying on the pill to grow. */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: var(--ando-z-tooltip);
+}
+
+/* Typography defaults sit at zero specificity so a kanso-text-* label class
+   passed via className (same ui layer, class specificity) can restate the
+   type without attribute pins or !important. Ordered base → size → variant so
+   the zero-specificity defaults keep their original override chain. */
+:where(.ando-tooltip__content) {
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: 400;
+  line-height: var(--type-style-text-label-14-line-height);
+}
+
+.ando-tooltip__content[data-shortcut="true"] {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+}
+
+/* A shortcut turns the popup into a flex container, where the label is an
+   anonymous flex item that the popup's own `text-overflow` cannot reach. The
+   label gets its own box so it elides like every other tooltip; `min-width: 0`
+   lets it shrink below its content width so the key never gets pushed out. */
+.ando-tooltip__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ando-tooltip__content[data-size="md"] {
+  /* 16px line + 8px padding = the 24px capsule in Figma. */
+  padding: 4px 10px;
+}
+
+:where(.ando-tooltip__content[data-size="md"]) {
+  font-size: var(--type-style-text-label-12-font-size);
+  line-height: var(--type-style-text-label-12-line-height);
+}
+
+.ando-tooltip__content[data-size="md"][data-shortcut="true"] {
+  /* 18px key + 6px padding keeps the same 24px capsule. */
+  padding: 3px 3px 3px 10px;
+}
+
+/* The wrapped treatment is the same capsule with its corners relaxed — a
+   999px radius reads wrong once copy runs to a second line. Everything else
+   is deliberately left alone: this rule sets neither padding nor line-height,
+   so both fall through to the size scale above and a wrapped tooltip is inset
+   and leaded exactly like a single-line one.
+
+   Copy is centered (design call), matching how the single-line capsule reads.
+   The cost lands on the copy this variant was built for: a wrapped URL, file
+   path, or raw device error is harder to scan centered, because its last line
+   no longer starts at the same left edge as the rest. Prefer a Notice or a
+   HoverCard when the copy is that kind of value rather than a sentence.
+
+   The radius is a flat 6px at every size (design call). It replaced a
+   half-the-capsule-height value — 16px on `lg`, 12px on `md` — that was
+   self-correcting: at one line the two left radii summed to the box height,
+   so the corner-overlap rule in CSS Backgrounds §5.5 scaled them into a pill
+   indistinguishable from the 999px default, and only a genuine second line
+   read as a rounded rectangle.
+
+   A fixed value brings back the tradeoff that trick removed: copy that asks
+   for `multiline` and then fits on one line now shows 6px corners on a bubble
+   that never wrapped, rather than matching the capsule beside it. That is the
+   intent here — the shape declares "paragraph tooltip" whether or not the
+   copy happened to wrap — so do not reintroduce a height-derived radius
+   without checking with design first.
+
+   Height stays deliberately uncapped. A line clamp would truncate exactly the
+   copy that opted into wrapping in the first place: raw browser and LiveKit
+   device errors are unbounded, and a caller reaching for `multiline` is
+   saying every word has to survive. Length is controlled by not reaching for
+   this variant, not by cutting it off — copy too long to read at a glance
+   wants a Notice or a HoverCard rather than a taller tooltip. */
+.ando-tooltip__content[data-variant="description"] {
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  text-align: center;
+  white-space: normal;
+}
+
+.ando-tooltip__shortcut {
+  /* 9px = half the fixed 18px height, so the key's right edge is a full
+     semicircle that hugs the capsule's curve. */
+  border-radius: 2px 9px 9px 2px;
+  font-size: var(--type-style-text-label-11-md-font-size);
+  font-weight: var(--type-style-text-label-11-md-font-weight);
+  height: 18px;
+  line-height: var(--type-style-text-label-11-md-line-height);
+  min-height: auto;
+  padding: 0 5px;
+}
+
+.ando-tooltip__content[data-closed] {
+  /* Close instantly with no exit animation. A lingering exit keeps the previous
+     tooltip on screen while an adjacent one opens, so moving between neighbouring
+     triggers shows two tooltips at once. Base UI's instant-phase flag is meant to
+     suppress this but doesn't reliably reach the closing popup mid-transition, so
+     we drop the exit outright — tooltips are ephemeral and don't need to animate
+     out. Entry animations are unaffected. */
+  animation: none;
+  /* The base class re-enables pointer events for hoverable tooltips; a
+     closing tooltip must not intercept the click that follows it. */
+  pointer-events: none;
+}
+
+.ando-tooltip__content[data-open][data-side="bottom"] {
+  animation-name: ando-ui-slide-from-top;
+}
+
+.ando-tooltip__content[data-open][data-side="left"] {
+  animation-name: ando-ui-slide-from-right;
+}
+
+.ando-tooltip__content[data-open][data-side="right"] {
+  animation-name: ando-ui-slide-from-left;
+}
+
+.ando-tooltip__content[data-open][data-side="top"] {
+  animation-name: ando-ui-slide-from-bottom;
+}
+
+/* Adjacent tooltips inside a provider's skip window open instantly. */
+.ando-tooltip__content[data-instant] {
+  animation: none;
+}

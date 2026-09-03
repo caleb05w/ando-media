@@ -1,0 +1,28 @@
+.ando-date-picker__content {
+  padding: 12px 16px;
+}
+
+.ando-date-picker__calendar {
+  display: block;
+}
+
+.ando-date-picker__field {
+  cursor: pointer;
+  font: inherit;
+  min-width: 220px;
+  justify-content: flex-start;
+  margin: 0;
+  outline: none;
+  text-align: left;
+}
+
+.ando-date-picker__field[data-empty="true"] {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-date-picker__field-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

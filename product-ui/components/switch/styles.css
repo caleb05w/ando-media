@@ -1,0 +1,57 @@
+.ando-switch {
+  align-items: center;
+  /* The off track rests on the secondary *hover* step: the plain secondary
+     fill was too faint against the near-white rows these sit in. The system
+     exposes no darker secondary step, so the off state holds this fill on
+     hover rather than shifting again. */
+  background: var(--color-ando-action-secondary-hover);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  outline: none;
+  padding: 3px;
+  transition: background-color var(--motion-duration-fast)
+    var(--motion-easing-standard);
+}
+
+/* `--ando-switch-travel` is the track's spare width (width − height). The
+   thumb is a circle inset by the track padding, so translating it by exactly
+   that lands it flush against the trailing edge at any track ratio — sm is
+   not "two thumbs wide" like md, so a percentage travel would stop short. */
+.ando-switch[data-size="sm"] {
+  --ando-switch-travel: 12px;
+  height: 16px;
+  width: 28px;
+}
+
+.ando-switch[data-size="md"] {
+  --ando-switch-travel: 18px;
+  height: 24px;
+  width: 42px;
+}
+
+.ando-switch[data-state="checked"] {
+  background: var(--color-ando-bg-brand);
+}
+
+.ando-switch__thumb {
+  align-items: center;
+  /* Square the thumb off its own height so it is a true circle at every track
+     size, instead of deriving width from the track (which left it 1px narrower
+     than it was tall — a visible oval). */
+  aspect-ratio: 1;
+  background: var(--color-ando-bg-white);
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
+  display: inline-flex;
+  height: 100%;
+  justify-content: center;
+  transition: transform var(--motion-duration-fast)
+    var(--motion-easing-standard);
+  width: auto;
+}
+
+.ando-switch[data-state="checked"] .ando-switch__thumb {
+  transform: translateX(var(--ando-switch-travel));
+}

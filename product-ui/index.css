@@ -1,0 +1,95 @@
+/* Ando product design system — CSS only.
+ * Vendored from Ando-Corporation/ando @ a2c6d3078c:
+ *   packages/design-tokens/dist/css/ando-tailwind-theme.css
+ *   packages/ui/src/styles/{foundations,motion}.css
+ *   packages/ui/src/components/<name>/styles.css
+ *
+ * Same pattern as landing-ui/: the marketing design system is already
+ * copied in, and this is the product one. No JS is vendored — the .ando-*
+ * classes are applied by hand in app/ando-stage, so the stage renders on
+ * the real stylesheet rather than an approximation of it.
+ *
+ * The @theme block lives in app/globals.css instead, because Tailwind v4
+ * only generates ando-* utilities from the CSS entry it processes.
+ * Regenerate with scripts/sync-product-ui.sh.
+ */
+/* The :root token set. Tailwind v4 prunes @theme variables no utility
+   references, so component CSS that reads e.g. --color-ando-action-ghost-selected
+   directly would otherwise resolve to nothing. */
+@import "./ando-theme.css";
+@import "./foundations.css";
+@import "./motion.css";
+@import "./components/alert-dialog/styles.css";
+@import "./components/avatar/styles.css";
+@import "./components/badge/styles.css";
+@import "./components/button-group/styles.css";
+@import "./components/button/styles.css";
+@import "./components/calendar/styles.css";
+@import "./components/card/styles.css";
+@import "./components/chart/styles.css";
+@import "./components/checkbox/styles.css";
+@import "./components/collapsible/styles.css";
+@import "./components/combobox/styles.css";
+@import "./components/command-bar/styles.css";
+@import "./components/command/styles.css";
+@import "./components/context-menu/styles.css";
+@import "./components/date-picker/styles.css";
+@import "./components/dialog/styles.css";
+@import "./components/dropdown-menu/styles.css";
+@import "./components/empty/styles.css";
+@import "./components/field/styles.css";
+@import "./components/file-preview/styles.css";
+@import "./components/hover-card/styles.css";
+@import "./components/icon-button/styles.css";
+@import "./components/inline-chip/styles.css";
+@import "./components/input-otp/styles.css";
+@import "./components/input/styles.css";
+@import "./components/kbd/styles.css";
+@import "./components/label/styles.css";
+@import "./components/link-preview/styles.css";
+@import "./components/message-scroller/styles.css";
+@import "./components/message-timeline-divider/styles.css";
+@import "./components/message/styles.css";
+@import "./components/notice/styles.css";
+@import "./components/popover/styles.css";
+@import "./components/progress/styles.css";
+@import "./components/radio-group/styles.css";
+@import "./components/responsive-shell/styles.css";
+@import "./components/responsive-surface/styles.css";
+@import "./components/segmented-control/styles.css";
+@import "./components/selectable-flyout/styles.css";
+@import "./components/separator/styles.css";
+@import "./components/sheet/styles.css";
+@import "./components/sidebar-channel/styles.css";
+@import "./components/sidebar-conversation/styles.css";
+@import "./components/sidebar-panel-header/styles.css";
+@import "./components/sidebar-panel-switcher/styles.css";
+@import "./components/sidebar-rail/styles.css";
+@import "./components/sidebar/styles.css";
+@import "./components/skeleton/styles.css";
+@import "./components/slider/styles.css";
+@import "./components/spinner/styles.css";
+@import "./components/status-chip/styles.css";
+@import "./components/status-indicator/styles.css";
+@import "./components/surface/styles.css";
+@import "./components/switch/styles.css";
+@import "./components/tabs/styles.css";
+@import "./components/textarea/styles.css";
+@import "./components/thread/styles.css";
+@import "./components/tooltip/styles.css";
+@import "./components/typeset/styles.css";
+@import "./components/unread-indicator/styles.css";
+@import "./components/unstyled-button/styles.css";
+@import "./components/v2/button/styles.css";
+@import "./components/v2/checkbox/styles.css";
+@import "./components/v2/data-table/styles.css";
+@import "./components/v2/icon-button/styles.css";
+@import "./components/v2/input-group/styles.css";
+@import "./components/v2/input/styles.css";
+@import "./components/v2/radio-group/styles.css";
+@import "./components/v2/select/styles.css";
+@import "./components/v2/split-button/styles.css";
+@import "./components/v2/switch/styles.css";
+@import "./components/v2/table/styles.css";
+@import "./components/v2/textarea/styles.css";
+@import "./components/v2/url-input/styles.css";

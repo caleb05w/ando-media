@@ -1,0 +1,43 @@
+/* border-strong, not border-default: an empty 16px control is nothing but its
+ * outline, so it needs the heavier step to read against a card. The checked
+ * state overwrites border-color with brand, so this only shows when empty. */
+.ando-checkbox,
+.ando-radio-group__item {
+  align-items: center;
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-strong);
+  color: var(--color-ando-fg-reverse);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 16px;
+  justify-content: center;
+  outline: none;
+  width: 16px;
+}
+
+.ando-checkbox[data-invalid="true"],
+.ando-radio-group__item[data-invalid="true"] {
+  border-color: var(--color-ando-fg-danger);
+}
+
+.ando-radio-group {
+  display: grid;
+  gap: 8px;
+}
+
+.ando-radio-group__item {
+  border-radius: 999px;
+}
+
+.ando-radio-group__item[data-state="checked"] {
+  background: var(--color-ando-action-primary);
+  border-color: var(--color-ando-action-primary);
+}
+
+.ando-radio-group__indicator {
+  background: currentColor;
+  border-radius: 999px;
+  height: 6px;
+  width: 6px;
+}

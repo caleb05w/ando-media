@@ -1,0 +1,47 @@
+.ando-split-button {
+  display: inline-flex;
+  gap: 1px;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.ando-split-button__action {
+  border-end-end-radius: 1px;
+  border-start-end-radius: 1px;
+}
+
+.ando-split-button__trigger {
+  border-end-start-radius: 1px;
+  border-start-start-radius: 1px;
+  padding: 0;
+}
+
+.ando-split-button__trigger[data-size="xs"] {
+  width: 24px;
+}
+
+.ando-split-button__trigger[data-size="sm"] {
+  width: 28px;
+}
+
+.ando-split-button__trigger[data-size="md"] {
+  width: 32px;
+}
+
+.ando-split-button__trigger[data-size="lg"] {
+  width: 40px;
+}
+
+.ando-split-button__trigger-visual {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ando-split-button__trigger-visual > svg {
+  display: block;
+  height: 1em;
+  width: 1em;
+}

@@ -1,0 +1,77 @@
+.ando-empty {
+  align-items: center;
+  color: var(--color-ando-fg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  min-width: 0;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.ando-empty[data-variant="compact"] {
+  gap: 12px;
+  padding: 24px 16px;
+}
+
+.ando-empty__header {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+  min-width: 0;
+}
+
+.ando-empty__media {
+  align-items: center;
+  color: var(--color-ando-fg-tertiary);
+  display: inline-flex;
+  justify-content: center;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
+.ando-empty__media[data-variant="icon"] {
+  background: var(--color-ando-bg-elevated);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-full);
+  height: 40px;
+  width: 40px;
+}
+
+.ando-empty__title {
+  color: var(--color-ando-fg-primary);
+  min-width: 0;
+}
+
+/* Typography defaults sit at zero specificity so a kanso-text-* label class
+   passed via className (same ui layer, class specificity) can restate the
+   type without attribute pins or !important. */
+:where(.ando-empty__title) {
+  font-size: var(--type-style-text-label-14-md-font-size);
+  font-weight: var(--type-style-text-label-14-md-font-weight);
+  line-height: var(--type-style-text-label-14-md-line-height);
+}
+
+.ando-empty__description {
+  color: var(--color-ando-fg-tertiary);
+  margin: 0;
+  max-width: 360px;
+  min-width: 0;
+}
+
+:where(.ando-empty__description) {
+  font-size: var(--text-sm);
+  line-height: var(--type-style-text-label-13-line-height);
+}
+
+.ando-empty__content {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+}

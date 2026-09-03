@@ -1,0 +1,15 @@
+.ando-progress {
+  background: var(--color-ando-bg-main);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.ando-progress__indicator {
+  background: var(--color-ando-bg-brand);
+  border-radius: inherit;
+  height: 100%;
+  transition: transform 300ms ease;
+  width: 100%;
+}

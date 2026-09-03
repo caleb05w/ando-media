@@ -1,0 +1,327 @@
+"use client";
+
+// Jam — the product's voice/video call, as it shows up in three places:
+// the header control (jam-popover/jam-header-controls.tsx), the call cards
+// in the transcript (message-list/message/jam-call-card/*), and the docked
+// panel on the right (jam-panel/index.tsx, docked-stage.tsx,
+// participant-tile.tsx, call-controls.tsx, jam-panel-tabs.tsx). Classes are
+// the production strings; the LiveKit room is the only thing not here.
+
+import { useEffect, useRef, useState } from "react";
+import { Icon } from "./glyph";
+import { Avatar } from "./chrome";
+import type { Actor } from "./scenes";
+
+export type TranscriptSegment = { who: Actor; text: string; final: boolean };
+
+/** The live-call glyph, animated: IconVoiceHigh's five bars, breathing. */
+export function VoiceGlyph({ className = "" }: { className?: string }) {
+  const bars = [
+    { x: 3, h: 6, d: 0, dur: 940 },
+    { x: 7.5, h: 14, d: 160, dur: 820 },
+    { x: 12, h: 18, d: 320, dur: 1000 },
+    { x: 16.5, h: 12, d: 90, dur: 880 },
+    { x: 21, h: 5, d: 240, dur: 960 },
+  ];
+  return (
+    <svg aria-hidden width={16} height={16} viewBox="0 0 24 24" fill="none" className={`shrink-0 ${className}`}>
+      {bars.map((bar) => (
+        <rect key={bar.x} x={bar.x - 1} y={12 - bar.h / 2} width={2} height={bar.h} rx={1} fill="currentColor" className="st-voice-bar" style={{ ["--st-voice-delay" as string]: `${bar.d}ms`, ["--st-voice-duration" as string]: `${bar.dur}ms` }} />
+      ))}
+    </svg>
+  );
+}
+
+/** `participants` are who is in the call; when `joined`, you are first. */
+export type JamCall = { id: string; startedAt: number; endedAt: number | null; participants: Actor[]; joined: boolean };
+
+/** resolve-call-description.ts — "You" leads when you are in; otherwise the
+ *  others are named plainly. */
+function describeLive(call: JamCall): string {
+  const names = call.participants.map((actor, index) => (call.joined && index === 0 ? "You" : actor.name));
+  if (!call.joined) {
+    if (names.length === 0) return "Waiting for others to join...";
+    if (names.length === 1) return `${names[0]} is jamming...`;
+    if (names.length === 2) return `${names[0]} & ${names[1]} are jamming...`;
+  }
+  if (names.length === 1) return "Waiting for others...";
+  if (names.length === 2) return `${names[0]} & ${names[1]} are jamming...`;
+  const remaining = names.length - 2;
+  return `${names[0]}, ${names[1]} & ${remaining} ${remaining === 1 ? "other" : "others"} are jamming...`;
+}
+function describeEnded(call: JamCall): string {
+  const names = call.participants.map((actor, index) => (index === 0 ? "You" : actor.name));
+  if (names.length === 1) return `${names[0]} joined.`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} joined.`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} joined.`;
+}
+export function describeJoinEvent(call: JamCall): string {
+  const names = call.participants.map((actor) => actor.name);
+  if (names.length === 1) return `${names[0]} joined the jam.`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} joined the jam.`;
+}
+
+function formatCallDuration(startedAt: number, now: number): string {
+  const total = Math.max(0, Math.floor((now - startedAt) / 1000));
+  const mm = String(Math.floor(total / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+/** Wall-clock timer for a live Jam. A scripted Jam passes `elapsed` (seconds
+ *  off the stage clock) instead, so scrubbing the timeline scrubs the timer. */
+function useCallDuration(startedAt: number, elapsed?: number): string {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (elapsed != null) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [elapsed]);
+  if (elapsed != null) return formatCallDuration(0, elapsed * 1000);
+  return formatCallDuration(startedAt, now);
+}
+
+function clockTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+/* ------------------------------ header control ------------------------------ */
+
+/** JamHeaderButtonGroup. Idle: two secondary xs pills with a hairline gap.
+ *  Active: one split control in action-success, participants beside the
+ *  headphones, the caret sharing the fill. */
+export function JamHeaderControl({ active, participants, onClick }: { active: boolean; participants: Actor[]; onClick: () => void }) {
+  const tone = active ? "bg-ando-action-success text-ando-fg-white hover:bg-ando-action-success-hover" : "text-ando-fg-secondary";
+  return (
+    <span className={`ando-button-group select-none shrink-0 ${active ? "" : "gap-px"}`} data-orientation="horizontal" aria-label="Jam controls">
+      <button type="button" onClick={onClick} aria-label={active ? "Open Jam" : "Start Jam"} className={`ando-button rounded-l-sm rounded-r-[1px] ${active ? "group/jam gap-2 py-1 pl-1.5 pr-1" : "w-7 px-0"} ${tone}`} data-variant="secondary" data-size="xs">
+        <Icon name="IconHeadphones" size={16} fill={active ? "filled" : "outlined"} className="text-current" />
+        {active ? (
+          <span className="ando-avatar-group pr-1" style={{ ["--ando-avatar-group-overlap" as string]: "4px", ["--ando-avatar-group-ring-width" as string]: "0px" }}>
+            {participants.slice(0, 3).map((actor) => <Avatar key={actor.name} actor={actor} size={16} />)}
+          </span>
+        ) : null}
+      </button>
+      {active ? <span className="ando-button-group__separator" /> : null}
+      <span className={`ando-button ando-button-group__caret px-0 rounded-l-[1px] rounded-r-sm ${tone}`} data-variant="secondary" data-size="xs" style={{ width: 24 }} aria-hidden>
+        <Icon name="IconChevronDownSmall" size={12} />
+      </span>
+    </span>
+  );
+}
+
+/* --------------------------------- cards ---------------------------------- */
+
+/** active-jam-call-card.tsx */
+export function ActiveJamCallCard({ call, muted, elapsed, onToggleMute, onEnd, onJoin }: { call: JamCall; muted: boolean; elapsed?: number; onToggleMute: () => void; onEnd: () => void; onJoin: () => void }) {
+  const duration = useCallDuration(call.startedAt, elapsed);
+  return (
+    <div className="ando-card max-w-96 gap-0 bg-ando-bg-main px-3 py-2 select-none cursor-pointer" data-edge="border">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex h-4 items-center gap-1.5">
+            <VoiceGlyph className="text-ando-fg-success" />
+            <span className="kanso-text-label-12-md text-ando-fg-success">{duration}</span>
+          </div>
+          <span className="kanso-text-label-12 flex items-center h-4 text-ando-fg-secondary">{describeLive(call)}</span>
+        </div>
+        {!call.joined ? (
+          /* Not in the call: the product shows a single outline Join. */
+          <button type="button" onClick={(event) => { event.stopPropagation(); onJoin(); }} data-jam-join className="ando-button" data-variant="outline" data-size="md">Join</button>
+        ) : (
+        <div className="flex items-center gap-2">
+          <button type="button" aria-label={muted ? "Unmute call" : "Mute call"} onClick={(event) => { event.stopPropagation(); onToggleMute(); }} className="ando-button size-9 p-0 bg-ando-bg-fill-muted text-ando-stone-600 border-transparent hover:bg-ando-action-ghost-hover hover:border-transparent" data-variant="outline" data-size="md">
+            <Icon name={muted ? "IconMicrophoneOff" : "IconMicrophone"} fill="filled" />
+          </button>
+          <button type="button" aria-label="Leave call" onClick={(event) => { event.stopPropagation(); onEnd(); }} className="ando-button size-9 p-0" data-variant="destructive" data-size="md">
+            <Icon name="IconCall" fill="filled" className="rotate-[135deg]" />
+          </button>
+        </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** ended-jam-call-card.tsx */
+export function EndedJamCallCard({ call }: { call: JamCall }) {
+  const mins = call.endedAt == null ? 0 : Math.floor((call.endedAt - call.startedAt) / 60000);
+  const durationText = call.endedAt == null ? "Jam ended." : mins < 1 ? "Jam lasted less than a minute." : `Jam lasted ${mins}m.`;
+  return (
+    <div className="ando-card relative block w-full max-w-96 overflow-hidden gap-0 bg-ando-bg-main px-3 py-2" data-edge="border">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex h-4 items-center gap-1.5">
+            <Icon name="IconHeadphones" size={14} fill="filled" />
+            <span className="kanso-text-label-12-md text-ando-fg-primary">{durationText}</span>
+          </div>
+          <span className="flex items-center h-4 kanso-text-label-12 text-ando-fg-secondary">{describeEnded(call)}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Icon name="IconVideo" size={16} className="text-ando-fg-secondary" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- panel ---------------------------------- */
+
+function ControlGroup({ on, icon, label }: { on: boolean; icon: Parameters<typeof Icon>[0]["name"]; label: string }) {
+  const bg = on ? "bg-ando-action-primary-on-dark hover:bg-ando-action-primary-on-dark-hover" : "bg-ando-action-secondary-on-dark hover:bg-ando-action-secondary-on-dark-hover";
+  return (
+    <div className="relative flex gap-px">
+      <button type="button" aria-label={label} className={`flex items-center justify-center h-9 w-8 rounded-l-md rounded-r-[1px] text-ando-fg-white cursor-pointer transition-colors ${bg}`}>
+        <Icon name={icon} fill="filled" />
+      </button>
+      <button type="button" aria-label={`Select ${label.toLowerCase()} device`} className={`flex items-center justify-center h-9 w-[18px] rounded-r-md rounded-l-[1px] text-ando-fg-white cursor-pointer transition-colors ${bg}`}>
+        <Icon name="IconChevronDownSmall" />
+      </button>
+    </div>
+  );
+}
+
+/** docked-stage.tsx + participant-tile.tsx + call-controls.tsx + jam-panel-tabs.tsx */
+/** participant-tile.tsx: while a participant is speaking, their avatar wears
+ *  a green-500 ring with a soft 4px halo (the tile itself only borders when
+ *  video is on). */
+/** The production ring, animated here as speech (stage.css st-speak-ring). */
+const SPEAKING_RING = "st-speaking";
+
+export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void }) {
+  const duration = useCallDuration(call.startedAt, elapsed);
+  // transcripts-list.tsx TranscriptAutoFollow: the list stays pinned to the
+  // newest segment as they land (and when the tab opens onto a backlog).
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const lastText = transcript[transcript.length - 1]?.text ?? "";
+  useEffect(() => {
+    const list = transcriptRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [transcript.length, lastText, tab]);
+  const tabClass = (active: boolean, extra: string) => `ando-tabs__trigger cursor-pointer border-b-0 pb-0 h-7 px-2 flex items-center rounded-md space-x-0 hover:bg-ando-bg-fill-muted ${active ? "bg-ando-bg-fill-muted border-transparent" : ""} ${extra}`;
+  return (
+    <div className="st-panel-in flex flex-col h-full shrink-0 bg-ando-bg-elevated border-l border-ando-border-default" style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
+      {/* Docked stage */}
+      <div className="flex flex-col relative select-none bg-ando-bg-dark">
+        <div className="ando-surface-header" data-variant="overlay">
+          <div className="flex items-center justify-between w-full">
+            <button type="button" onClick={onCollapse} aria-label="Close jam panel" className="text-ando-fg-white transition-opacity hover:opacity-80"><Icon name="IconSidebarLeftArrow" className="-scale-x-100" /></button>
+            <div className="flex items-center space-x-2 select-none">
+              <VoiceGlyph className="text-ando-green-500" />
+              <span className="kanso-text-label-11 text-ando-green-500">{duration}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" aria-label="Fullscreen" className="text-ando-fg-white transition-opacity hover:opacity-80"><Icon name="IconFullScreen" /></button>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col space-y-4 px-4 pb-4">
+          <div className="w-full overflow-hidden" style={{ height: 184 }}>
+            {/* participant-grid.tsx sidebar layout: ≤2 side by side, equal, full height */}
+            <div className="h-full flex flex-row space-x-2">
+              {call.participants.slice(0, 2).map((actor, index) => (
+                <div key={actor.name} className="group relative min-w-0 flex-1 rounded-md overflow-hidden h-full bg-ando-dark-700 flex items-center justify-center transition-colors duration-150" data-agent-speaking={speaking === actor ? "true" : "false"}>
+                  <div className={`rounded-full overflow-hidden size-16 transition-[box-shadow] duration-150 ${speaking === actor ? SPEAKING_RING : ""}`}><Avatar actor={actor} size={64} /></div>
+                  <div className="absolute bottom-1 left-1 right-1 flex min-w-0">
+                    <div className="flex h-5 min-w-0 max-w-full items-center gap-0.5 overflow-hidden rounded-sm bg-ando-black/25 py-0 pl-1 pr-1 backdrop-blur-[8px]">
+                      <span className="flex size-3 items-center justify-center text-ando-fg-white"><Icon name={index === 0 && muted ? "IconMicrophoneOff" : "IconMicrophone"} size={12} fill="filled" /></span>
+                      <div className="min-w-0 px-0.5"><span className="kanso-text-label-11 block truncate whitespace-nowrap text-ando-fg-white">{index === 0 ? `${actor.name} (you)` : actor.name}</span></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="shrink-0">
+            <div className="flex items-center justify-center gap-3">
+              <div onClick={onToggleMute} role="presentation"><ControlGroup on={!muted} icon={muted ? "IconMicrophoneOff" : "IconMicrophone"} label={muted ? "Unmute" : "Mute"} /></div>
+              <ControlGroup on={false} icon="IconVideoOff" label="Start video" />
+              <button type="button" aria-label="Share screen" className="flex items-center justify-center size-9 rounded-md text-ando-fg-white cursor-pointer transition-colors bg-ando-action-secondary-on-dark hover:bg-ando-action-secondary-on-dark-hover"><Icon name="IconShareScreen" fill="filled" /></button>
+              <button type="button" aria-label="React" className="flex items-center justify-center size-9 rounded-md bg-ando-action-secondary-on-dark text-ando-fg-white shadow-md transition-colors hover:bg-ando-action-secondary-on-dark-hover cursor-pointer"><Icon name="IconEmojiSmile" fill="filled" /></button>
+              <button type="button" onClick={onEnd} aria-label="End call" className="flex items-center justify-center size-9 rounded-md bg-ando-action-danger-on-dark hover:bg-ando-action-danger-on-dark-hover text-ando-fg-white cursor-pointer transition-colors"><Icon name="IconCall" fill="filled" className="rotate-[135deg]" /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Thread / Live transcript */}
+      <div className="flex flex-col bg-ando-bg-main flex-1 min-h-0 border-t border-ando-border-default">
+        <div className="ando-surface-header">
+          <div className="ando-tabs__list flex items-center space-x-0 gap-3 border-b-0">
+            <button type="button" onClick={() => onTab("thread")} data-jam-tab="thread" className={tabClass(tab === "thread", "text-ando-fg-primary")} data-state={tab === "thread" ? "active" : "inactive"}>
+              <span className="kanso-text-label-12-md inline-flex items-center gap-1.5"><Icon name="IconThread" fill={tab === "thread" ? "filled" : "outlined"} />Thread</span>
+            </button>
+            <button type="button" onClick={() => onTab("transcript")} data-jam-tab="transcript" className={tabClass(tab === "transcript", "text-ando-rose-600 hover:text-ando-rose-600")} data-state={tab === "transcript" ? "active" : "inactive"}>
+              <span className="kanso-text-label-12-md inline-flex items-center gap-1.5"><Icon name="IconSquareLinesBottom" fill={tab === "transcript" ? "filled" : "outlined"} />Live transcript</span>
+            </button>
+          </div>
+        </div>
+        {tab === "transcript" ? (
+          /* transcripts-list.tsx: p-4, rows spaced 3, xs avatar, name label-11, text label-12 — the latest still being spoken reads italic. */
+          <div ref={transcriptRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 space-y-3" data-jam-transcript>
+            {transcript.length === 0 ? (
+              <div className="flex h-full items-center justify-center kanso-text-label-12 text-ando-fg-secondary">Listening…</div>
+            ) : transcript.map((segment, index) => (
+              <div key={index} className="st-land flex space-x-2">
+                <div className="shrink-0 pt-0.5"><Avatar actor={segment.who} size={20} /></div>
+                <div className="flex flex-col space-y-0.5 min-w-0">
+                  <span className="kanso-text-label-11 text-ando-fg-secondary">{segment.who.name}</span>
+                  <span className={`kanso-text-label-12 ${segment.final ? "" : "text-ando-fg-secondary italic"}`}>{segment.text}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3">
+          {/* system-message/index.tsx: join event */}
+          <div className="flex items-center gap-3 py-1 -ml-4 pl-4 text-ando-fg-secondary hover:bg-ando-bg-fill-subtle rounded-r-md">
+            <div className="flex shrink-0 items-center justify-center bg-ando-bg-fill-muted rounded" style={{ width: 32, height: 32 }}>
+              <Icon name="IconArrowRight" size={20} stroke="2" className="text-ando-fg-success shrink-0" />
+            </div>
+            <div className="min-w-0 kanso-text-label-14">
+              {call.participants.map((actor, index) => (
+                <span key={actor.name}>
+                  {index > 0 ? (index === call.participants.length - 1 ? " and " : ", ") : ""}
+                  <span className="kanso-text-label-14-md text-ando-fg-primary">{actor.name}</span>
+                </span>
+              ))}
+              {" joined the jam."}
+              <span className="kanso-text-label-12 text-ando-fg-tertiary inline ml-1.5">{clockTime(call.startedAt)}</span>
+            </div>
+          </div>
+        </div>
+        )}
+        {/* Thread composer, compact, with the broadcast option */}
+        <div className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
+          <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
+            <div className="relative min-h-[70px]">
+              <span className="kanso-text-label-14 absolute left-5 top-4 pointer-events-none text-ando-fg-tertiary">Enter your message</span>
+            </div>
+            <div className="px-3 pt-2">
+              <label className="flex min-w-0 select-none items-center space-x-2 pl-1">
+                <span className="ando-checkbox flex size-4 shrink-0 items-center justify-center rounded-xs border border-ando-border-strong bg-ando-bg-main" data-state="unchecked" aria-hidden />
+                <span className="kanso-text-label-12 min-w-0 truncate text-ando-fg-secondary">{"Also send to "}<span className="text-ando-fg-primary">{target}</span></span>
+              </label>
+            </div>
+            <div className="flex items-center justify-between pb-3 px-2 pt-1">
+              <div className="flex items-center origin-left scale-90">
+                {(["IconPaperclip1", "Aa", "IconEmojiSmile", "IconGif"] as const).map((item) => (
+                  <span key={item} className="ando-button h-7 w-7 shrink-0 !p-0" data-variant="ghost" data-size="sm" aria-hidden>
+                    {item === "Aa" ? <span className="flex h-4 w-4 items-center justify-center kanso-text-label-14-sb">Aa</span> : <Icon name={item} />}
+                  </span>
+                ))}
+              </div>
+              <div className="origin-right scale-90">
+                <span className="ando-button-group shrink-0" data-orientation="horizontal">
+                  <span className="ando-button w-7 px-0 cursor-not-allowed bg-ando-bg-fill-muted" data-size="sm" aria-hidden><Icon name="IconPaperPlane" fill="filled" size={16} className="text-ando-fg-tertiary" /></span>
+                  <span className="ando-button-group__separator" />
+                  <span className="ando-button ando-button-group__caret px-0 cursor-not-allowed bg-ando-bg-fill-muted text-ando-fg-tertiary" data-size="sm" style={{ width: 24 }} aria-hidden><Icon name="IconChevronDownSmall" size={12} /></span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

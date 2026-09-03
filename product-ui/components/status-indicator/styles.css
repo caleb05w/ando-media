@@ -1,0 +1,40 @@
+.ando-status-indicator {
+  background: var(--color-ando-border-strong);
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.ando-status-indicator[data-size="sm"] {
+  height: 6px;
+  width: 6px;
+}
+
+.ando-status-indicator[data-size="lg"] {
+  height: 8px;
+  width: 8px;
+}
+
+.ando-status-indicator[data-tone="brand"] {
+  background: var(--color-ando-bg-brand);
+}
+
+.ando-status-indicator[data-tone="default"] {
+  background: var(--color-ando-border-strong);
+}
+
+.ando-status-indicator[data-tone="success"] {
+  background: var(--color-ando-fg-success-on-dark);
+}
+
+.ando-status-indicator[data-tone="warning"] {
+  background: var(--color-ando-fg-warning);
+}
+
+.ando-status-indicator[data-tone="danger"] {
+  background: var(--color-ando-fg-danger);
+}
+
+.ando-status-indicator[data-pulse="true"] {
+  animation: ando-ui-pulse 1.4s ease-in-out infinite;
+}

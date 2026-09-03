@@ -1,0 +1,78 @@
+.ando-command {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.ando-command__dialog-command {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.ando-command__input-wrapper {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.ando-command__search-icon {
+  opacity: 0.5;
+}
+
+.ando-command__input {
+  background: transparent;
+  border: 0;
+  color: var(--color-ando-fg-primary);
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+  outline: none;
+  width: 100%;
+}
+
+.ando-command__input::placeholder {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-command__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ando-command__list {
+  outline: none;
+  /* Command lists scroll inside fixed overlays (command center, pickers);
+     no macOS rubber-band, which reads as the surface bouncing. */
+  overscroll-behavior: none;
+}
+
+.ando-command__separator {
+  background: var(--color-ando-border-default);
+  height: 1px;
+  margin: 0 -4px;
+}
+
+.ando-command__item {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+  padding: 6px 8px;
+}
+
+.ando-command__item[data-selected="true"] {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+.ando-command__shortcut {
+  color: var(--color-ando-fg-tertiary);
+  font-size: var(--type-style-text-overline-10-font-size, 10px);
+  font-weight: var(--type-style-text-overline-10-font-weight, 500);
+  letter-spacing: var(--type-style-text-overline-10-letter-spacing, 0.1em);
+  line-height: var(--type-style-text-overline-10-line-height, 14px);
+  margin-left: auto;
+  text-transform: var(--type-style-text-overline-10-text-transform, uppercase);
+}

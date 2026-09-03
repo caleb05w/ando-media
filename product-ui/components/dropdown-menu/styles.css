@@ -1,0 +1,254 @@
+.ando-dropdown-menu__content,
+.ando-context-menu__content {
+  animation: ando-ui-flyout-enter var(--motion-duration-base) ease-out;
+  font-family: var(--font-ando-sans);
+}
+
+/* Context menu keeps its own bordered surface (see its styles.css);
+   dropdown content gets the shared .ando-floating-surface treatment. */
+.ando-context-menu__content {
+  background: var(--color-ando-bg-elevated);
+  border-radius: var(--radius-md);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-dropdown-menu__content,
+.ando-context-menu__content {
+  max-height: 360px;
+  outline: none;
+  overflow: auto;
+  padding: 4px;
+  z-index: var(--ando-z-floating);
+}
+
+.ando-dropdown-menu__content {
+  max-height: var(--radix-dropdown-menu-content-available-height, 360px);
+  min-width: 128px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin, center);
+}
+
+/* Button- and field-triggered dropdowns match their control by default. The
+ * explicit false mode above retains the 128px label-driven floor for compact
+ * icon and overflow action menus whose trigger does not define a useful panel
+ * width. */
+.ando-dropdown-menu__content[data-match-trigger-width="true"] {
+  /* Width comes from the trigger, so the entrance must not resize it:
+     translate and fade only. See --ando-flyout-scale in
+     styles/motion.css. */
+  --ando-flyout-scale: 1;
+
+  min-width: var(--radix-dropdown-menu-trigger-width, 128px);
+  width: var(--radix-dropdown-menu-trigger-width, 128px);
+}
+
+.ando-dropdown-menu__content[data-state="closed"],
+.ando-context-menu__content[data-state="closed"],
+.ando-hover-card__content[data-state="closed"],
+.ando-popover__content[data-state="closed"] {
+  pointer-events: none;
+}
+
+/* While closed (kept mounted for the exit animation, or indefinitely when a
+   background tab pauses that animation), an overlay's transparent popper
+   wrapper still spans the full content box and would swallow clicks on
+   whatever renders beneath it. */
+[data-radix-popper-content-wrapper]:has(
+    > .ando-dropdown-menu__content[data-state="closed"],
+    > .ando-context-menu__content[data-state="closed"],
+    > .ando-hover-card__content[data-state="closed"],
+    > .ando-tooltip__content[data-state="closed"]
+  ) {
+  pointer-events: none;
+}
+
+.ando-dropdown-menu__item,
+.ando-context-menu__item {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  gap: 8px;
+  line-height: var(--type-style-text-label-14-line-height);
+  min-height: 32px;
+  outline: none;
+  padding: 6px 8px;
+  position: relative;
+  user-select: none;
+}
+
+.ando-dropdown-menu__item {
+  cursor: pointer;
+}
+
+.ando-dropdown-menu__item > svg,
+.ando-context-menu__item > svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-dropdown-menu__item > svg:not([class*="size-"]),
+.ando-context-menu__item > svg:not([class*="size-"]) {
+  height: 16px;
+  width: 16px;
+}
+
+.ando-dropdown-menu__item-content,
+.ando-context-menu__item-content {
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ando-dropdown-menu__item-label,
+.ando-context-menu__item-label {
+  color: var(--color-ando-fg-primary);
+  display: block;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-dropdown-menu__item-description,
+.ando-context-menu__item-description {
+  color: var(--color-ando-fg-secondary);
+  display: block;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: 400;
+  line-height: var(--type-style-text-label-14-line-height);
+}
+
+.ando-dropdown-menu__item[data-disabled],
+.ando-context-menu__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-dropdown-menu__item[data-highlighted],
+.ando-context-menu__item[data-highlighted] {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+.ando-dropdown-menu__sub-trigger[data-state="open"],
+.ando-context-menu__sub-trigger[data-state="open"] {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+.ando-dropdown-menu__item[data-inset="true"],
+.ando-context-menu__item[data-inset="true"],
+.ando-dropdown-menu__check-item,
+.ando-context-menu__check-item {
+  padding-left: 32px;
+}
+
+.ando-dropdown-menu__item[data-variant="danger"],
+.ando-context-menu__item[data-variant="danger"] {
+  color: var(--color-ando-fg-danger);
+}
+
+.ando-dropdown-menu__item[data-variant="danger"][data-highlighted],
+.ando-context-menu__item[data-variant="danger"][data-highlighted] {
+  background: var(--color-ando-bg-danger);
+}
+
+.ando-dropdown-menu__item-indicator,
+.ando-context-menu__item-indicator {
+  align-items: center;
+  display: inline-flex;
+  height: 16px;
+  justify-content: center;
+  left: 8px;
+  position: absolute;
+  width: 16px;
+}
+
+/* The tick is a central icon; the CSS only places it. */
+.ando-dropdown-menu__checkmark,
+.ando-context-menu__checkmark {
+  display: block;
+}
+
+.ando-dropdown-menu__radio-dot,
+.ando-context-menu__radio-dot {
+  background: currentColor;
+  border-radius: 999px;
+  display: block;
+  height: 6px;
+  width: 6px;
+}
+
+.ando-dropdown-menu__label,
+.ando-context-menu__label {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  font-size: var(--type-style-text-overline-11-font-size);
+  font-weight: var(--type-style-text-overline-11-font-weight);
+  gap: 6px;
+  letter-spacing: var(--type-style-text-overline-11-letter-spacing);
+  line-height: var(--type-style-text-overline-11-line-height);
+  min-height: 24px;
+  padding: 6px 8px 4px;
+  text-transform: var(--type-style-text-overline-11-text-transform);
+}
+
+.ando-dropdown-menu__label > svg,
+.ando-context-menu__label > svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-dropdown-menu__label > svg:not([class*="size-"]),
+.ando-context-menu__label > svg:not([class*="size-"]) {
+  height: 14px;
+  width: 14px;
+}
+
+.ando-dropdown-menu__label[data-inset="true"],
+.ando-context-menu__label[data-inset="true"] {
+  padding-left: 32px;
+}
+
+.ando-dropdown-menu__separator,
+.ando-context-menu__separator {
+  background: var(--color-ando-border-alpha-light);
+  /* Full-bleed through the menu's 4px padding. */
+  height: 1px;
+  margin: 4px -4px;
+}
+
+.ando-dropdown-menu__shortcut,
+.ando-context-menu__shortcut {
+  color: var(--color-ando-fg-secondary);
+  flex: 0 0 auto;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: 400;
+  line-height: var(--type-style-text-label-14-line-height);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.ando-dropdown-menu__submenu-arrow,
+.ando-context-menu__submenu-arrow {
+  border-bottom: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  color: var(--color-ando-fg-secondary);
+  display: block;
+  height: 5px;
+  margin-left: auto;
+  transform: rotate(-45deg);
+  width: 5px;
+}
+
+.ando-dropdown-menu__shortcut + .ando-dropdown-menu__submenu-arrow,
+.ando-context-menu__shortcut + .ando-context-menu__submenu-arrow {
+  margin-left: 8px;
+}

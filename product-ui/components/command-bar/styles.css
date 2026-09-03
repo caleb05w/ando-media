@@ -1,0 +1,133 @@
+/* Floating command-bar family (Figma 17840-6080). Raw CSS, not Tailwind
+   utilities, so the surface renders identically in every consumer whether or
+   not it scans packages/ui for Tailwind. The always-dark tokens are used
+   verbatim because this pill is dark in every theme.
+
+   Import order matters: styles/index.css imports this AFTER popover so the
+   surface (applied to the multi-select copy menu's PopoverContent) wins over
+   .ando-popover__content on equal specificity within the ui layer. */
+
+.ando-command-bar {
+  overflow: hidden;
+  border-radius: 6px; /* spacing-radius-sm */
+  /* bg-dark, not bg-dark-elevated: the family floats beside the composer's
+     send button, and one black should read as one black. bg-dark resolves to
+     the same primitive as the button's action-primary in light (dark-950 /
+     zinc-dark-950) while staying dark in every theme — action-primary itself
+     flips light in dark mode, which this always-dark pill can't follow. */
+  background: var(--color-ando-bg-dark);
+  color: var(--color-ando-fg-white);
+  /* shadow/card geometry: 12% white hairline ring + two soft black layers.
+     Hand-rolled rather than `var(--shadow-card)` because that token is
+     theme-aware and this pill is dark in every theme, so the light ring would
+     paint on a dark surface. The ring is inset like the token's, though — as
+     an outset sub-pixel ring it sat beside the surface edge instead of on it,
+     which is the doubled rim Figma 511:7014 flagged across this family. */
+  box-shadow:
+    inset 0 0 0.5px 0.75px rgba(255, 255, 255, 0.12),
+    0 8px 12px -6px rgba(0, 0, 0, 0.16),
+    0 1px 6px 0 rgba(0, 0, 0, 0.24);
+}
+
+/* Light variant: the family's segment contract on a light pill (the in-flow
+   sidebar inactive-conversations toggle, Figma 17926-26663). Swaps the
+   always-dark fill and shadow for a bg-main fill with a hairline border and
+   the spec's 8px corners; segment hover follows via the same theme-aware
+   tokens the toggle used before joining the family. */
+.ando-command-bar--light {
+  border-radius: 8px; /* radius-md */
+  border: 1px solid var(--color-ando-border-default);
+  background: var(--color-ando-bg-main);
+  color: var(--color-ando-fg-secondary);
+  box-shadow: none;
+}
+
+.ando-command-bar--light .ando-command-bar__segment:hover {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+/* Full-height segment: fills the surface edge to edge so the hover fill spans
+   the whole segment up to the pill corners. Typography rides on the
+   kanso-text-label-* class the component composes; the consumer adds the
+   resting gutters (padding), corner rounding, and width. */
+.ando-command-bar__segment {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 6px; /* spacing-sm */
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: background-color var(--motion-duration-fast, 150ms)
+    var(--motion-easing-standard, ease);
+}
+
+.ando-command-bar__segment:hover {
+  background: var(--color-ando-action-secondary-on-dark);
+}
+
+/* Focus + disabled follow the design-system convention (the shared groups in
+   foundations.css), but the focus ring is INSET: the surface clips
+   (overflow-hidden), so the shared outset ring would be cut off at the pill
+   edge. */
+.ando-command-bar__segment:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-ando-border-brand);
+}
+
+.ando-command-bar__segment:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ando-command-bar__segment--sm {
+  height: 28px;
+}
+
+/* Inset action button: the CTA on a pill carrying a static label instead of a
+   row of segments (Figma 19375-17588). Unlike a segment it sits inside the
+   resting gutter as a bordered button, so the label reads as the message and
+   the button as the one thing to press. White-alpha values are verbatim like
+   the rest of the family — this pill is dark in every theme. */
+.ando-command-bar__action {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 24px;
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px; /* spacing-radius-sm */
+  background: var(--color-ando-bg-dark);
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background-color var(--motion-duration-fast, 150ms)
+    var(--motion-easing-standard, ease);
+}
+
+.ando-command-bar__action:hover {
+  background: var(--color-ando-action-secondary-on-dark);
+}
+
+.ando-command-bar__action:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-ando-border-brand);
+}
+
+.ando-command-bar__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

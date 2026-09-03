@@ -1,0 +1,6 @@
+.ando-skeleton {
+  animation: ando-ui-pulse 1.4s ease-in-out infinite;
+  background: var(--color-ando-bg-fill-muted);
+  border-radius: var(--radius-md);
+  min-height: 1rem;
+}

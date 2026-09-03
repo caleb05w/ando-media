@@ -1,0 +1,671 @@
+:root {
+  --ando-desktop-sidebar-panel-width: 300px;
+  --ando-desktop-sidebar-rail-width: 48px;
+  --ando-desktop-side-panel-max-width: 480px;
+  --ando-desktop-side-panel-min-width: 320px;
+  --ando-desktop-side-panel-width: 400px;
+  --ando-mobile-bottom-dock-min-height: 56px;
+  --ando-mobile-keyboard-inset-bottom: env(keyboard-inset-height, 0px);
+  --ando-mobile-navigation-drawer-max-width: 320px;
+  --ando-mobile-navigation-drawer-width: min(320px, calc(100vw - 32px));
+  --ando-mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --ando-mobile-safe-area-left: env(safe-area-inset-left, 0px);
+  --ando-mobile-safe-area-right: env(safe-area-inset-right, 0px);
+  --ando-mobile-safe-area-top: env(safe-area-inset-top, 0px);
+  --ando-mobile-sheet-block-max-height: 84vh;
+  --ando-mobile-sheet-side-width: min(420px, 86vw);
+  --ando-mobile-top-bar-height: 56px;
+  --ando-responsive-chip-height: 32px;
+  --ando-surface-list-row-min-height: 56px;
+  --ando-sidebar-compact-width: var(--ando-desktop-sidebar-rail-width);
+  --ando-sidebar-item-background-active: var(
+    --color-ando-action-ghost-on-main-selected
+  );
+  --ando-sidebar-item-background-hover: var(
+    --color-ando-action-ghost-on-main-hover
+  );
+  --ando-sidebar-conversation-background-active: var(
+    --color-ando-action-ghost-selected
+  );
+  --ando-sidebar-conversation-background-hover: var(
+    --color-ando-action-ghost-hover
+  );
+  --ando-sidebar-width: var(--ando-desktop-sidebar-panel-width);
+  --ando-surface-header-height: 48px;
+  --ando-touch-target-min: 44px;
+  --ando-z-mobile-bottom-dock: 90;
+  --ando-z-mobile-navigation-drawer: var(--ando-z-overlay-content);
+  --ando-z-mobile-sheet: var(--ando-z-overlay-content);
+  --ando-z-mobile-shell: 80;
+  --ando-z-mobile-top-bar: 90;
+  --ando-z-overlay-backdrop: 100;
+  --ando-z-overlay-content: 101;
+  --ando-z-floating: 102;
+  --ando-z-tooltip: 103;
+  --ando-button-spinner-duration: 750ms;
+  --ando-notice-content-gap: 0px;
+  --ando-notice-footer-divider-gap: 4px;
+  --ando-notice-footer-divider-offset: calc(
+    -1 * var(--ando-notice-padding-inline)
+  );
+  --ando-notice-footer-divider-width: calc(
+    100% + var(--ando-notice-padding-inline) + var(--ando-notice-padding-inline)
+  );
+  --ando-notice-footer-gap: 12px;
+  --ando-notice-header-gap: 8px;
+  --ando-notice-icon-padding-inline-start: 4px;
+  --ando-notice-max-width: min(340px, 100%);
+  --ando-notice-padding-block: 16px;
+  --ando-notice-padding-inline: 10px;
+  --ando-notice-visual-width: 20px;
+}
+
+.kanso-text-label-20 {
+  font-size: var(--type-style-text-label-20-font-size, 20px);
+  font-weight: var(--type-style-text-label-20-font-weight, 400);
+  line-height: var(--type-style-text-label-20-line-height, 28px);
+}
+
+.kanso-text-label-20-md {
+  font-size: var(--type-style-text-label-20-md-font-size, 20px);
+  font-weight: var(--type-style-text-label-20-md-font-weight, 500);
+  line-height: var(--type-style-text-label-20-md-line-height, 28px);
+}
+
+.kanso-text-label-16 {
+  font-size: var(--type-style-text-label-16-font-size, 16px);
+  font-weight: var(--type-style-text-label-16-font-weight, 400);
+  line-height: var(--type-style-text-label-16-line-height, 20px);
+}
+
+.kanso-text-label-16-md {
+  font-size: var(--type-style-text-label-16-md-font-size, 16px);
+  font-weight: var(--type-style-text-label-16-md-font-weight, 500);
+  line-height: var(--type-style-text-label-16-md-line-height, 20px);
+}
+
+.kanso-text-label-14 {
+  font-size: var(--type-style-text-label-14-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-font-weight, 400);
+  line-height: var(--type-style-text-label-14-line-height, 20px);
+}
+
+.kanso-text-label-14-md {
+  font-size: var(--type-style-text-label-14-md-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-md-font-weight, 500);
+  line-height: var(--type-style-text-label-14-md-line-height, 20px);
+}
+
+.kanso-text-label-14-unread {
+  font-size: var(--type-style-text-label-14-unread-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-unread-font-weight, 530);
+  line-height: var(--type-style-text-label-14-unread-line-height, 20px);
+}
+
+.kanso-text-label-14-sb {
+  font-size: var(--type-style-text-label-14-sb-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-sb-font-weight, 550);
+  line-height: var(--type-style-text-label-14-sb-line-height, 20px);
+}
+
+.kanso-text-label-13 {
+  font-size: var(--type-style-text-label-13-font-size, 13px);
+  font-weight: var(--type-style-text-label-13-font-weight, 400);
+  line-height: var(--type-style-text-label-13-line-height, 18px);
+}
+
+.kanso-text-label-13-md {
+  font-size: var(--type-style-text-label-13-md-font-size, 13px);
+  font-weight: var(--type-style-text-label-13-md-font-weight, 500);
+  line-height: var(--type-style-text-label-13-md-line-height, 18px);
+}
+
+.kanso-text-label-12 {
+  font-size: var(--type-style-text-label-12-font-size, 12px);
+  font-weight: var(--type-style-text-label-12-font-weight, 400);
+  line-height: var(--type-style-text-label-12-line-height, 16px);
+}
+
+.kanso-text-label-12-md {
+  font-size: var(--type-style-text-label-12-md-font-size, 12px);
+  font-weight: var(--type-style-text-label-12-md-font-weight, 500);
+  line-height: var(--type-style-text-label-12-md-line-height, 16px);
+}
+
+.kanso-text-label-11 {
+  font-size: var(--type-style-text-label-11-font-size, 11px);
+  font-weight: var(--type-style-text-label-11-font-weight, 400);
+  line-height: var(--type-style-text-label-11-line-height, 14px);
+}
+
+.kanso-text-label-11-md {
+  font-size: var(--type-style-text-label-11-md-font-size, 11px);
+  font-weight: var(--type-style-text-label-11-md-font-weight, 500);
+  line-height: var(--type-style-text-label-11-md-line-height, 14px);
+}
+
+.kanso-text-overline-11 {
+  font-size: var(--type-style-text-overline-11-font-size, 11px);
+  font-weight: var(--type-style-text-overline-11-font-weight, 500);
+  letter-spacing: var(--type-style-text-overline-11-letter-spacing, 0.1em);
+  line-height: var(--type-style-text-overline-11-line-height, 14px);
+  text-transform: var(--type-style-text-overline-11-text-transform, uppercase);
+}
+
+.kanso-text-overline-10 {
+  font-size: var(--type-style-text-overline-10-font-size, 10px);
+  font-weight: var(--type-style-text-overline-10-font-weight, 500);
+  letter-spacing: var(--type-style-text-overline-10-letter-spacing, 0.1em);
+  line-height: var(--type-style-text-overline-10-line-height, 14px);
+  text-transform: var(--type-style-text-overline-10-text-transform, uppercase);
+}
+
+:where(
+    .ando-avatar,
+    .ando-avatar__status,
+    .ando-badge,
+    .ando-button,
+    .ando-checkbox,
+    .ando-context-menu__content,
+    .ando-context-menu__item,
+    .ando-context-menu__label,
+    .ando-dialog__close,
+    .ando-dialog__content,
+    .ando-dropdown-menu__content,
+    .ando-dropdown-menu__item,
+    .ando-dropdown-menu__label,
+    .ando-field,
+    .ando-label,
+    .ando-file-preview,
+    .ando-file-preview__action-bar,
+    .ando-file-preview__action-button,
+    .ando-file-preview__error,
+    .ando-file-preview__error-actions,
+    .ando-file-preview__error-content,
+    .ando-file-preview__error-message,
+    .ando-file-preview__error-title,
+    .ando-file-preview__error-visual,
+    .ando-file-preview__label,
+    .ando-file-preview__trigger,
+    .ando-file-preview__viewport,
+    .ando-file-preview__viewport-skeleton,
+    .ando-input,
+    .ando-icon-button,
+    .ando-icon-button__visual,
+    .ando-link-preview,
+    .ando-link-preview__body,
+    .ando-link-preview__content,
+    .ando-link-preview__empty,
+    .ando-link-preview__favicon,
+    .ando-link-preview__favicon-placeholder,
+    .ando-link-preview__action-row,
+    .ando-link-preview__leading,
+    .ando-link-preview__loading,
+    .ando-link-preview__metadata,
+    .ando-link-preview__remove,
+    .ando-link-preview__thumbnail,
+    .ando-message-timeline-divider,
+    .ando-message-timeline-divider__cap,
+    .ando-message-timeline-divider__label,
+    .ando-message-timeline-divider__label-primary,
+    .ando-message-timeline-divider__label-secondary,
+    .ando-message-timeline-divider__label-separator,
+    .ando-message-timeline-divider__line,
+    .ando-message-timeline-divider__rule,
+    .ando-hover-card__content,
+    .ando-notice,
+    .ando-popover__content,
+    .ando-progress,
+    .ando-progress__indicator,
+    .ando-radio-group,
+    .ando-radio-group__item,
+    .ando-radio-group-v2,
+    .ando-radio-group-v2__item,
+    .ando-selectable-flyout__action-button,
+    .ando-selectable-flyout__actions,
+    .ando-selectable-flyout__content,
+    .ando-selectable-flyout__dropdown-action-item,
+    .ando-selectable-flyout__empty,
+    .ando-selectable-flyout__indicator,
+    .ando-selectable-flyout__list,
+    .ando-selectable-flyout__loading,
+    .ando-selectable-flyout__option-button,
+    .ando-selectable-flyout__option-content,
+    .ando-selectable-flyout__search,
+    .ando-selectable-flyout__section,
+    .ando-selectable-flyout__section-label,
+    .ando-selectable-flyout__separator,
+    .ando-selectable-flyout__trigger,
+    .ando-selectable-flyout__trigger-action,
+    .ando-selectable-flyout__trigger-group,
+    .ando-separator,
+    .ando-sheet__close,
+    .ando-sheet__content,
+    .ando-sidebar,
+    .ando-sidebar-channel,
+    .ando-sidebar-channel-header,
+    .ando-sidebar-channel-list,
+    .ando-sidebar-channel-row,
+    .ando-sidebar-channel-row__action,
+    .ando-sidebar-channel-row__badge,
+    .ando-sidebar-channel-row__button,
+    .ando-sidebar-channel-row__link,
+    .ando-sidebar-content,
+    .ando-sidebar-conversation-button,
+    .ando-sidebar-conversation-channel-icon,
+    .ando-sidebar-conversation-icon,
+    .ando-sidebar-conversation-label,
+    .ando-sidebar-conversation-list,
+    .ando-sidebar-conversation-main,
+    .ando-sidebar-conversation-primary,
+    .ando-sidebar-conversation-row,
+    .ando-sidebar-conversation-section,
+    .ando-sidebar-conversation-section-header,
+    .ando-sidebar-conversation-section-header__actions,
+    .ando-sidebar-conversation-section-header__label,
+    .ando-sidebar-conversation-section-header__visual,
+    .ando-sidebar-conversation-trailing,
+    .ando-sidebar-footer,
+    .ando-sidebar-group,
+    .ando-sidebar-group-content,
+    .ando-sidebar-group-label,
+    .ando-sidebar-menu,
+    .ando-sidebar-menu-action,
+    .ando-sidebar-menu-badge,
+    .ando-sidebar-menu-button,
+    .ando-sidebar-menu-item,
+    .ando-sidebar-panel-header,
+    .ando-sidebar-panel-switcher,
+    .ando-sidebar-panel-switcher__tab,
+    .ando-sidebar-panel-switcher__unread-dot-frame,
+    .ando-sidebar-rail,
+    .ando-sidebar-rail-button,
+    .ando-skeleton,
+    .ando-status-indicator,
+    .ando-surface-frame,
+    .ando-surface-frame__body,
+    .ando-surface-frame__footer,
+    .ando-surface-frame__header,
+    .ando-surface-header,
+    .ando-surface-header__actions,
+    .ando-surface-header__content,
+    .ando-surface-header__leading,
+    .ando-surface-header__subtitle,
+    .ando-surface-header__title,
+    .ando-surface-header-skeleton__actions,
+    .ando-surface-header-skeleton__leading,
+    .ando-surface-header-skeleton__subtitle,
+    .ando-surface-header-skeleton__title,
+    .ando-switch,
+    .ando-segmented-control,
+    .ando-segmented-control__item,
+    .ando-segmented-control__list,
+    .ando-tabs,
+    .ando-tabs__trigger,
+    .ando-textarea,
+    .ando-thread-activity-row,
+    .ando-thread-activity-row__action,
+    .ando-thread-activity-row__content,
+    .ando-thread-activity-row__leading,
+    .ando-thread-activity-row__metadata,
+    .ando-thread-activity-row__preview,
+    .ando-thread-activity-row__title,
+    .ando-thread-activity-row__trailing,
+    .ando-thread-frame,
+    .ando-thread-frame__body,
+    .ando-thread-frame__footer,
+    .ando-thread-frame__header,
+    .ando-thread-header,
+    .ando-thread-header__actions,
+    .ando-thread-header__content,
+    .ando-thread-header__leading,
+    .ando-thread-header__subtitle,
+    .ando-thread-header__title,
+    .ando-thread-skeleton,
+    .ando-thread-skeleton__avatar,
+    .ando-thread-skeleton__body,
+    .ando-thread-skeleton__composer,
+    .ando-thread-skeleton__footer,
+    .ando-thread-skeleton__header,
+    .ando-thread-skeleton__reply,
+    .ando-thread-skeleton__reply-content,
+    .ando-thread-skeleton__reply-line,
+    .ando-thread-skeleton__reply-title,
+    .ando-thread-skeleton__root,
+    .ando-thread-skeleton__subtitle,
+    .ando-thread-skeleton__title,
+    .ando-thread-reply-count-divider__cap,
+    .ando-thread-reply-count-divider,
+    .ando-thread-reply-count-divider__label,
+    .ando-thread-reply-count-divider__label-primary,
+    .ando-thread-reply-count-divider__label-secondary,
+    .ando-thread-reply-count-divider__label-separator,
+    .ando-thread-reply-count-divider__line,
+    .ando-thread-reply-count-divider__rule,
+    .ando-thread-reply-window-spacer,
+    .ando-thread-reply-window-spacer__label,
+    .ando-thread-reply-window-spacer__line,
+    .ando-thread-status-state,
+    .ando-thread-status-state__actions,
+    .ando-thread-status-state__description,
+    .ando-thread-status-state__title,
+    .ando-thread-status-state__visual,
+    .ando-thread-timeline,
+    .ando-progress,
+    .ando-progress__indicator,
+    .ando-tooltip__content,
+    .ando-slider,
+    .ando-slider__range,
+    .ando-slider__thumb,
+    .ando-slider__track,
+    .ando-inline-chip,
+    .ando-inline-chip__icon,
+    .ando-inline-chip__label,
+    .ando-unstyled-button
+  ) {
+  box-sizing: border-box;
+}
+
+:where(
+    .ando-button,
+    .ando-checkbox,
+    .ando-icon-button,
+    .ando-file-preview__action-button,
+    .ando-dialog__close,
+    .ando-file-preview__trigger,
+    .ando-link-preview__body,
+    .ando-link-preview__remove,
+    .ando-selectable-flyout__action-button,
+    .ando-selectable-flyout__option-button,
+    .ando-selectable-flyout__search,
+    .ando-selectable-flyout__trigger,
+    .ando-selectable-flyout__trigger-action,
+    .ando-sheet__close,
+    .ando-sidebar-channel-row__action,
+    .ando-sidebar-channel-row__button,
+    .ando-sidebar-conversation-button,
+    .ando-sidebar-menu-action,
+    .ando-sidebar-menu-button,
+    .ando-sidebar-panel-switcher__tab,
+    .ando-surface-header,
+    .ando-sidebar-rail-button,
+    .ando-thread-reply-window-spacer,
+    .ando-radio-group__item,
+    .ando-switch,
+    .ando-segmented-control__item,
+    .ando-tabs__trigger,
+    .ando-unstyled-button
+  ) {
+  appearance: none;
+  border: 0;
+  font: inherit;
+}
+
+:where(
+    .ando-button,
+    .ando-checkbox,
+    .ando-checkbox-v2,
+    .ando-context-menu__item,
+    .ando-dialog__close,
+    .ando-dropdown-menu__item,
+    .ando-file-preview__trigger,
+    .ando-icon-button,
+    .ando-file-preview__action-button,
+    .ando-input,
+    .ando-link-preview__body,
+    .ando-hover-card__content,
+    .ando-link-preview__remove,
+    .ando-popover__content,
+    .ando-radio-group__item,
+    .ando-radio-group-v2__item,
+    .ando-selectable-flyout__action-button,
+    .ando-selectable-flyout__option-button,
+    .ando-selectable-flyout__search,
+    .ando-selectable-flyout__trigger,
+    .ando-selectable-flyout__trigger-action,
+    .ando-sheet__close,
+    .ando-sidebar-channel-row__action,
+    .ando-sidebar-channel-row__button,
+    .ando-sidebar-channel-row__link,
+    .ando-sidebar-conversation-button,
+    .ando-sidebar-menu-action,
+    .ando-sidebar-menu-button,
+    .ando-sidebar-panel-switcher__tab,
+    .ando-sidebar-rail-button,
+    .ando-thread-reply-window-spacer,
+    .ando-switch,
+    .ando-switch-v2,
+    .ando-segmented-control__item,
+    .ando-tabs__trigger,
+    .ando-unstyled-button
+  ):focus-visible,
+.ando-tooltip__content:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-ando-action-mention-tag);
+  outline: 1px solid var(--color-ando-border-brand);
+}
+
+:where(
+    .ando-button,
+    .ando-checkbox,
+    .ando-file-preview__trigger,
+    .ando-icon-button,
+    .ando-file-preview__action-button,
+    .ando-radio-group__item,
+    .ando-radio-group-v2__item,
+    .ando-link-preview__body,
+    .ando-link-preview__remove,
+    .ando-selectable-flyout__action-button,
+    .ando-selectable-flyout__option-button,
+    .ando-selectable-flyout__trigger,
+    .ando-selectable-flyout__trigger-action,
+    .ando-sidebar-channel-row__action,
+    .ando-sidebar-channel-row__button,
+    .ando-sidebar-conversation-button,
+    .ando-sidebar-menu-action,
+    .ando-sidebar-menu-button,
+    .ando-sidebar-panel-switcher__tab,
+    .ando-sidebar-rail-button,
+    .ando-thread-reply-window-spacer,
+    .ando-switch,
+    .ando-segmented-control__item,
+    .ando-tabs__trigger,
+    .ando-unstyled-button
+  ):disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+:where(
+    .ando-responsive-action-group,
+    .ando-responsive-action-group__overflow,
+    .ando-responsive-action-group__primary,
+    .ando-responsive-action-group__secondary,
+    .ando-responsive-filter-bar,
+    .ando-responsive-filter-bar__items,
+    .ando-responsive-filter-bar__summary,
+    .ando-responsive-filter-bar__trailing,
+    .ando-responsive-filter-chip,
+    .ando-responsive-filter-chip__label,
+    .ando-responsive-filter-chip__visual,
+    .ando-responsive-overflow-trigger,
+    .ando-surface-list,
+    .ando-surface-list-row,
+    .ando-surface-list-row__content,
+    .ando-surface-list-row__leading,
+    .ando-surface-list-row__metadata,
+    .ando-surface-list-row__subtitle,
+    .ando-surface-list-row__title,
+    .ando-surface-list-row__trailing,
+    .ando-surface-list-row-skeleton,
+    .ando-surface-list-row-skeleton__content,
+    .ando-surface-list-state,
+    .ando-surface-list-state__actions,
+    .ando-surface-list-state__description,
+    .ando-surface-list-state__title,
+    .ando-surface-list-state__visual
+  ) {
+  box-sizing: border-box;
+}
+
+:where(
+    .ando-responsive-filter-chip,
+    .ando-responsive-overflow-trigger,
+    .ando-surface-list-row:is(button, a)
+  ) {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+:where(
+    .ando-responsive-filter-chip,
+    .ando-responsive-overflow-trigger
+  ):focus-visible,
+.ando-surface-list-row:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-ando-action-mention-tag);
+  outline: 1px solid var(--color-ando-border-brand);
+}
+
+:where(
+    .ando-responsive-filter-chip,
+    .ando-responsive-overflow-trigger
+  ):disabled,
+.ando-surface-list-row[data-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+:where(
+    .ando-adaptive-pane-layout,
+    .ando-adaptive-pane-layout__pane,
+    .ando-bottom-dock,
+    .ando-bottom-dock__actions,
+    .ando-bottom-dock__content,
+    .ando-bottom-dock__leading,
+    .ando-mobile-top-bar,
+    .ando-mobile-top-bar__actions,
+    .ando-mobile-top-bar__content,
+    .ando-mobile-top-bar__leading,
+    .ando-mobile-top-bar__subtitle,
+    .ando-mobile-top-bar__title,
+    .ando-navigation-drawer__content,
+    .ando-navigation-drawer__description,
+    .ando-navigation-drawer__footer,
+    .ando-navigation-drawer__header,
+    .ando-navigation-drawer__overlay,
+    .ando-navigation-drawer__title,
+    .ando-navigation-drawer__viewport,
+    .ando-navigation-drawer-sidebar,
+    .ando-responsive-route-slots,
+    .ando-responsive-route-slots__actions,
+    .ando-responsive-route-slots__filters,
+    .ando-responsive-route-slots__header,
+    .ando-responsive-route-slots__header-copy,
+    .ando-responsive-route-slots__header-leading,
+    .ando-responsive-route-slots__pane-slot,
+    .ando-responsive-route-slots__subtitle,
+    .ando-responsive-route-slots__title,
+    .ando-responsive-shell,
+    .ando-responsive-shell__body,
+    .ando-responsive-shell__frame,
+    .ando-responsive-shell__main,
+    .ando-responsive-shell__selection,
+    .ando-responsive-shell__sidebar
+  ) {
+  box-sizing: border-box;
+}
+
+:where(.ando-avatar__status[data-status="online"]) {
+  background: var(--color-ando-fg-success-on-dark);
+}
+
+:where(.ando-avatar__status[data-status="away"]) {
+  background: var(--color-ando-fg-warning);
+}
+
+:where(.ando-avatar__status[data-status="busy"]) {
+  background: var(--color-ando-fg-danger);
+}
+
+:where(.ando-avatar__status[data-status="offline"]) {
+  background: var(--color-ando-border-strong);
+}
+
+/* Shared floating-surface recipe: the hairline ring + elevation stack every
+   Kanso floating layer draws instead of a border (see popover / dropdown
+   menu / command popup). Compose with a component class that supplies
+   positioning, padding, and scroll behaviour. */
+.ando-floating-surface {
+  /* Stop inheriting a positioning transform from an ancestor. `.ando-dialog__
+   * content` publishes `translate(-50%, -50%)` here to centre itself, and the
+   * flyout keyframes compose that variable — so a panel opened inside a dialog
+   * would animate from half its own size up and left, then snap back. Each
+   * floating panel positions itself, so it always starts from no offset. */
+  --ando-overlay-base-transform: translate(0, 0);
+
+  background: var(--color-ando-bg-elevated);
+  border: 0;
+  /* 6px across every floating panel (decision, Caleb) — previously 10px here
+     and 8px on the v2 Select popup, so panels disagreed by family. */
+  border-radius: var(--radius-sm);
+  /* This is --shadow-2xl, layer for layer — it was hand-rolled with a
+     `0 0 0.5px 0.5px` ring where the token draws `0 0 0 1px`, and a blurred
+     sub-pixel ring reads as a second, softer edge outside the hairline. The
+     token is theme-aware, so the dark override this used to carry is gone. */
+  box-shadow: var(--shadow-2xl);
+  color: var(--color-ando-fg-primary);
+  outline: none;
+}
+
+/* One surface, one motion — but only for a panel that actually opens. The
+ * enter keyframe starts at `opacity: 0`, so putting this on the bare class made
+ * every always-mounted panel wearing it invisible on its first frame, and
+ * `toBeVisible()` walks ancestors, so everything inside one went invisible too.
+ * Gating on the open-state attribute the families already publish (Base UI's
+ * `data-open`, Radix's `data-state`) keeps the motion where there is an open
+ * transition to animate. A hand-composed panel gets it by publishing the same
+ * attribute; without one it renders statically, as it did before. */
+.ando-floating-surface[data-open],
+.ando-floating-surface[data-state="open"] {
+  animation: ando-ui-flyout-enter var(--motion-duration-base) ease-out;
+}
+
+/* Context Menu is listed alongside the surface throughout this block: it takes
+ * the shared flyout motion but keeps its own bordered surface, so it wears
+ * `.ando-context-menu__content` and never `.ando-floating-surface`. Motion
+ * rules keyed only on the surface class silently skip it — which is how it
+ * lost its exit animation and directional entrance once. */
+.ando-floating-surface[data-closed],
+.ando-floating-surface[data-state="closed"],
+.ando-context-menu__content[data-state="closed"] {
+  animation: ando-ui-flyout-exit var(--motion-duration-base) ease-out;
+}
+
+/* Which direction the panel enters from, once the popper has resolved a side.
+ * Keyed off the surface rather than enumerated per family: these rules were
+ * duplicated three times — once for the Radix families, once for Combobox and
+ * once for v2 Select — saying the same thing in two attribute spellings,
+ * because Base UI publishes `data-open` where Radix publishes
+ * `data-state="open"`. Matching both here keeps a family's direction from
+ * drifting just because of the library underneath it. */
+.ando-floating-surface:is([data-open], [data-state="open"])[data-side="bottom"],
+.ando-context-menu__content[data-state="open"][data-side="bottom"] {
+  animation-name: ando-ui-slide-from-top;
+}
+
+.ando-floating-surface:is([data-open], [data-state="open"])[data-side="left"],
+.ando-context-menu__content[data-state="open"][data-side="left"] {
+  animation-name: ando-ui-slide-from-right;
+}
+
+.ando-floating-surface:is([data-open], [data-state="open"])[data-side="right"],
+.ando-context-menu__content[data-state="open"][data-side="right"] {
+  animation-name: ando-ui-slide-from-left;
+}
+
+.ando-floating-surface:is([data-open], [data-state="open"])[data-side="top"],
+.ando-context-menu__content[data-state="open"][data-side="top"] {
+  animation-name: ando-ui-slide-from-bottom;
+}

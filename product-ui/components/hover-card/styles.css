@@ -1,0 +1,6 @@
+.ando-hover-card__content {
+  /* Duration and easing come from .ando-floating-surface. */
+  transform-origin: var(--radix-hover-card-content-transform-origin, center);
+  width: fit-content;
+  z-index: var(--ando-z-floating);
+}

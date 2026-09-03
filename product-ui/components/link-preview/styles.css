@@ -1,0 +1,475 @@
+:where(.dark, .dark *) .ando-link-preview__body {
+  background: var(--color-ando-dark-700);
+}
+
+:where(.dark, .dark *) .ando-link-preview__body[data-interactive="true"]:hover {
+  background: var(--color-ando-dark-600);
+}
+
+.ando-link-preview {
+  color: var(--color-ando-fg-primary);
+  min-width: 0;
+  position: relative;
+}
+
+.ando-link-preview[data-variant="summary"] {
+  container: ando-link-preview-card / inline-size;
+  padding-top: 8px;
+}
+
+.ando-link-preview__body {
+  appearance: none;
+  background: var(--color-ando-action-secondary);
+  border: 0;
+  color: inherit;
+  display: flex;
+  font: inherit;
+  margin: 0;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  position: relative;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 100%;
+}
+
+.ando-link-preview__body[data-variant="summary"] {
+  align-items: stretch;
+  background: var(--color-ando-bg-main);
+  /* Figma 9160:31274: full 1px hairline (stroke-outline) with a 3px left accent
+     (stroke-weak). A real border keeps the left corners crisp — the previous
+     inset-ring left the top-left/bottom-left corners looking clipped. */
+  border: 1px solid var(--color-ando-border-alpha);
+  border-left: 3px solid var(--color-ando-border-default);
+  border-radius: 2px var(--radius-lg) var(--radius-lg) 2px;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.ando-link-preview__body[data-variant="summary"][data-interactive="true"]:hover {
+  background: var(--color-ando-action-secondary-hover);
+  border-left-color: var(--color-ando-border-strong);
+}
+
+:where(.dark, .dark *) .ando-link-preview__body[data-variant="summary"] {
+  background: var(--color-ando-dark-700);
+  /* Dark border-default resolves to dark-800 — darker than this card's
+     dark-700 background, so the 3px accent read as a notch. Rest accent sits
+     between the background and the border-strong (dark-400) hover accent. */
+  border-left-color: var(--color-ando-dark-500);
+}
+
+:where(.dark, .dark *)
+  .ando-link-preview__body[data-variant="summary"][data-interactive="true"]:hover {
+  background: var(--color-ando-dark-600);
+  border-left-color: var(--color-ando-border-strong);
+}
+
+.ando-link-preview[data-variant="quote"] {
+  padding-top: 4px;
+}
+
+/* Figma 9027:4790 "Message preview": a quote-style block — a 3px rounded
+   accent bar (stroke-weak) with a 12px gap to the content. No card border,
+   background, or radius; the bar stretches to the content height. */
+.ando-link-preview__body[data-variant="quote"] {
+  align-items: stretch;
+  background: transparent;
+  gap: 12px;
+}
+
+.ando-link-preview__body[data-variant="quote"]::before {
+  align-self: stretch;
+  background: var(--color-ando-border-default);
+  border-radius: 3px;
+  content: "";
+  flex: 0 0 auto;
+  width: 3px;
+}
+
+.ando-link-preview__body[data-variant="compact"] {
+  align-items: center;
+  background: var(--color-ando-bg-white);
+  border: 1px solid var(--color-ando-border-alpha);
+  border-radius: var(--radius-sm);
+  gap: 8px;
+  height: 40px;
+  overflow: hidden;
+  padding: 8px 16px 8px 8px;
+}
+
+:where(.dark, .dark *) .ando-link-preview__body[data-variant="compact"] {
+  background: var(--color-ando-dark-700);
+}
+
+.ando-link-preview__body[data-interactive="true"] {
+  cursor: pointer;
+}
+
+.ando-link-preview__body[data-interactive="true"]:hover {
+  background: var(--color-ando-action-secondary-hover);
+}
+
+.ando-link-preview__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ando-link-preview__body[data-variant="summary"] .ando-link-preview__content {
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+/* Terminal states (restricted/unavailable) render directly in the body, outside
+   the padded content slot, so they claim their own inset to match the card. */
+.ando-link-preview__body[data-variant="summary"] .ando-link-preview__empty {
+  padding: 16px;
+}
+
+.ando-link-preview__body[data-variant="summary"] .ando-link-preview__title {
+  font-size: var(--type-style-text-label-14-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-md-font-weight, 500);
+  line-height: var(--type-style-text-label-14-line-height, 20px);
+}
+
+.ando-link-preview__body[data-variant="compact"] .ando-link-preview__content {
+  padding: 0;
+}
+
+.ando-link-preview[data-variant="compact"][data-has-actions="true"]
+  .ando-link-preview__body[data-variant="compact"]
+  .ando-link-preview__content {
+  padding-right: 8px;
+}
+
+.ando-link-preview__metadata {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ando-link-preview__action-row {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ando-link-preview__metadata-text,
+.ando-link-preview__domain,
+.ando-link-preview__footer {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-link-preview__title,
+.ando-link-preview__description {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: var(--ando-link-preview-line-clamp, 2);
+  line-clamp: var(--ando-link-preview-line-clamp, 2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ando-link-preview__title {
+  color: var(--color-ando-fg-primary);
+  margin-top: 12px;
+}
+
+.ando-link-preview__body[data-variant="compact"] .ando-link-preview__title {
+  font-size: var(--type-style-text-label-14-font-size);
+  line-height: 16px;
+  margin-top: 0;
+}
+
+.ando-link-preview__description,
+.ando-link-preview__domain,
+.ando-link-preview__footer {
+  color: var(--color-ando-fg-secondary);
+}
+
+.ando-link-preview__body[data-variant="compact"]
+  :where(.ando-link-preview__description, .ando-link-preview__footer) {
+  font-size: var(--type-style-text-label-14-font-size);
+  line-height: 16px;
+}
+
+.ando-link-preview__description {
+  margin-top: 2px;
+}
+
+.ando-link-preview__domain {
+  margin-top: 8px;
+}
+
+.ando-link-preview__leading {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ando-link-preview__favicon,
+.ando-link-preview__favicon-placeholder {
+  border-radius: var(--radius-xs);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 16px;
+  object-fit: cover;
+  width: 16px;
+}
+
+/* Fills its 16px favicon slot (placeholder span). The max caps are a safety
+   net: the glyph is a 100%-sized SVG, so if it is ever rendered outside a
+   sized favicon slot it would otherwise expand to fill the whole row. */
+.ando-link-preview__default-favicon {
+  display: block;
+  height: 100%;
+  max-height: 16px;
+  max-width: 16px;
+  width: 100%;
+}
+
+.ando-link-preview__thumbnail {
+  align-items: center;
+  background: var(--color-ando-bg-fill-muted);
+  border: 1px solid var(--color-ando-border-alpha);
+  border-radius: var(--radius-xs);
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ando-link-preview__thumbnail-image {
+  display: block;
+  object-fit: cover;
+}
+
+/* Summary card media tile: a fixed 200px-wide cover box that stretches to the
+   card height so the image fills it beside the text (no bottom gap), with the
+   source image object-cover inside a 6px inset frame (Figma 9042:27113). The
+   reserved height (min-height, capped at 120px — see getFillTileMinHeight) is
+   applied inline; align-self: stretch lets it grow to match a taller text
+   column. */
+.ando-link-preview__body[data-variant="summary"]
+  .ando-link-preview__thumbnail[data-fill="true"] {
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  height: auto;
+  overflow: visible;
+  padding: 6px;
+  position: relative;
+  width: 200px;
+}
+
+/* Absolutely positioned so the image's intrinsic size never participates in
+   layout: the tile's height comes from its reserved min-height (component)
+   or the card's text column, and a late-loading image paints into that box
+   (object-fit cover) instead of growing the card. The size is pinned to the
+   tile minus the 6px inset frame — NOT `auto`: an <img> is a replaced element,
+   so `auto` sizing resolves to the image's intrinsic pixels (ignoring the
+   inset) and overflows the cover tile. */
+.ando-link-preview__body[data-variant="summary"]
+  .ando-link-preview__thumbnail[data-fill="true"]
+  .ando-link-preview__thumbnail-image {
+  block-size: calc(100% - 12px);
+  border: 1px solid var(--color-ando-border-alpha);
+  border-radius: var(--radius-xs);
+  inline-size: calc(100% - 12px);
+  inset: 6px;
+  position: absolute;
+}
+
+/* Under 500px of card width the fixed 200px cover tile crushes the text
+   column into slivers, so the media drops out and the text slots own the
+   full row. The metadata/title/description contract is unchanged. */
+@container ando-link-preview-card (max-width: 499px) {
+  .ando-link-preview__thumbnail[data-fill="true"] {
+    display: none;
+  }
+}
+
+.ando-link-preview__thumbnail-fallback {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Figma 9222:6975, matched to the composer image-attachment remove button
+   (composer-attachment-card.tsx): a 20px rounded-xs white chip with the shadow/sm
+   hairline+drop shadow, overhanging the top-right corner by 6px like the image
+   chip's -top-1.5/-right-1.5. The overhang requires the card frame to be
+   overflow-visible (the card body clips its own content separately) so the chip
+   isn't sliced. */
+.ando-link-preview__remove {
+  align-items: center;
+  background: var(--color-ando-bg-white);
+  border-radius: var(--radius-xs);
+  /* The shadow/sm this comment always claimed: the composer chip it mirrors
+     wears Tailwind `shadow-sm`, but this hand-rolled a near-miss whose
+     outset sub-pixel ring doubled the edge. Same token, so they now match. */
+  box-shadow: var(--shadow-sm);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 20px;
+  justify-content: center;
+  outline: none;
+  padding: 0;
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    opacity var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 20px;
+  z-index: 2;
+}
+
+/* The summary frame adds an 8px top gutter (padding-top) but no side padding,
+   so the -6px base top would overhang the frame — and thus the card body — by
+   14px. Add the 8px gutter back so the chip overhangs the card body's top by the
+   same 6px as its right, matching the image chip's even corner overhang. */
+.ando-link-preview[data-variant="summary"] .ando-link-preview__remove {
+  top: 2px;
+}
+
+:where(.dark, .dark *) .ando-link-preview__remove {
+  background: var(--color-ando-dark-600);
+}
+
+.ando-link-preview[data-remove-visibility="hover"] .ando-link-preview__remove {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ando-link-preview:hover .ando-link-preview__remove,
+.ando-link-preview:focus-within .ando-link-preview__remove,
+.ando-link-preview__remove[data-visibility="always"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ando-link-preview__remove:hover {
+  /* Solid fill matching the composer image-attachment chip's hover
+     (hover:bg-ando-bg-fill-subtle) — opaque so it never goes translucent. */
+  background: var(--color-ando-bg-fill-subtle);
+  color: var(--color-ando-fg-primary);
+}
+
+:where(.dark, .dark *) .ando-link-preview__remove:hover {
+  background: var(--color-ando-dark-500);
+}
+
+.ando-link-preview__loading {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ando-link-preview__skeleton-line {
+  animation: ando-ui-pulse 1.4s ease-in-out infinite;
+  background: var(--color-ando-bg-fill-muted);
+  border-radius: var(--radius-sm);
+  display: block;
+  height: 12px;
+  margin-top: 8px;
+}
+
+.ando-link-preview__skeleton-line:first-of-type {
+  margin-top: 0;
+}
+
+.ando-link-preview__skeleton-line[data-size="meta"] {
+  width: 96px;
+}
+
+.ando-link-preview__skeleton-line[data-size="title"] {
+  height: 16px;
+  width: 84%;
+}
+
+.ando-link-preview__skeleton-line[data-size="title-short"] {
+  height: 16px;
+  width: 76%;
+}
+
+.ando-link-preview__skeleton-line[data-size="body"] {
+  width: 100%;
+}
+
+.ando-link-preview__skeleton-line[data-size="body-short"] {
+  width: 68%;
+}
+
+.ando-link-preview__skeleton-line[data-size="domain"] {
+  width: 128px;
+}
+
+.ando-link-preview__empty {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ando-link-preview__empty-metadata {
+  color: var(--color-ando-fg-secondary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-link-preview__empty-message {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-link-preview__empty-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ando-link-preview__sr-only {
+  clip: rect(0 0 0 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

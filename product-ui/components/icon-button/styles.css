@@ -1,0 +1,116 @@
+.ando-button__spinner,
+.ando-icon-button__spinner {
+  animation: ando-ui-spin var(--ando-button-spinner-duration) linear infinite;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  border-right-color: transparent;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 1em;
+  width: 1em;
+}
+
+.ando-icon-button {
+  align-items: center;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  line-height: 1;
+  outline: none;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+/* Mirrors Button's xs. Dense product controls — tray rows, inline affordances
+   sitting in a text column — hand-rolled this size before it existed here. The
+   glyph drops to 12px because at 24px a 14px icon leaves almost no optical
+   padding inside the hit target. */
+.ando-icon-button[data-size="xs"] {
+  font-size: var(--type-style-text-label-12-font-size);
+  height: 24px;
+  width: 24px;
+}
+
+.ando-icon-button[data-size="sm"] {
+  /* 28px icon buttons carry 14px glyphs, matching the v2 IconButton contract. */
+  font-size: var(--type-style-text-label-14-font-size);
+  height: 28px;
+  width: 28px;
+}
+
+.ando-icon-button[data-size="md"] {
+  font-size: var(--type-style-text-label-14-font-size);
+  height: 32px;
+  width: 32px;
+}
+
+.ando-icon-button[data-size="lg"] {
+  font-size: var(--type-style-text-label-16-font-size);
+  height: 40px;
+  width: 40px;
+}
+
+.ando-icon-button[data-variant="ghost"]:hover:not(:disabled) {
+  background: var(--color-ando-action-ghost-hover);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-icon-button[data-variant="secondary"] {
+  background: var(--color-ando-action-secondary);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-icon-button[data-variant="secondary"]:hover:not(:disabled) {
+  background: var(--color-ando-action-secondary-hover);
+}
+
+.ando-icon-button[data-variant="outline"] {
+  background: transparent;
+  border: 1px solid var(--color-ando-border-default);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-icon-button[data-variant="outline"]:hover:not(:disabled) {
+  background: var(--color-ando-bg-fill-subtle);
+  border-color: var(--color-ando-border-strong);
+}
+
+.ando-icon-button[data-variant="plain"] {
+  background: transparent;
+  color: inherit;
+}
+
+.ando-icon-button[data-variant="plain"]:hover:not(:disabled) {
+  background: transparent;
+  color: inherit;
+}
+
+.ando-icon-button[data-variant="destructive"] {
+  background: var(--color-ando-action-danger);
+  color: var(--color-ando-fg-white);
+}
+
+.ando-icon-button[data-variant="destructive"]:hover:not(:disabled) {
+  background: var(--color-ando-action-danger-hover);
+}
+
+.ando-icon-button__visual {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ando-icon-button__visual > svg {
+  display: block;
+  height: 1em;
+  width: 1em;
+}

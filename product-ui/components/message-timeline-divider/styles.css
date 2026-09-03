@@ -1,0 +1,91 @@
+.ando-thread-frame .ando-message-timeline-divider {
+  gap: 8px;
+}
+
+.ando-thread-frame .ando-message-timeline-divider__line--start {
+  display: none;
+}
+
+.ando-thread-frame .ando-message-timeline-divider__cap {
+  height: 12px;
+}
+
+.ando-thread-frame .ando-message-timeline-divider__label {
+  justify-content: flex-start;
+  line-height: var(--type-style-text-overline-11-line-height);
+  max-width: min(65%, 32rem);
+  text-align: left;
+}
+
+.ando-message-timeline-divider {
+  --ando-message-timeline-divider-line-color: var(--color-ando-border-default);
+
+  align-items: center;
+  color: var(--color-ando-fg-tertiary);
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.ando-message-timeline-divider[data-tone="attention"] {
+  --ando-message-timeline-divider-line-color: var(--color-ando-fg-danger);
+
+  color: var(--color-ando-fg-danger);
+}
+
+.ando-message-timeline-divider__line {
+  align-items: center;
+  color: var(--ando-message-timeline-divider-line-color);
+  display: flex;
+  flex: 1 1 24px;
+  min-width: 0;
+}
+
+.ando-message-timeline-divider__cap {
+  background: currentColor;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  height: 10px;
+  width: 1px;
+}
+
+.ando-message-timeline-divider__rule {
+  background: currentColor;
+  flex: 1 1 auto;
+  height: 1px;
+  min-width: 0;
+}
+
+.ando-message-timeline-divider__label {
+  align-items: center;
+  color: currentColor;
+  cursor: default;
+  display: inline-flex;
+  flex: 0 1 auto;
+  font-size: var(--type-style-text-overline-11-font-size);
+  font-weight: var(--type-style-text-overline-11-font-weight);
+  gap: 4px;
+  justify-content: center;
+  letter-spacing: var(--type-style-text-overline-11-letter-spacing);
+  line-height: var(--type-style-text-overline-11-line-height);
+  max-width: min(65%, 32rem);
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  text-transform: var(--type-style-text-overline-11-text-transform);
+  white-space: nowrap;
+}
+
+.ando-message-timeline-divider__label-primary,
+.ando-message-timeline-divider__label-secondary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ando-message-timeline-divider__label-separator {
+  flex: 0 0 auto;
+  opacity: 0.75;
+}

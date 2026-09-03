@@ -1,0 +1,54 @@
+/* Closed content is either exit-animating or kept mounted via forceMount
+   (hidden with visibility so Radix can still measure it for collision
+   flipping). Its transparent popper wrapper still spans the full content
+   box and would otherwise swallow clicks on whatever renders beneath it. */
+[data-radix-popper-content-wrapper]:has(
+    > .ando-popover__content[data-state="closed"]
+  ) {
+  pointer-events: none;
+}
+
+/* Callouts set `color` to match their content surface. */
+.ando-popover__arrow {
+  fill: currentColor;
+}
+
+.ando-popover__content {
+  /* Duration and easing come from .ando-floating-surface. */
+  max-height: var(--radix-popover-content-available-height, 360px);
+  max-width: min(360px, calc(100vw - 32px));
+  min-width: 168px;
+  outline: none;
+  overflow: auto;
+  padding: 8px;
+  transform-origin: var(--radix-popover-content-transform-origin, center);
+  width: fit-content;
+  z-index: var(--ando-z-floating);
+}
+
+/* Opt-in trigger-width pin, matching SelectableFlyoutContent's default. The
+ * 168px floor still wins over `width`, so a compact trigger cannot crush the
+ * panel; the max-width cap has to lift to the viewport-aware value, or a
+ * trigger wider than 360px would open a panel narrower than itself. */
+.ando-popover__content[data-match-trigger-width="true"] {
+  /* Width comes from the trigger, so the entrance must not resize it:
+     translate and fade only. See --ando-flyout-scale in
+     styles/motion.css. */
+  --ando-flyout-scale: 1;
+
+  max-width: var(--radix-popover-content-available-width, none);
+  width: var(--radix-popover-trigger-width, auto);
+}
+
+/*
+ * Radix leaves its positioning wrapper mounted when PopoverContent uses
+ * forceMount. A closed content element can preserve its measured size for
+ * collision detection, but the wrapper must not remain an invisible click
+ * target over the page.
+ */
+[data-radix-popper-content-wrapper]:has(
+    > .ando-popover__content[data-state="closed"]
+  ) {
+  pointer-events: none;
+  visibility: hidden;
+}

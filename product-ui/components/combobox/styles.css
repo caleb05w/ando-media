@@ -1,0 +1,516 @@
+.ando-combobox__input-shell {
+  align-items: center;
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  display: inline-flex;
+  font-family: var(--font-ando-sans);
+  gap: 8px;
+  min-width: 0;
+  outline: none;
+  overflow: hidden;
+  padding: 0 10px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.ando-combobox__input-shell[data-full-width="true"] {
+  width: 100%;
+}
+
+.ando-combobox__input-shell[data-size="sm"] {
+  height: 28px;
+}
+
+/* 32px, matching `.ando-input` — a combobox and a plain input sitting in the
+   same form have to read as one control. `sm` already agrees at 28px. */
+.ando-combobox__input-shell[data-size="md"] {
+  height: 32px;
+}
+
+.ando-combobox__input-shell:focus-within,
+.ando-combobox__input-shell:has(.ando-combobox__input[data-popup-open]) {
+  border-color: var(--color-ando-border-input-focus);
+}
+
+.ando-combobox__input-shell[data-invalid="true"] {
+  border-color: var(--color-ando-border-danger);
+}
+
+.ando-combobox__input-shell[data-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-combobox__input {
+  background: transparent;
+  border: 0;
+  color: var(--color-ando-fg-primary);
+  flex: 1 1 auto;
+  font-family: inherit;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+  min-width: 0;
+  outline: none;
+  padding: 0;
+}
+
+.ando-combobox__input::placeholder {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-combobox__input:disabled {
+  cursor: not-allowed;
+}
+
+.ando-combobox__input-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.ando-combobox__icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 20px;
+  justify-content: center;
+  outline: none;
+  padding: 0;
+  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 20px;
+}
+
+.ando-combobox__icon-button:hover:not(:disabled) {
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-combobox__icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ando-combobox__chevron {
+  border-color: currentColor;
+  border-style: solid;
+  border-width: 0 1.5px 1.5px 0;
+  display: block;
+  flex: 0 0 auto;
+  height: 6px;
+  pointer-events: none;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform var(--motion-duration-fast)
+    var(--motion-easing-standard);
+  width: 6px;
+}
+
+.ando-combobox__input-shell:has(.ando-combobox__input[data-popup-open])
+  .ando-combobox__chevron {
+  transform: translateY(1px) rotate(225deg);
+}
+
+.ando-combobox__clear {
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.ando-combobox__positioner {
+  isolation: isolate;
+  z-index: var(--ando-z-floating, 50);
+}
+
+/* The popup matches its anchor's width. A `size` floor only widens it when the
+   anchor is narrower than the floor — it never overhangs an anchor that is
+   already wide enough, so a full-width trigger gets a popup flush with it.
+   Column layout + `min-height: 0` on the list lets the list shrink inside the
+   `--available-height` cap instead of being clipped by `overflow: hidden`. */
+.ando-combobox__content {
+  /* Hold the animation until the positioner has resolved a side. The popup
+   * mounts before placement is computed, so animating on that first frame
+   * plays from a default origin and then snaps once `data-side` lands —
+   * reads as the panel spawning sideways and jumping. The per-side rules
+   * below supply the name once placement is known. */
+  animation: none var(--motion-duration-base) ease-out;
+
+  /* Width always comes from the anchor, so the entrance must not resize it:
+     translate and fade only. See --ando-flyout-scale in
+     styles/motion.css. */
+  --ando-flyout-scale: 1;
+
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-ando-sans);
+  max-height: var(--available-height);
+  max-width: var(--available-width);
+  outline: none;
+  overflow: hidden;
+  padding: 4px;
+  position: relative;
+  transform-origin: var(--transform-origin);
+  width: var(--anchor-width);
+}
+
+.ando-combobox__content[data-size="sm"] {
+  min-width: min(200px, var(--available-width));
+}
+
+.ando-combobox__content[data-size="md"] {
+  min-width: min(200px, var(--available-width));
+}
+
+.ando-combobox__content[data-size="lg"] {
+  min-width: min(320px, var(--available-width));
+}
+
+/* No floor at all: the popup is exactly as wide as its anchor, for pickers
+   whose popup should read as an extension of the field it opens from. */
+.ando-combobox__content[data-size="anchor"] {
+  min-width: 0;
+}
+
+.ando-combobox__list {
+  display: flex;
+  flex-direction: column;
+  /* Roughly nine 36px rows. This is the cap when the popup has room to spare
+     (an unclipped page); inside a dialog `--available-height` binds first. */
+  max-height: 320px;
+  /* Shrinks below `max-height` when the popup is capped by
+     `--available-height`, so the last row stays scrollable instead of being
+     clipped off the bottom of the popup. */
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ando-combobox__item {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  gap: 8px;
+  line-height: var(--type-style-text-label-14-line-height);
+  min-height: 36px;
+  min-width: 0;
+  outline: none;
+  padding: 6px 8px;
+  position: relative;
+  user-select: none;
+  width: 100%;
+}
+
+.ando-combobox__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-combobox__item[data-highlighted] {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+/* Selected is the shared blue-50 fill used across every flyout family, and it
+ * survives hover — the neutral wash above belongs to unselected rows. Hover on
+ * a selected row deepens the same blue so the row still answers the pointer. */
+.ando-combobox__item[data-selected] {
+  background: var(--color-ando-action-mention-tag);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-combobox__item[data-selected][data-highlighted] {
+  background: var(--color-ando-action-mention-tag-hover);
+}
+
+.ando-combobox__item svg {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.ando-combobox__item-indicator {
+  align-items: center;
+  color: currentColor;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 16px;
+  justify-content: center;
+  margin-left: auto;
+  width: 16px;
+}
+
+/* The tick is a central icon; the CSS only places it. */
+.ando-combobox__checkmark {
+  display: block;
+}
+
+.ando-combobox__list[data-show-indicator="false"]
+  .ando-combobox__item-indicator {
+  display: none;
+}
+
+/* A single-select list marks only the chosen row, but the indicator stays
+   mounted on every row so the label does not reflow as the choice moves. */
+.ando-combobox__list:not([aria-multiselectable="true"])
+  .ando-combobox__item-indicator:not([data-selected])
+  .ando-combobox__checkmark {
+  opacity: 0;
+}
+
+/* A list that takes more than one value states each row's state as a checkbox
+   rather than a bare tick — an unticked row has to read as "not picked yet",
+   which an absent tick cannot say. Same box as the selectable-flyout rows. */
+.ando-combobox__list[aria-multiselectable="true"]
+  .ando-combobox__item-indicator {
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-xs);
+}
+
+.ando-combobox__list[aria-multiselectable="true"]
+  .ando-combobox__item-indicator[data-selected] {
+  background: var(--color-ando-bg-brand);
+  border-color: var(--color-ando-bg-brand);
+  color: var(--color-ando-fg-reverse);
+}
+
+.ando-combobox__list[aria-multiselectable="true"]
+  .ando-combobox__item-indicator:not([data-selected])
+  .ando-combobox__checkmark {
+  opacity: 0;
+}
+
+.ando-combobox__group {
+  padding: 0;
+}
+
+.ando-combobox__label {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  font-size: var(--type-style-text-overline-11-font-size);
+  font-weight: var(--type-style-text-overline-11-font-weight);
+  gap: 6px;
+  letter-spacing: var(--type-style-text-overline-11-letter-spacing);
+  line-height: var(--type-style-text-overline-11-line-height);
+  min-height: 24px;
+  padding: 6px 8px 4px;
+  text-transform: var(--type-style-text-overline-11-text-transform);
+}
+
+/* Reads as a single list row, not a panel-sized block: same height, padding and
+ * alignment as `.ando-combobox__item`, so an empty result sits where the first
+ * option would have. */
+.ando-combobox__empty {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  line-height: var(--type-style-text-label-14-line-height);
+  min-height: 36px;
+  padding: 6px 8px;
+}
+
+/* Collapse completely when there is no message to show — otherwise the row
+ * height above reserves blank space at the top of a populated list. */
+.ando-combobox__empty:empty {
+  display: none;
+}
+
+.ando-combobox__separator {
+  background: var(--color-ando-border-alpha);
+  height: 1px;
+  margin: 4px -4px;
+}
+
+.ando-combobox__chips {
+  align-items: center;
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-sm);
+  cursor: text;
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--font-ando-sans);
+  gap: 4px;
+  /* 32px, matching `.ando-input`, so a chips picker and a plain input read as
+     one control when they sit together in a form — the invite dialog's email
+     field directly above its channel picker is the case that shows it. The
+     padding stays small and the min-height carries the empty state, so the
+     field still grows naturally once chips wrap onto a second row. */
+  min-height: 32px;
+  min-width: 0;
+  padding: 3px 10px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.ando-combobox__chips[data-full-width="true"] {
+  width: 100%;
+}
+
+.ando-combobox__chips[data-size="sm"] {
+  min-height: 28px;
+  padding-block: 2px;
+}
+
+.ando-combobox__chips:focus-within,
+.ando-combobox__chips:has(.ando-combobox__chips-input[data-popup-open]) {
+  border-color: var(--color-ando-border-input-focus);
+}
+
+.ando-combobox__chips[data-invalid="true"] {
+  border-color: var(--color-ando-border-danger);
+}
+
+.ando-combobox__chip {
+  align-items: center;
+  background: var(--color-ando-bg-fill-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  display: inline-flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  gap: 2px;
+  height: 24px;
+  line-height: var(--type-style-text-label-14-line-height);
+  padding: 0 4px;
+}
+
+.ando-combobox__chip:has([data-disabled]) {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-combobox__chip-remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: currentColor;
+  cursor: pointer;
+  display: inline-flex;
+  height: 16px;
+  justify-content: center;
+  margin-left: 2px;
+  opacity: 0.72;
+  outline: none;
+  padding: 0;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 16px;
+}
+
+.ando-combobox__chip-remove:hover {
+  opacity: 1;
+}
+
+.ando-combobox__chip-remove-icon {
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Dashed, so it reads as an action next to the solid chips that are values. */
+.ando-combobox__bulk-action {
+  align-items: center;
+  background: transparent;
+  border: 0.5px dashed var(--color-ando-border-default);
+  border-radius: var(--radius-xs);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-ando-sans);
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  gap: 4px;
+  height: 24px;
+  line-height: var(--type-style-text-label-14-line-height);
+  max-width: 100%;
+  padding-inline: 4px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.ando-combobox__bulk-action:hover {
+  background: var(--color-ando-bg-fill-subtle);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-combobox__bulk-action-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-combobox__bulk-action svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-combobox__chips-input {
+  /* Fill the row's height rather than sitting at its own line-box height: an
+     `input` centres its own text, so stretching is what puts the caret and
+     placeholder on the same centre line as the chips and any leading icon.
+     A fixed height would have to be restated per size; this follows. */
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  color: var(--color-ando-fg-primary);
+  flex: 1 1 auto;
+  font-family: inherit;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+  min-width: 64px;
+  outline: none;
+}
+
+.ando-combobox__chips-input::placeholder {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-combobox__item-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ando-combobox__item-primary {
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-combobox__item-secondary {
+  color: var(--color-ando-fg-tertiary);
+  font-size: var(--type-style-text-label-12-font-size);
+  line-height: var(--type-style-text-label-12-line-height);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-combobox__item[data-selected] .ando-combobox__item-secondary {
+  color: var(--color-ando-fg-secondary);
+}

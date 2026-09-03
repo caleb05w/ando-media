@@ -1,0 +1,87 @@
+.ando-card {
+  background: var(--color-ando-bg-elevated);
+  border-radius: var(--radius-lg);
+  color: var(--color-ando-fg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+}
+
+/* One edge at a time. --shadow-xs opens with a 0 0 0 1px ring, so pairing it
+ * with a border draws a ~2px rim — obvious in dark mode, where the light
+ * alpha ring wraps a dark border. data-edge="both" is the only way to ask
+ * for that, and nothing does by default. */
+.ando-card[data-edge="shadow"],
+.ando-card[data-edge="both"] {
+  box-shadow: var(--shadow-xs);
+}
+
+.ando-card[data-edge="border"],
+.ando-card[data-edge="both"] {
+  border: 1px solid var(--color-ando-border-default);
+}
+
+/* Forced-colors mode forces box-shadow to none, which would leave a
+ * shadow-edged card with no edge at all. Give those variants a real border
+ * back; the system palette colors it. */
+@media (forced-colors: active) {
+  .ando-card[data-edge="shadow"],
+  .ando-card[data-edge="both"] {
+    border: 1px solid;
+  }
+}
+
+.ando-card[data-size="sm"] {
+  gap: 12px;
+  padding: 16px;
+}
+
+.ando-card__header {
+  align-items: flex-start;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.ando-card__title {
+  color: var(--color-ando-fg-primary);
+  font-size: var(--type-style-text-label-14-md-font-size);
+  font-weight: var(--type-style-text-label-14-md-font-weight);
+  line-height: var(--type-style-text-label-14-md-line-height);
+  min-width: 0;
+}
+
+.ando-card__description {
+  color: var(--color-ando-fg-tertiary);
+  font-size: var(--text-sm);
+  grid-column: 1 / -1;
+  line-height: var(--type-style-text-label-13-line-height);
+  min-width: 0;
+}
+
+.ando-card__action {
+  align-items: center;
+  display: inline-flex;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  min-width: 0;
+}
+
+.ando-card__content {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--type-style-text-label-13-line-height);
+  min-width: 0;
+}
+
+.ando-card__footer {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}

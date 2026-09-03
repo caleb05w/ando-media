@@ -1,0 +1,661 @@
+.ando-selectable-flyout__trigger-group {
+  align-items: center;
+  display: inline-flex;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.ando-selectable-flyout__trigger-group[data-full-width="true"] {
+  display: flex;
+  width: 100%;
+}
+
+.ando-selectable-flyout__trigger,
+.ando-selectable-flyout__trigger-action {
+  align-items: center;
+  background: var(--color-ando-bg-main);
+  border: 1px solid var(--color-ando-border-default);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  outline: none;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.ando-selectable-flyout__trigger:hover:not(:disabled),
+.ando-selectable-flyout__trigger-action:hover:not(:disabled) {
+  background: var(--color-ando-bg-fill-subtle);
+}
+
+.ando-selectable-flyout__trigger[data-active="true"],
+.ando-selectable-flyout__trigger-action[data-active="true"] {
+  background: var(--color-ando-bg-fill-muted);
+  border-color: var(--color-ando-border-strong);
+}
+
+.ando-selectable-flyout__trigger[data-active="true"]:hover:not(:disabled),
+.ando-selectable-flyout__trigger-action[data-active="true"]:hover:not(
+    :disabled
+  ) {
+  background: var(--color-ando-bg-fill-strong);
+}
+
+.ando-selectable-flyout__trigger[data-size="sm"],
+.ando-selectable-flyout__trigger-action[data-size="sm"] {
+  height: 28px;
+}
+
+/* 32px, matching `.ando-input` — a field-shaped trigger and a plain input in
+   the same form have to read as one control. 34px matched nothing. */
+.ando-selectable-flyout__trigger[data-size="md"],
+.ando-selectable-flyout__trigger-action[data-size="md"] {
+  height: 32px;
+}
+
+.ando-selectable-flyout__trigger {
+  gap: 8px;
+  justify-content: flex-start;
+  padding: 0 10px;
+}
+
+.ando-selectable-flyout__trigger[data-full-width="true"],
+.ando-selectable-flyout__trigger-group[data-full-width="true"]
+  .ando-selectable-flyout__trigger {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.ando-selectable-flyout__trigger-action {
+  justify-content: center;
+  padding: 0 9px;
+}
+
+.ando-selectable-flyout__trigger[data-variant="pill"] {
+  border-radius: 999px;
+}
+
+.ando-selectable-flyout__trigger-action[data-variant="pill"] {
+  border-radius: 999px;
+}
+
+.ando-selectable-flyout__trigger-group[data-variant="pill"]
+  .ando-selectable-flyout__trigger {
+  border-bottom-right-radius: 0;
+  border-right: 0;
+  border-top-right-radius: 0;
+}
+
+.ando-selectable-flyout__trigger-group[data-variant="pill"]
+  .ando-selectable-flyout__trigger-action {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+/* Field variant frames like a form field (.ando-input), not a button:
+   input surface/border tokens, 32px height, muted leading icon, and a small
+   14px chevron — so dropdown fields and Input agree across the system. */
+.ando-selectable-flyout__trigger[data-variant="field"],
+.ando-selectable-flyout__trigger-action[data-variant="field"] {
+  background: var(--color-ando-bg-input);
+  border-color: var(--color-ando-border-default);
+  border-radius: var(--radius-sm);
+}
+
+/* Field variant reads as a select: the value fills and left-aligns (like
+   .ando-input__control), pushing the chevron to the right edge — instead of
+   the pill's hug-and-space-between, which centers a single value. */
+.ando-selectable-flyout__trigger[data-variant="field"]
+  .ando-selectable-flyout__trigger-label {
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.ando-selectable-flyout__trigger[data-variant="field"]:hover:not(:disabled),
+.ando-selectable-flyout__trigger-action[data-variant="field"]:hover:not(
+    :disabled
+  ) {
+  background: var(--color-ando-bg-input);
+}
+
+.ando-selectable-flyout__trigger[data-variant="field"][data-active="true"],
+.ando-selectable-flyout__trigger-action[data-variant="field"][data-active="true"] {
+  background: var(--color-ando-bg-input);
+  border-color: var(--color-ando-border-input-focus);
+}
+
+/* Invalid reads the same on a field-shaped trigger as on `Input` and v2
+   `SelectTrigger`: the border goes red and the message sits underneath in a
+   `FieldError`, never inside the control. Last so it survives open/hover. */
+.ando-selectable-flyout__trigger[data-invalid="true"],
+.ando-selectable-flyout__trigger[data-invalid="true"][data-active="true"],
+.ando-selectable-flyout__trigger[data-invalid="true"]:hover:not(:disabled) {
+  border-color: var(--color-ando-border-danger);
+}
+
+.ando-selectable-flyout__trigger[data-variant="field"]:focus-visible,
+.ando-selectable-flyout__trigger-action[data-variant="field"]:focus-visible {
+  border-color: var(--color-ando-border-input-focus);
+}
+
+.ando-selectable-flyout__trigger[data-variant="field"][data-size="md"],
+.ando-selectable-flyout__trigger-action[data-variant="field"][data-size="md"] {
+  height: 32px;
+}
+
+.ando-selectable-flyout__trigger[data-variant="field"]
+  .ando-selectable-flyout__trigger-visual {
+  color: var(--color-ando-fg-secondary);
+}
+
+.ando-selectable-flyout__trigger[data-variant="field"]
+  .ando-selectable-flyout__chevron {
+  height: 14px;
+  width: 14px;
+}
+
+.ando-selectable-flyout__trigger-visual,
+.ando-selectable-flyout__option-leading,
+.ando-selectable-flyout__option-trailing {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.ando-selectable-flyout__trigger-visual > svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-selectable-flyout__trigger-visual > svg:not([class*="size-"]) {
+  height: 16px;
+  width: 16px;
+}
+
+.ando-selectable-flyout__trigger-label {
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-selectable-flyout__chevron {
+  color: currentColor;
+  display: block;
+  flex: 0 0 auto;
+  height: 16px;
+  transform: rotate(0deg);
+  transition: transform var(--motion-duration-fast)
+    var(--motion-easing-standard);
+  width: 16px;
+}
+
+.ando-selectable-flyout__trigger[data-state="open"]
+  .ando-selectable-flyout__chevron,
+.ando-selectable-flyout__trigger[data-open="true"]
+  .ando-selectable-flyout__chevron,
+.ando-selectable-flyout__trigger-action[data-open="true"]
+  .ando-selectable-flyout__chevron,
+.ando-selectable-flyout__chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+/* The cross is a central icon; the CSS only places it. */
+.ando-selectable-flyout__clear-mark {
+  display: block;
+}
+
+.ando-selectable-flyout__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+/* Match the invoking trigger by default, the way v2 Select already does.
+ * The flyout may sit inside a dropdown-menu or a popover popper, so read
+ * whichever trigger-width variable that ancestor published. This sets `width`
+ * only — the per-size `min-width` floors below still win, which is what keeps
+ * a narrow trigger from crushing its labels. */
+.ando-selectable-flyout__content[data-match-trigger-width="true"] {
+  /* Width comes from the trigger, so the entrance must not resize it:
+     translate and fade only. See --ando-flyout-scale in
+     styles/motion.css. */
+  --ando-flyout-scale: 1;
+
+  width: var(
+    --radix-dropdown-menu-trigger-width,
+    var(--radix-popover-trigger-width, auto)
+  );
+}
+
+/* A floor, not a fixed width: the panel matches its trigger and never renders
+ * narrower than 200px, so labels ellipsis instead of truncating to nothing.
+ * `sm` and `md` share the floor — the sizes still differ in trigger height. */
+.ando-selectable-flyout__content[data-size="sm"] {
+  min-width: 200px;
+}
+
+.ando-selectable-flyout__content[data-size="md"] {
+  min-width: 200px;
+}
+
+.ando-selectable-flyout__content[data-size="lg"] {
+  min-width: 320px;
+}
+
+/* Positioning only. The field is the `Input` primitive now, and `.ando-input`
+   owns the box — background, border, radius, min-height and padding, including
+   the `data-size` variants. Redeclaring them here put two competing boxes on
+   one element and pinned the height at 32px, which silently defeated the
+   `size="sm"` the component passes. */
+.ando-selectable-flyout__search {
+  margin: 4px;
+}
+
+/* `Input` puts `className` on its wrapper, not on the control, so this has to
+   reach through to the inner <input>: as a bare `::placeholder` on the wrapper
+   it matched nothing and the placeholder fell back to the UA colour. */
+.ando-selectable-flyout__search .ando-input__control::placeholder {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-selectable-flyout__list {
+  display: flex;
+  flex-direction: column;
+  max-height: min(
+    320px,
+    var(
+      --radix-popover-content-available-height,
+      var(--radix-dropdown-menu-content-available-height, 320px)
+    )
+  );
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* Inside a container that already owns the height (a fixed dialog), the
+   viewport-derived cap above is the wrong constraint — it strands empty space
+   between the last row and the footer. `min-height: 0` is what actually lets a
+   flex child shrink below its content and scroll. */
+.ando-selectable-flyout__list[data-fill="true"] {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
+
+.ando-selectable-flyout__list[data-dividers="true"] {
+  border-bottom: 0.5px solid var(--color-ando-border-default);
+  border-top: 0.5px solid var(--color-ando-border-default);
+}
+
+/* Selection already reads from each row's own indicator here, so the tint is
+   redundant — and at picker scale it stops being an accent and becomes the
+   list's background. Hover still responds, just in the neutral ghost fill. */
+.ando-selectable-flyout__list[data-tint-selected="false"]
+  .ando-selectable-flyout__option-button[data-selected="true"] {
+  background: transparent;
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-selectable-flyout__list[data-tint-selected="false"]
+  .ando-selectable-flyout__option-button[data-selected="true"]:hover:not(
+    :disabled
+  ) {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+.ando-selectable-flyout__section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ando-selectable-flyout__section + .ando-selectable-flyout__section {
+  margin-top: 4px;
+}
+
+.ando-selectable-flyout__section-label {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  font-size: var(--type-style-text-label-12-font-size);
+  font-weight: 500;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  line-height: var(--type-style-text-label-12-line-height);
+  min-height: 24px;
+  padding: 6px 8px 4px;
+  text-transform: uppercase;
+}
+
+.ando-selectable-flyout__section-label > svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-selectable-flyout__section-label > svg:not([class*="size-"]) {
+  height: 14px;
+  width: 14px;
+}
+
+.ando-selectable-flyout__separator {
+  background: var(--color-ando-border-alpha);
+  height: 1px;
+  margin: 4px -4px;
+}
+
+.ando-selectable-flyout__option-row {
+  min-height: 36px;
+}
+
+.ando-dropdown-menu__item.ando-selectable-flyout__option-row {
+  gap: 0;
+  padding: 6px 8px;
+}
+
+/* A checkbox row states its selection on the trailing edge like every other
+   flyout family, so it hands back the leading indent that
+   `.ando-dropdown-menu__check-item` reserves for a leading tick and reserves
+   the same width on the right instead. */
+.ando-selectable-flyout__dropdown-checkbox-item.ando-selectable-flyout__option-row {
+  padding-left: 8px;
+  padding-right: 32px;
+}
+
+/* A selected row is blue-50, and stays blue when hovered — the neutral wash
+ * belongs to unselected rows. Hover on a selected row deepens the same blue
+ * (the shipped mention-tag pair) so the row still answers the pointer instead
+ * of reading as inert. */
+.ando-selectable-flyout__dropdown-item[data-selected="true"],
+.ando-selectable-flyout__dropdown-checkbox-item[data-selected="true"],
+.ando-selectable-flyout__dropdown-radio-item[data-selected="true"],
+.ando-selectable-flyout__option-button[data-selected="true"] {
+  background: var(--color-ando-action-mention-tag);
+  color: var(--color-ando-fg-brand);
+}
+
+.ando-selectable-flyout__dropdown-item[data-selected="true"][data-highlighted],
+.ando-selectable-flyout__dropdown-checkbox-item[data-selected="true"][data-highlighted],
+.ando-selectable-flyout__dropdown-radio-item[data-selected="true"][data-highlighted],
+.ando-selectable-flyout__option-button[data-selected="true"]:hover:not(:disabled) {
+  background: var(--color-ando-action-mention-tag-hover);
+}
+
+.ando-selectable-flyout__option-content {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+.ando-selectable-flyout__option-leading {
+  height: var(--ando-flyout-leading-size, 20px);
+  width: var(--ando-flyout-leading-size, 20px);
+}
+
+.ando-selectable-flyout__option-leading > svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.ando-selectable-flyout__option-leading > svg:not([class*="size-"]) {
+  height: 16px;
+  width: 16px;
+}
+
+.ando-selectable-flyout__option-text {
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.ando-selectable-flyout__option-label,
+.ando-selectable-flyout__option-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Opt-in wrapping for descriptions that carry the option's meaning rather
+ * than a hint — an ellipsis there hides the rule the admin is picking. */
+.ando-selectable-flyout__option-description[data-lines="multiple"] {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.ando-selectable-flyout__option-label {
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+}
+
+.ando-selectable-flyout__option-description {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--text-sm);
+  line-height: calc(var(--text-sm) * 1.3333333333);
+}
+
+.ando-selectable-flyout__option-trailing {
+  color: var(--color-ando-fg-secondary);
+  margin-left: auto;
+}
+
+.ando-selectable-flyout__indicator {
+  align-items: center;
+  color: currentColor;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+/* The tick is a central icon; only visibility is styled here. */
+.ando-selectable-flyout__indicator[data-variant="check"]
+  .ando-selectable-flyout__indicator-mark {
+  display: block;
+  opacity: 0;
+}
+
+.ando-selectable-flyout__indicator[data-variant="check"][data-selected="true"]
+  .ando-selectable-flyout__indicator-mark {
+  opacity: 1;
+}
+
+.ando-selectable-flyout__indicator[data-variant="checkbox"] {
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-xs);
+}
+
+/* Same token as `.ando-checkbox[data-state="checked"]`. This indicator has to
+   stay a presentational span — the row it sits in is already a <button>, so it
+   cannot embed the Radix-backed Checkbox — but it must not therefore look like
+   a different control. It was on `bg-brand` (blue-600) while every real
+   checkbox in the app is `action-primary` (near-black). */
+.ando-selectable-flyout__indicator[data-variant="checkbox"][data-selected="true"] {
+  background: var(--color-ando-action-primary);
+  border-color: var(--color-ando-action-primary);
+  color: var(--color-ando-fg-reverse);
+}
+
+.ando-selectable-flyout__indicator[data-variant="checkbox"]
+  .ando-selectable-flyout__indicator-mark {
+  display: block;
+  opacity: 0;
+}
+
+.ando-selectable-flyout__indicator[data-variant="checkbox"][data-selected="true"]
+  .ando-selectable-flyout__indicator-mark {
+  opacity: 1;
+}
+
+.ando-selectable-flyout__indicator[data-variant="radio"] {
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: 999px;
+}
+
+.ando-selectable-flyout__indicator[data-variant="radio"]
+  .ando-selectable-flyout__indicator-mark {
+  background: currentColor;
+  border-radius: 999px;
+  display: block;
+  height: 6px;
+  opacity: 0;
+  width: 6px;
+}
+
+.ando-selectable-flyout__indicator[data-variant="radio"][data-selected="true"]
+  .ando-selectable-flyout__indicator-mark {
+  opacity: 1;
+}
+
+.ando-selectable-flyout__dropdown-checkbox-item
+  .ando-selectable-flyout__dropdown-indicator {
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-xs);
+  color: var(--color-ando-fg-reverse);
+  left: auto;
+  right: 8px;
+}
+
+.ando-selectable-flyout__dropdown-checkbox-item[data-state="checked"]
+  .ando-selectable-flyout__dropdown-indicator,
+.ando-selectable-flyout__dropdown-checkbox-item[data-state="indeterminate"]
+  .ando-selectable-flyout__dropdown-indicator {
+  background: var(--color-ando-bg-brand);
+  border-color: var(--color-ando-bg-brand);
+}
+
+.ando-selectable-flyout__dropdown-radio-item
+  .ando-selectable-flyout__dropdown-indicator {
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: 999px;
+}
+
+.ando-dropdown-menu__item.ando-selectable-flyout__dropdown-action-item {
+  gap: 0;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+.ando-selectable-flyout__dropdown-action-item[data-action-variant="primary"] {
+  background: var(--color-ando-bg-brand);
+  color: var(--color-ando-fg-reverse);
+}
+
+.ando-selectable-flyout__dropdown-action-item[data-action-variant="primary"][data-highlighted] {
+  background: var(--color-ando-bg-brand-hover);
+}
+
+.ando-selectable-flyout__option-button,
+.ando-selectable-flyout__action-button {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  min-width: 0;
+  outline: none;
+  padding: 6px 8px;
+  text-align: left;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 100%;
+}
+
+.ando-selectable-flyout__option-button:hover:not(:disabled),
+.ando-selectable-flyout__action-button:hover:not(:disabled) {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+.ando-selectable-flyout__actions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+}
+
+.ando-selectable-flyout__action-button {
+  justify-content: center;
+  min-height: 32px;
+}
+
+.ando-selectable-flyout__action-button[data-variant="primary"] {
+  background: var(--color-ando-bg-brand);
+  color: var(--color-ando-fg-reverse);
+}
+
+.ando-selectable-flyout__action-button[data-variant="primary"]:hover:not(
+    :disabled
+  ) {
+  background: var(--color-ando-bg-brand-hover);
+}
+
+.ando-selectable-flyout__action-button[data-variant="danger"] {
+  color: var(--color-ando-fg-danger);
+}
+
+.ando-selectable-flyout__action-button[data-variant="danger"]:hover:not(
+    :disabled
+  ) {
+  background: var(--color-ando-bg-danger);
+}
+
+.ando-selectable-flyout__empty {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--text-sm);
+  padding: 24px 12px;
+  text-align: center;
+}
+
+.ando-selectable-flyout__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 4px;
+}
+
+.ando-selectable-flyout__loading-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 4px;
+}
+
+.ando-selectable-flyout__loading-indicator,
+.ando-selectable-flyout__loading-line {
+  animation: ando-ui-pulse var(--motion-duration-slow) ease-in-out infinite;
+  background: var(--color-ando-bg-fill-muted);
+  border-radius: 999px;
+  display: block;
+}
+
+.ando-selectable-flyout__loading-indicator {
+  height: 16px;
+  width: 16px;
+}
+
+.ando-selectable-flyout__loading-line {
+  flex: 1 1 auto;
+  height: 10px;
+}

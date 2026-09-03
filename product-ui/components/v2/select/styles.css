@@ -1,0 +1,240 @@
+.ando-select-v2__trigger {
+  align-items: center;
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-ando-sans);
+  gap: 8px;
+  justify-content: flex-start;
+  min-width: 0;
+  outline: none;
+  padding: 0 10px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.ando-select-v2__trigger[data-full-width="true"] {
+  width: 100%;
+}
+
+.ando-select-v2__trigger[data-size="sm"] {
+  height: 28px;
+}
+
+/* 32px, matching `.ando-input` — a select and a plain input in the same form
+   have to read as one control. */
+.ando-select-v2__trigger[data-size="md"] {
+  height: 32px;
+}
+
+.ando-select-v2__trigger:hover:not([data-disabled]) {
+  background: var(--color-ando-bg-input);
+}
+
+.ando-select-v2__trigger:focus-visible,
+.ando-select-v2__trigger[data-state="open"] {
+  border-color: var(--color-ando-border-input-focus);
+}
+
+.ando-select-v2__trigger[data-invalid="true"] {
+  border-color: var(--color-ando-border-danger);
+}
+
+.ando-select-v2__trigger[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-select-v2__trigger-label {
+  align-items: center;
+  display: inline-flex;
+  flex: 1 1 auto;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
+.ando-select-v2__trigger[data-placeholder] .ando-select-v2__trigger-label {
+  color: var(--color-ando-fg-tertiary);
+}
+
+.ando-select-v2__chevron,
+.ando-select-v2__chevron-up,
+.ando-select-v2__chevron-down {
+  border-color: currentColor;
+  border-style: solid;
+  border-width: 0 1.5px 1.5px 0;
+  display: block;
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
+}
+
+.ando-select-v2__chevron {
+  color: var(--color-ando-fg-secondary);
+  margin-left: auto;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform var(--motion-duration-fast)
+    var(--motion-easing-standard);
+}
+
+.ando-select-v2__trigger[data-state="open"] .ando-select-v2__chevron {
+  transform: translateY(1px) rotate(225deg);
+}
+
+.ando-select-v2__chevron-up {
+  transform: translateY(1px) rotate(225deg);
+}
+
+.ando-select-v2__chevron-down {
+  transform: translateY(-1px) rotate(45deg);
+}
+
+/* Background, edge, shadow, colour, outline and the enter animation all come
+   from .ando-floating-surface — they were duplicated here, which is how this
+   panel drifted to its own radius and a hand-rolled shadow ring. The surface
+   also publishes --ando-overlay-base-transform, which this was missing: a
+   select opened inside a Dialog would otherwise inherit the dialog's centring
+   transform and animate in from up and left. Only select-specific geometry
+   stays below. */
+.ando-select-v2__content {
+  /* Width always comes from the trigger, so the entrance must not resize it:
+     translate and fade only. See --ando-flyout-scale in
+     styles/motion.css. */
+  --ando-flyout-scale: 1;
+
+  font-family: var(--font-ando-sans);
+  max-height: var(--radix-select-content-available-height, 360px);
+  min-width: 200px;
+  overflow: hidden;
+  padding: 4px;
+  transform-origin: var(--radix-select-content-transform-origin, center);
+  width: var(--radix-select-trigger-width);
+  z-index: var(--ando-z-floating);
+}
+
+.ando-select-v2__content[data-size="sm"] {
+  min-width: 200px;
+}
+
+.ando-select-v2__content[data-size="md"] {
+  min-width: 200px;
+}
+
+.ando-select-v2__content[data-size="lg"] {
+  min-width: 320px;
+}
+
+.ando-select-v2__viewport {
+  display: flex;
+  flex-direction: column;
+  max-height: min(320px, var(--radix-select-content-available-height, 320px));
+  min-width: 0;
+}
+
+.ando-select-v2__label {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  display: flex;
+  font-size: var(--type-style-text-overline-11-font-size);
+  font-weight: var(--type-style-text-overline-11-font-weight);
+  gap: 6px;
+  letter-spacing: var(--type-style-text-overline-11-letter-spacing);
+  line-height: var(--type-style-text-overline-11-line-height);
+  min-height: 24px;
+  padding: 6px 8px 4px;
+  text-transform: var(--type-style-text-overline-11-text-transform);
+}
+
+.ando-select-v2__separator {
+  background: var(--color-ando-border-alpha);
+  height: 1px;
+  margin: 4px -4px;
+}
+
+.ando-select-v2__item {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  gap: 8px;
+  line-height: var(--type-style-text-label-14-line-height);
+  min-height: 36px;
+  min-width: 0;
+  outline: none;
+  padding: 6px 8px;
+  position: relative;
+  user-select: none;
+}
+
+.ando-select-v2__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ando-select-v2__item[data-highlighted] {
+  background: var(--color-ando-action-ghost-hover);
+}
+
+/* Selected holds the blue-50 fill through hover — the neutral wash above
+ * belongs to unselected rows. Hover on a selected row deepens the same blue so
+ * the row still answers the pointer instead of reading as inert. */
+.ando-select-v2__item[data-state="checked"] {
+  background: var(--color-ando-action-mention-tag);
+  color: var(--color-ando-fg-brand);
+}
+
+.ando-select-v2__item[data-state="checked"][data-highlighted] {
+  background: var(--color-ando-action-mention-tag-hover);
+}
+
+.ando-select-v2__item-label {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ando-select-v2__item-indicator {
+  align-items: center;
+  color: currentColor;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 16px;
+  justify-content: center;
+  margin-left: auto;
+  width: 16px;
+}
+
+/* The tick is a central icon; the CSS only places it. */
+.ando-select-v2__checkmark {
+  display: block;
+}
+
+.ando-select-v2__scroll-button {
+  align-items: center;
+  color: var(--color-ando-fg-secondary);
+  cursor: default;
+  display: flex;
+  height: 24px;
+  justify-content: center;
+}

@@ -1,0 +1,86 @@
+.ando-input-otp {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  position: relative;
+}
+
+.ando-input-otp:has(.ando-input-otp__input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ando-input-otp__input:disabled {
+  cursor: not-allowed;
+}
+
+.ando-input-otp__group {
+  display: flex;
+  gap: 6px;
+}
+
+.ando-input-otp__slot {
+  align-items: center;
+  background: var(--color-ando-bg-input);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-tertiary);
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size, 14px);
+  height: 44px;
+  justify-content: center;
+  line-height: var(--type-style-text-label-14-line-height, 20px);
+  padding: 0 12px;
+  position: relative;
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 44px;
+}
+
+.ando-input-otp__slot[data-active="true"] {
+  border-color: var(--color-ando-border-input-focus);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-input-otp:has(.ando-input-otp__input[aria-invalid="true"])
+  .ando-input-otp__slot,
+.ando-input-otp__slot[aria-invalid="true"] {
+  border-color: var(--color-ando-fg-danger);
+}
+
+.ando-input-otp__caret {
+  animation: ando-input-otp-caret 1.2s ease-out infinite;
+  background: var(--color-ando-fg-primary);
+  height: 20px;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+.ando-input-otp__separator {
+  align-items: center;
+  color: var(--color-ando-fg-tertiary);
+  display: flex;
+  justify-content: center;
+  width: 12px;
+}
+
+@keyframes ando-input-otp-caret {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+
+  20%,
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ando-input-otp__caret {
+    animation: none;
+  }
+}

@@ -1,0 +1,14 @@
+.ando-separator {
+  background: var(--color-ando-border-default);
+  flex-shrink: 0;
+}
+
+.ando-separator[data-orientation="horizontal"] {
+  height: 1px;
+  width: 100%;
+}
+
+.ando-separator[data-orientation="vertical"] {
+  height: 100%;
+  width: 1px;
+}

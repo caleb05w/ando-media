@@ -1,0 +1,164 @@
+.ando-button-v2 {
+  align-items: center;
+  background: var(--color-ando-action-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-ando-fg-reverse);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+  min-width: 0;
+  outline: none;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Typography defaults sit at zero specificity so a kanso-text-* label class
+   passed via className (same ui layer, class specificity) can restate the
+   button's type without attribute pins or !important. */
+:where(.ando-button-v2) {
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  line-height: var(--type-style-text-label-14-line-height);
+}
+
+.ando-button-v2:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-ando-action-primary-hover);
+}
+
+.ando-button-v2:disabled,
+.ando-button-v2[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ando-button-v2[data-size="xs"] {
+  height: 24px;
+  padding: 0 8px;
+}
+
+/* After the base :where block so the size wins among the zero-specificity
+   typography defaults, while consumer label classes still override. */
+:where(.ando-button-v2[data-size="xs"]) {
+  font-size: var(--type-style-text-label-12-font-size);
+}
+
+.ando-button-v2[data-size="sm"] {
+  height: 28px;
+  padding: 0 10px;
+}
+
+.ando-button-v2[data-size="md"] {
+  height: 32px;
+  padding: 0 14px;
+}
+
+.ando-button-v2[data-size="lg"] {
+  height: 40px;
+  padding: 0 18px;
+}
+
+:where(.ando-button-v2[data-size="lg"]) {
+  font-size: var(--type-style-text-label-16-font-size);
+}
+
+.ando-button-v2[data-variant="secondary"] {
+  background: var(--color-ando-action-secondary);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-button-v2[data-variant="secondary"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-secondary-hover);
+}
+
+.ando-button-v2[data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-ando-fg-secondary);
+}
+
+.ando-button-v2[data-variant="ghost"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-ghost-hover);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-button-v2[data-variant="outline"] {
+  background: transparent;
+  border-color: var(--color-ando-border-default);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-button-v2[data-variant="outline"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-bg-fill-subtle);
+  border-color: var(--color-ando-border-strong);
+}
+
+.ando-button-v2[data-variant="destructive"] {
+  background: var(--color-ando-action-danger);
+  color: var(--color-ando-fg-white);
+}
+
+.ando-button-v2[data-variant="destructive"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-danger-hover);
+}
+
+.ando-button-v2[data-variant="plain"] {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+  gap: 0;
+  height: auto;
+  padding: 0;
+  transition: none;
+  white-space: normal;
+}
+
+.ando-button-v2[data-variant="plain"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: transparent;
+  color: inherit;
+}
+
+.ando-button-v2[data-variant="primary"] {
+  background: var(--color-ando-action-primary);
+  border-color: transparent;
+  color: var(--color-ando-fg-reverse);
+}
+
+.ando-button-v2[data-variant="primary"]:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  background: var(--color-ando-action-primary-hover);
+}
+
+.ando-button-v2 [data-icon="inline-start"],
+.ando-button-v2 [data-icon="inline-end"] {
+  flex: 0 0 auto;
+  height: 1em;
+  pointer-events: none;
+  width: 1em;
+}
+
+.ando-button-v2 [data-icon="inline-start"] {
+  margin-inline-start: -2px;
+}
+
+.ando-button-v2 [data-icon="inline-end"] {
+  margin-inline-end: -2px;
+}

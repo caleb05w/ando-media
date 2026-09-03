@@ -1,0 +1,290 @@
+.ando-dialog__overlay,
+.ando-sheet__overlay {
+  animation: ando-ui-fade-in var(--motion-duration-fast) ease-out;
+  background: var(--color-ando-alpha-d10);
+  inset: 0;
+  position: fixed;
+  z-index: var(--ando-z-overlay-backdrop);
+}
+
+.ando-dialog__overlay[data-state="closed"],
+.ando-sheet__overlay[data-state="closed"] {
+  animation: ando-ui-fade-out var(--motion-duration-fast) ease-out;
+}
+
+.ando-dialog__content {
+  --ando-dialog-center-transform: translate(-50%, -50%);
+  --ando-overlay-base-transform: var(--ando-dialog-center-transform);
+  animation: ando-ui-overlay-enter var(--motion-duration-fast) ease-out;
+  background: var(--color-ando-bg-elevated);
+  /* No border: --shadow-xl's first layer already draws the 1px border-alpha
+     hairline; a border on top doubles the edge. */
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-ando-fg-primary);
+  display: grid;
+  left: 50%;
+  max-height: min(90vh, 720px);
+  max-width: calc(100vw - 32px);
+  outline: none;
+  overflow: auto;
+  /* No macOS rubber-band: a modal is a fixed surface, so elastic overscroll
+     reads as the whole dialog bouncing. */
+  overscroll-behavior: none;
+  position: fixed;
+  top: 50%;
+  transform: var(--ando-dialog-center-transform);
+  width: min(520px, calc(100vw - 32px));
+  z-index: var(--ando-z-overlay-content);
+}
+
+/* Holds the frame at a constant height instead of shrinking to content, so a
+ * step change, a mode switch or a filtering list never resizes the modal under
+ * the pointer. The body row absorbs the slack and scrolls, rather than the
+ * height being shared out across header, body and footer. Still yields to the
+ * viewport clamp on short screens. */
+/* `^="fixed"` covers both gates: everything below is the fixed-frame contract
+   itself, and only the ceiling differs between them. */
+.ando-dialog__content[data-height^="fixed"] {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+/* Both gates clamp at 80vh rather than 90: at 90 a tall frame leaves ~4% of
+   the screen above and below it, which reads as the modal filling the window
+   rather than sitting on it. 80 keeps the surface behind it legible as
+   context, and on short laptops it is the clamp that wins, not the ceiling. */
+.ando-dialog__content[data-height="fixed"] {
+  height: min(31.25rem, 80vh);
+}
+
+/* The taller gate, for wizards whose longest step does not fit the 500px frame
+   — the create-agent flow's profile step is ~660px, so at the standard height
+   it scrolls a cropped body while the screen around it sits empty. */
+.ando-dialog__content[data-height="fixed-tall"] {
+  height: min(43.75rem, 80vh);
+}
+
+/* Escape hatch for a fixed dialog with no in-flow header — see the `regions`
+   prop. An `sr-only` title is `position: absolute` and occupies no grid row, so
+   without this the body would take the header's auto row and the footer would
+   land in the flexible row and collapse to zero height. */
+.ando-dialog__content[data-height^="fixed"][data-regions="body-footer"] {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+/* A fixed frame is the one shape where the *frame* must not scroll: its height
+   is constant, the header and footer are pinned to it, and only the body moves.
+   Left on the base `overflow: auto` the whole frame scrolls instead, and a body
+   taller than its row paints straight over the footer. */
+.ando-dialog__content[data-height^="fixed"] {
+  overflow: hidden;
+}
+
+/* The body is the scroller. `min-height: 0` is what lets it actually shrink to
+   its row — a grid item defaults to `min-height: auto`, which floors it at
+   content height and pushes the overflow back out onto the fixed regions.
+
+   Matched by exclusion rather than on `.ando-dialog__body`, because not every
+   fixed dialog uses that component: the context-portability dialog draws its
+   middle region as a plain div. Keying on the class left that child at
+   `min-height: auto` while the frame above had just stopped scrolling, which
+   put its footer out of reach instead of scrolling to it (caught by Greptile
+   on #9474). Header and footer are excluded — they are the pinned regions and
+   size to their own content. */
+.ando-dialog__content[data-height^="fixed"]
+  > :not(.ando-dialog__header):not(.ando-dialog__footer) {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Belt and braces for the pinned regions: they size to content, so anything
+   that overruns them is a bug in the region's own content rather than
+   something the frame should let bleed across its neighbours. */
+.ando-dialog__content[data-height^="fixed"] > .ando-dialog__header,
+.ando-dialog__content[data-height^="fixed"] > .ando-dialog__footer {
+  overflow: hidden;
+}
+
+.ando-dialog__content[data-size="sm"] {
+  width: min(450px, calc(100vw - 32px));
+}
+
+.ando-dialog__content[data-size="lg"] {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.ando-dialog__content[data-size="xl"] {
+  width: min(1000px, calc(100vw - 32px));
+}
+
+.ando-dialog__content[data-size="fullscreen"] {
+  height: calc(
+    100dvh - 32px - var(--ando-mobile-safe-area-top) -
+      var(--ando-mobile-safe-area-bottom)
+  );
+  max-height: calc(
+    100dvh - 32px - var(--ando-mobile-safe-area-top) -
+      var(--ando-mobile-safe-area-bottom)
+  );
+  max-width: calc(
+    100vw - 32px - var(--ando-mobile-safe-area-left) -
+      var(--ando-mobile-safe-area-right)
+  );
+  overflow: hidden;
+  width: calc(
+    100vw - 32px - var(--ando-mobile-safe-area-left) -
+      var(--ando-mobile-safe-area-right)
+  );
+}
+
+.ando-dialog__content[data-state="closed"] {
+  animation: ando-ui-overlay-exit var(--motion-duration-fast) ease-out;
+}
+
+.ando-dialog__header,
+.ando-dialog__footer {
+  display: flex;
+  gap: 12px;
+}
+
+.ando-dialog__header {
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+/* Opt-in divider — only dialogs that separate header from body (DialogHeader
+   `divider`). Most dialogs are borderless. */
+.ando-dialog__header--divided {
+  border-bottom: 1px solid var(--color-ando-border-default);
+}
+
+/* Larger title scale (DialogHeader `size="lg"`) — 16px instead of 14px. */
+.ando-dialog__header--lg .ando-dialog__title {
+  font-size: var(--type-style-text-label-16-md-font-size, 16px);
+  line-height: var(--type-style-text-label-16-md-line-height, 20px);
+}
+
+/* A description rendered inside the header is a subtitle, so it matches the
+   `subheader` slot (12px secondary) rather than 16px body copy. */
+.ando-dialog__header .ando-dialog__description {
+  font-size: var(--type-style-text-label-12-font-size, 12px);
+  line-height: var(--type-style-text-label-12-line-height, 16px);
+}
+
+.ando-dialog__header--iconic {
+  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  min-height: 56px;
+  padding: 0 16px;
+}
+
+.ando-dialog__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ando-dialog__subheader {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--type-style-text-label-12-font-size, 12px);
+  font-weight: var(--type-style-text-label-12-font-weight, 400);
+  line-height: var(--type-style-text-label-12-line-height, 16px);
+  margin: 0;
+}
+
+.ando-dialog__header-icon {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.ando-dialog__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ando-dialog__header--center .ando-dialog__header-content {
+  text-align: center;
+}
+
+.ando-dialog__footer {
+  justify-content: flex-end;
+  padding: 12px 16px;
+}
+
+/* Opt-in divider — mirrors DialogFooter `divider`. */
+.ando-dialog__footer--divided {
+  border-top: 1px solid var(--color-ando-border-default);
+}
+
+.ando-dialog__body {
+  padding: 0 16px 16px;
+}
+
+.ando-dialog__footer--split {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ando-dialog__footer-leading {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ando-dialog__footer-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.ando-dialog__title {
+  color: var(--color-ando-fg-primary);
+  font-size: var(--type-style-text-label-14-md-font-size, 14px);
+  font-weight: var(--type-style-text-label-14-md-font-weight, 500);
+  line-height: var(--type-style-text-label-14-md-line-height, 20px);
+  margin: 0;
+}
+
+.ando-dialog__description,
+.ando-sheet__description {
+  color: var(--color-ando-fg-secondary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ando-dialog__close {
+  align-items: center;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  color: var(--color-ando-fg-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  outline: none;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 28px;
+}
+
+.ando-dialog__close:hover,
+.ando-sheet__close:hover {
+  background: var(--color-ando-action-ghost-hover);
+  color: var(--color-ando-fg-primary);
+}
+
+.ando-sheet__close-icon {
+  display: block;
+  height: 14px;
+  position: relative;
+  width: 14px;
+}

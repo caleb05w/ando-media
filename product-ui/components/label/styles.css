@@ -1,0 +1,19 @@
+.group[data-disabled="true"] .ando-label {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.peer:disabled ~ .ando-label {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ando-label {
+  align-items: center;
+  display: flex;
+  font-size: var(--type-style-text-label-12-md-font-size, 12px);
+  font-weight: var(--type-style-text-label-12-md-font-weight, 500);
+  gap: 8px;
+  line-height: var(--type-style-text-label-12-md-line-height, 16px);
+  user-select: none;
+}

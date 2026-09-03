@@ -1,0 +1,21 @@
+.ando-checkbox {
+  border-radius: var(--radius-xs);
+}
+
+.ando-checkbox[data-state="checked"] {
+  background: var(--color-ando-action-primary);
+  border-color: var(--color-ando-action-primary);
+}
+
+.ando-checkbox__indicator {
+  align-items: center;
+  display: inline-flex;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+/* The tick is a central icon; the CSS only places it. */
+.ando-checkbox__check {
+  display: block;
+}

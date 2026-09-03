@@ -1,0 +1,169 @@
+.ando-button-group {
+  align-items: stretch;
+  display: flex;
+  width: fit-content;
+}
+
+/* Nested groups read as separate controls. */
+.ando-button-group:has(> .ando-button-group) {
+  gap: 8px;
+}
+
+.ando-button-group > input {
+  flex: 1 1 0;
+}
+
+/* A focused segment must paint its focus ring above its siblings. */
+.ando-button-group > :focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
+/* Grouped segments swap the foundation's 3px outer halo for an inset ring:
+   an outer halo paints across the 1px separator seam and reads as a fat gap
+   between segments (segmented-control focus, macOS-style). */
+.ando-button-group > .ando-button:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--color-ando-action-mention-tag);
+  outline-offset: -1px;
+}
+
+.ando-button-group[data-orientation="horizontal"] > :not(:first-child) {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+.ando-button-group[data-orientation="horizontal"] > :not(:last-child) {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Match shadcn's outline composition: the leading segment owns the shared
+   1px seam, so adjacent borders never double into a heavy divider. */
+.ando-button-group[data-orientation="horizontal"]
+  > .ando-button[data-variant="outline"]
+  ~ .ando-button[data-variant="outline"] {
+  border-left-width: 0;
+}
+
+/* 6px outer / 1px inner, the split-submit spec. The edges facing a seam keep a
+   hair of rounding so the two halves read as one shape cut apart rather than
+   two squared-off blocks; `.ando-split-button` states the same radii directly.
+   Only segments that actually meet a separator round: flush adjacency (outline
+   segmented controls) stays square so the shared border reads as one line. */
+.ando-button-group[data-orientation="horizontal"]
+  > :has(+ .ando-button-group__separator) {
+  border-bottom-right-radius: 1px;
+  border-top-right-radius: 1px;
+}
+
+.ando-button-group[data-orientation="horizontal"]
+  > .ando-button-group__separator
+  + * {
+  border-bottom-left-radius: 1px;
+  border-top-left-radius: 1px;
+}
+
+.ando-button-group[data-orientation="vertical"] {
+  flex-direction: column;
+}
+
+.ando-button-group[data-orientation="vertical"] > :not(:first-child) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.ando-button-group[data-orientation="vertical"] > :not(:last-child) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ando-button-group[data-orientation="vertical"]
+  > .ando-button[data-variant="outline"]
+  ~ .ando-button[data-variant="outline"] {
+  border-top-width: 0;
+}
+
+.ando-button-group[data-orientation="vertical"]
+  > :has(+ .ando-button-group__separator) {
+  border-bottom-left-radius: 1px;
+  border-bottom-right-radius: 1px;
+}
+
+.ando-button-group[data-orientation="vertical"]
+  > .ando-button-group__separator
+  + * {
+  border-top-left-radius: 1px;
+  border-top-right-radius: 1px;
+}
+
+/* The seam is negative space, not a drawn line: the group's own surface shows
+   through a 1px gap, so a filled split control reads as one shape cut in two —
+   the same seam `.ando-split-button` gets from its `gap: 1px`. Painting the
+   separator's default border color instead stripes a gray line across the
+   fill, and inset margins leave it floating short of the control's edges
+   rather than cutting all the way through. */
+.ando-button-group__separator {
+  align-self: stretch;
+  margin: 0;
+  position: relative;
+}
+
+/* Scoped to the group so it outweighs the fill `.ando-separator` paints. */
+.ando-button-group > .ando-button-group__separator {
+  background: transparent;
+}
+
+.ando-button-group
+  > .ando-button-group__separator[data-orientation="horizontal"] {
+  width: auto;
+}
+
+.ando-button-group
+  > .ando-button-group__separator[data-orientation="vertical"] {
+  height: auto;
+}
+
+.ando-button-group__text {
+  align-items: center;
+  background: var(--color-ando-bg-elevated);
+  border: 1px solid var(--color-ando-border-default);
+  border-radius: var(--radius-sm);
+  display: flex;
+  font-size: var(--type-style-text-label-14-font-size);
+  font-weight: var(--type-style-text-label-14-font-weight);
+  gap: 8px;
+  line-height: var(--type-style-text-label-14-line-height);
+  padding: 0 14px;
+}
+
+/* Secondary segments read their glyphs at the secondary tone — the fill
+   alone carries hover and active states. Surface overrides (the Jam
+   header's active white) still out-cascade this from the app layer. */
+.ando-button-group > .ando-button[data-variant="secondary"] {
+  color: var(--color-ando-fg-secondary);
+}
+
+/* One caret width per size — 4px narrower than the control height, floored
+   at 24px so every trigger clears the WCAG 2.5.8 minimum target size (xs
+   renders 24×24). The doubled class beats the button's own [data-size]
+   padding — this sheet imports before button/styles.css, so equal
+   specificity would lose on source order. */
+.ando-button.ando-button-group__caret[data-size="xs"] {
+  padding: 0;
+  width: 24px;
+}
+
+.ando-button.ando-button-group__caret[data-size="sm"] {
+  padding: 0;
+  width: 24px;
+}
+
+.ando-button.ando-button-group__caret[data-size="md"] {
+  padding: 0;
+  width: 28px;
+}
+
+.ando-button.ando-button-group__caret[data-size="lg"] {
+  padding: 0;
+  width: 36px;
+}

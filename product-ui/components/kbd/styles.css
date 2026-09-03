@@ -1,0 +1,26 @@
+.ando-kbd {
+  align-items: center;
+  background: var(--color-ando-bg-dark-kbd);
+  border: 0;
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: var(--color-ando-fg-white);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: var(--type-style-text-label-12-font-size);
+  font-weight: 400;
+  justify-content: center;
+  line-height: var(--type-style-text-label-12-line-height);
+  min-height: 20px;
+  min-width: 20px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.ando-kbd-group {
+  align-items: center;
+  display: inline-flex;
+  gap: 2px;
+  white-space: nowrap;
+}

@@ -1,0 +1,151 @@
+.ando-message-scroller {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.ando-message-scroller__viewport {
+  contain: content;
+  /* Reversed flow: the scroll origin sits at the bottom, so opening at the
+     latest message and following the live edge are the container's resting
+     state rather than maintained scroll positions. The single content child
+     keeps rows in chronological DOM order, so selection, find-in-page, and
+     assistive-tech reading order are unaffected. Native scroll anchoring
+     stays enabled — with the engine writing no follow scrolls, the browser's
+     anchor is the only holder of a mid-history reading position and must not
+     be disabled here again. */
+  display: flex;
+  flex-direction: column-reverse;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  width: 100%;
+}
+
+.ando-message-scroller__content {
+  display: flex;
+  flex-direction: column;
+  /* The content is the reversed viewport's single flex item; without an
+     explicit no-shrink it collapses to the viewport height (flex-shrink
+     defaults to 1), flattening scrollHeight and every row rect. */
+  flex-shrink: 0;
+  height: max-content;
+  min-height: 100%;
+}
+
+/* Bottom-align short transcripts (MessageScrollerContent `endAligned`) so a
+   conversation with a handful of messages still reads from the bottom edge,
+   like every chat surface. The primitive appends a hidden spacer as the last
+   child, so the push has to come from above the first row. */
+.ando-message-scroller__content--end-aligned > :first-child {
+  margin-top: auto;
+}
+
+/* Rows skip paint and layout while off-screen after the bounded mounted window
+   has been measured once. The `auto` intrinsic size then reuses each row's
+   remembered actual height; 10rem is only the pre-measurement fallback. The
+   primitive never trusts scrollHeight and derives positions from row rects. */
+.ando-message-scroller__item {
+  contain-intrinsic-size: auto 10rem;
+  content-visibility: auto;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+/* content-visibility's paint containment clips anything a row paints outside
+   its own box — which shears off overlays that intentionally overhang the row,
+   like the message hover action bar (absolute, -top-3.5). Rows opt out of
+   containment only while such an overlay is mounted by tagging it with
+   data-message-scroller-overlay; every other row keeps the paint/layout skip. */
+.ando-message-scroller__item:has([data-message-scroller-overlay]) {
+  content-visibility: visible;
+}
+
+/* Opt-in soft edge fade signalling clipped content. Driven entirely by the
+   primitive's data-scrollable tokens, so it needs no listeners and stays
+   correct through mode changes: the primitive suppresses the "end" token
+   while following the bottom, so the newest message is never dimmed while
+   reading live. Mask-based so it works over any background. */
+/* Masks are scoped per scrollable state so a resting viewport carries no mask
+   at all — a gradient with a zero-width fade still paints its edge pixel
+   transparent (coincident stops resolve to the last color), which would shave
+   the bottom line of the newest message while following live. */
+.ando-message-scroller__viewport--edge-fade[data-scrollable~="start"] {
+  mask-image: linear-gradient(to bottom, transparent 0, black 32px);
+}
+
+.ando-message-scroller__viewport--edge-fade[data-scrollable~="end"] {
+  mask-image: linear-gradient(to top, transparent 0, black 24px);
+}
+
+.ando-message-scroller__viewport--edge-fade[data-scrollable~="start"][data-scrollable~="end"] {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 32px,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+}
+
+.ando-message-scroller__button {
+  align-items: center;
+  background: var(--color-ando-bg-elevated);
+  /* --shadow-sm's first layer is the hairline, so this draws no border of its
+     own — but it is a <button>, so it has to zero the UA default explicitly
+     rather than rely on a consumer's Tailwind preflight. */
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  color: var(--color-ando-fg-primary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  transition:
+    opacity var(--motion-duration-fast) ease-out,
+    transform var(--motion-duration-fast) ease-out;
+  width: 32px;
+  z-index: 1;
+}
+
+.ando-message-scroller__button:hover {
+  background: var(--color-ando-bg-elevated);
+}
+
+.ando-message-scroller__button[data-direction="end"] {
+  bottom: 16px;
+  transform: translateX(-50%);
+}
+
+.ando-message-scroller__button[data-direction="start"] {
+  top: 16px;
+  transform: translateX(-50%);
+}
+
+.ando-message-scroller__button[data-direction="start"] svg {
+  rotate: 180deg;
+}
+
+/* The primitive marks the button inert while its direction has nowhere to
+   scroll; fade it out and drop it from hit testing. */
+.ando-message-scroller__button[data-active="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ando-message-scroller__button[data-direction="end"][data-active="false"] {
+  transform: translateX(-50%) translateY(4px);
+}
+
+.ando-message-scroller__button[data-direction="start"][data-active="false"] {
+  transform: translateX(-50%) translateY(-4px);
+}

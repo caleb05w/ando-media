@@ -1,0 +1,87 @@
+.ando-slider {
+  --ando-slider-focus-ring: var(--ando-slider-range);
+  --ando-slider-range: var(--color-ando-fg-secondary);
+  --ando-slider-thumb-size: 14px;
+  --ando-slider-track: var(--color-ando-bg-fill-muted);
+
+  width: 100%;
+}
+
+.ando-slider[data-orientation="vertical"] {
+  height: 100%;
+  width: 16px;
+}
+
+.ando-slider[data-disabled] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Base UI positions the range indicator and thumbs itself (inline absolute
+   offsets); these classes only carry appearance. */
+.ando-slider__control {
+  align-items: center;
+  display: flex;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  width: 100%;
+}
+
+.ando-slider[data-orientation="horizontal"] .ando-slider__control {
+  height: 16px;
+}
+
+.ando-slider[data-orientation="vertical"] .ando-slider__control {
+  flex-direction: column;
+  height: 100%;
+  width: 16px;
+}
+
+.ando-slider__track {
+  background: var(--ando-slider-track);
+  border-radius: 999px;
+  flex-grow: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.ando-slider[data-orientation="horizontal"] .ando-slider__track {
+  height: 4px;
+}
+
+.ando-slider[data-orientation="vertical"] .ando-slider__track {
+  width: 4px;
+}
+
+.ando-slider__range {
+  background: var(--ando-slider-range);
+  border-radius: 999px;
+}
+
+.ando-slider[data-disabled] .ando-slider__range {
+  background: var(--color-ando-fg-tertiary);
+}
+
+.ando-slider__thumb {
+  background: var(--color-ando-bg-white);
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  height: var(--ando-slider-thumb-size);
+  outline: none;
+  transition:
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-fast) var(--motion-easing-standard);
+  width: var(--ando-slider-thumb-size);
+}
+
+.ando-slider__thumb:has(:focus-visible) {
+  box-shadow:
+    0 0 0 2px var(--color-ando-bg-main),
+    0 0 0 4px var(--ando-slider-focus-ring);
+}
+
+.ando-slider__thumb:hover {
+  transform: scale(1.1);
+}

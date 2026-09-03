@@ -1,3 +1,5 @@
+/* Layer order first, before any @import: same as apps/web. */
+@layer theme, base, components, ui, utilities;
 @import "tailwindcss";
 
 /* --- Landing page UI (copied from Ando-Corporation/new-landing-page @ codex/new-style) --- */
@@ -5,6 +7,18 @@
 @import "./../landing-ui/ando-hero/styles/ando-hero.css";
 /* @source can't resolve bare package names, so point at the copied UI source. */
 @source "../landing-ui";
+
+/* --- Ando product UI (copied from Ando-Corporation/ando, see product-ui/) ---
+   Only the @theme block lives here: Tailwind v4 generates the ando-* colour
+   utilities from the CSS entry it processes, so the token layer has to be
+   reachable from globals. The component stylesheets are imported by
+   app/ando-stage itself, which is the only route that renders on them. */
+@import "../product-ui/ando-tailwind-theme.css";
+/* The component stylesheets ride in `ui`, declared above between `components`
+   and `utilities` exactly as apps/web/src/app/styles/globals.css does, so a
+   Tailwind utility on an .ando-* element wins the way it does in production.
+   Every selector in there is .ando-*-namespaced; no other route is touched. */
+@import "../product-ui/index.css" layer(ui);
 
 /* Laptop band variant used by the landing page layout. */
 @custom-variant laptop (@media (min-width: 1024px) and (max-width: 1600px));

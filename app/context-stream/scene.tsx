@@ -19,12 +19,12 @@ import { Stage } from "../agent-typing-experience/stage";
 import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
-import { TraceLine } from "../ando-stage/context-trace";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
 import { Logo } from "./logo";
 import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
+import { ValueLine } from "./value-line";
 import "../ando-stage/stage.css";
 import "./context-stream.css";
 
@@ -136,6 +136,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const composerRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const traceRef = useRef<HTMLDivElement>(null);
+  const valueLineRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const title0Ref = useRef<HTMLDivElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
@@ -272,6 +273,18 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       trace.style.top = `${LINE_Y - 12 * TRACE_SCALE}px`;
       trace.style.opacity = `${clamp01(drawn / 0.25)}`;
       trace.style.clipPath = `inset(-8px ${(1 - drawn) * 100}% -8px -8px)`;
+      // The slot: each line rolls up into place on its beat and tips away
+      // when the next one comes — the banner's reel, on the film's clock.
+      const valueSteps = valuePhasesFor(T).steps;
+      valueLineRefs.current.forEach((line, i) => {
+        if (!line) return;
+        const step = valueSteps[i];
+        const next = valueSteps[i + 1];
+        const roll = ease(seg(vt, step.t, 0.5));
+        const gone = next ? ease(seg(vt, next.t, 0.38)) : 0;
+        line.style.opacity = `${roll * (1 - gone)}`;
+        line.style.transform = `translateY(${lerp(24, 0, roll) - 18 * gone}px) rotateX(${lerp(-42, 0, roll) + 42 * gone}deg)`;
+      });
       // The agent pops out of the cluster the seeds snapped into: from
       // nothing, past full, and settles — fast.
       const appear = pop(seg(vt, T.agent - 0.04, 0.32));
@@ -307,12 +320,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         setTyping(who);
       }
       // The trace lines read whole seconds off this; a tenth is plenty.
-      const valueLive = vt >= T.trace && vt < T.collapse + 0.4;
+      const valueLive = vt >= T.trace - 0.05 && vt < T.collapse + 0.4;
       if (valueLive !== valueShown) {
         valueShown = valueLive;
         setValueOn(valueLive);
       }
-      const coarse = run === 0 && !valueLive ? 0 : Math.floor(vt * 10) / 10;
+      const coarse = run === 0 ? 0 : Math.floor(vt * 10) / 10;
       if (coarse !== traceVtShown) {
         traceVtShown = coarse;
         setTraceVt(coarse);
@@ -438,7 +451,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
             {/* The trace line beside the agent — the product's TraceLine at the agent's scale. No data-cs: its shimmer and pops are its own. */}
             <div ref={traceRef} data-trace className="absolute whitespace-nowrap" style={{ left: AGENT_X, top: LINE_Y, opacity: 0, transform: `scale(${TRACE_SCALE})`, transformOrigin: "0 0" }}>
-              {valueOn ? <TraceLine agent={AGENT} participants={READ_FROM} phases={valuePhases} vt={traceVt} onReply={false} /> : null}
+              {valueOn ? <ValueLine agent={AGENT} participants={READ_FROM} steps={valuePhases.steps} lineRefs={valueLineRefs} /> : null}
             </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>

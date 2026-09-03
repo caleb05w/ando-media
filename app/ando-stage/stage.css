@@ -107,17 +107,18 @@
   animation-delay: var(--st-voice-delay, 0ms);
 }
 
-/* Someone talking: the green ring comes and goes the way a voice does —
- * phrases and breaths, not a metronome. The holds and gaps are uneven so
- * the pattern never quite repeats. */
+/* Someone talking: one 2px green ring (the product draws exactly one — no
+ * halo), coming and going the way a voice does — phrases and breaths, not
+ * a metronome. The holds and gaps are uneven so the pattern never repeats. */
 @keyframes st-speak-ring {
-  0%, 14%   { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
-  18%, 24%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.15), 0 0 0 6px rgba(34,197,94,0.03); }
-  28%, 50%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
-  55%, 60%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.2), 0 0 0 6px rgba(34,197,94,0.04); }
-  64%, 82%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
-  87%, 93%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.1), 0 0 0 6px rgba(34,197,94,0.02); }
-  100%      { box-shadow: 0 0 0 2px rgba(34,197,94,0.8), 0 0 0 6px rgba(34,197,94,0.14); }
+  0%, 14%   { box-shadow: 0 0 0 2px rgba(34,197,94,0.9); }
+  18%, 24%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.15); }
+  28%, 50%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.9); }
+  55%, 60%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.2); }
+  64%, 82%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.9); }
+  87%, 93%  { box-shadow: 0 0 0 2px rgba(34,197,94,0.1); }
+  100%      { box-shadow: 0 0 0 2px rgba(34,197,94,0.9); }
+}
 }
 
 .st-speaking {

@@ -362,7 +362,12 @@ const JAMS_CUT: Scene = {
     // Shot 2 — cut to the sky: the call arrives, the transcript unfolds
     // under it at once on the Live transcript tab, and the talking starts
     // right away. Four lines land before the room comes back.
-    { kind: "jam-join", ms: 3000 },
+    // Three seconds of the call alone — and it is a call: the two of you
+    // trade the green ring before a word is transcribed.
+    { kind: "jam-join", ms: 300 },
+    { kind: "speak", who: "caleb", ms: 1100 },
+    { kind: "speak", who: "sara", ms: 900 },
+    { kind: "speak", who: "caleb", ms: 700 },
     { kind: "jam-deploy", tab: "transcript", ms: 200 },
     // The transcript starts the moment the panel opens, and it pours:
     // short lines, fast turns, two people talking over each other the way

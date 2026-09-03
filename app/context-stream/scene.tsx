@@ -16,12 +16,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { RESET_MS, resetFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
+import { HOLD_MS, TYPE_MS, cycleFrame, cycleMs, type Frame } from "../agent-typing-experience/variants";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, backOut, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, backOut, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -46,21 +46,27 @@ const STRIP_H = 36;
  *  product's 4px on a 6px pitch, so at 60px they land 1:1 on the composer's
  *  own indicator. */
 const INDICATOR_SMALL = 60;
+/** The intake halo's box. */
+const HALO = 240;
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
 const ZOOM_OUT = 1.2;
 /** The agent at rest — the library's Orbit v2 with the face landed. */
 const AGENT_FRAME = INDICATOR.morph(INDICATOR.morphMs);
+/** The library's cycle, and where in it the reset begins. */
+const INDICATOR_CYCLE = cycleMs(INDICATOR);
+const RESET_AT = TYPE_MS + INDICATOR.morphMs + HOLD_MS;
 const noop = () => {};
 
-/** The agent's frame `t` seconds into `indicator`: at rest before, then the
- *  library's reset — the face gives way to three dots — then its wave. */
+/** The agent's frame `t` seconds into `indicator`: at rest before; then
+ *  /the-library's animation itself, `cycleFrame`, entered at its reset so
+ *  it runs from the face it already is — the face gives way to three dots,
+ *  the dots type, they consolidate and the face spins back in, it holds,
+ *  it resets — the loop the library page plays, in full. */
 function agentFrame(t: number): Frame {
   if (t < 0) return AGENT_FRAME;
-  const ms = t * 1000;
-  if (ms < RESET_MS) return resetFrame(ms);
-  return typingFrame(ms - RESET_MS, 1);
+  return cycleFrame(INDICATOR, (RESET_AT + t * 1000) % INDICATOR_CYCLE).frame;
 }
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
@@ -106,7 +112,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const headerRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const haloRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
+  const title0Ref = useRef<HTMLDivElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
@@ -139,8 +147,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const header = headerRef.current;
       const transcript = transcriptRef.current;
       const composer = composerRef.current;
+      const halo = haloRef.current;
       const indicatorEl = indicatorRef.current;
-      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !indicatorEl) return;
+      if (!ground || !film || !camera || !card || !content || !sidebar || !main || !header || !transcript || !composer || !halo || !indicatorEl) return;
 
       /* ── Reads first ───────────────────────────────────────────── */
       // Every layout read the frame needs, taken before its first style
@@ -216,18 +225,26 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       /* ── The agent and the camera ──────────────────────────────── */
       // The agent — the library's indicator at rest, face in its disc —
       // comes in from the right as the camera settles, pops, and swells as
-      // the stream runs into it; walks to centre stage; at `indicator`
-      // resets into three dots and waves. At `iface` the camera is already
-      // in on it — the same 120px on screen — and pulls back while the
-      // window builds around it; when the pull ends the dots are exactly
-      // the composer's own, and hand over.
+      // the stream runs into it; walks to centre stage; at `indicator` the
+      // library's loop plays from its reset (dots, the morph back into the
+      // face, the hold, the reset again). At `iface`, in the loop's second
+      // typing phase, the camera is already in on it — the same 120px on
+      // screen — and pulls back while the window builds around it; when the
+      // pull ends the dots are exactly the composer's own, and hand over.
       const field = fieldAt(T, vt);
       const pop = backOut(seg(vt, T.agent - 0.35, 0.5));
-      const swell = 0.88 + 0.12 * field.eaten + 0.04 * field.pulse;
+      const swell = 0.86 + 0.14 * field.eaten + 0.06 * field.pulse;
+      // The intake: a soft halo that breathes with every landing.
+      const intake = clamp01(seg(vt, T.agent - 0.15, 0.3)) * (1 - ease(seg(vt, T.indicator - 0.25, 0.3)));
+      const ax = agentX(T, vt);
+      halo.style.left = `${ax - HALO / 2}px`;
+      halo.style.top = `${LINE_Y - HALO / 2}px`;
+      halo.style.opacity = `${intake * (0.55 + 0.45 * Math.min(1, field.pulse))}`;
+      halo.style.transform = `scale(${pop * (0.9 + 0.1 * field.eaten + 0.1 * Math.min(1, field.pulse))})`;
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       const P = { x: CARD.x + 16, y: cardY + bottomTop - 19 };
-      const C = { x: agentX(T, vt), y: LINE_Y };
+      const C = { x: ax, y: LINE_Y };
       const z = zoomed ? lerp(ZOOM, 1, zp) : 1;
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
@@ -257,7 +274,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         setTraceVt(coarse);
       }
       // The agent's frame: at rest until `indicator` (one frame, no churn),
-      // then the library's reset and wave at 30 a second.
+      // then the library's loop at 30 a second.
       const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? -1 : Math.floor((vt - T.indicator) * 30) / 30;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
@@ -272,18 +289,40 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${a * b}`;
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
+      fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
       fadeIn(title1Ref.current, T.agent + 0.3, T.indicator + 0.5);
       fadeIn(title2Ref.current, T.iface + 0.3, T.chat + 0.9);
 
-      /* ── The canvas: the dots ──────────────────────────────────── */
+      /* ── The canvas: the dots, and the agent's arrival ─────────── */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, STAGE.w, STAGE.h);
       ctx.fillStyle = DOT_INK;
+      ctx.strokeStyle = DOT_INK;
+      ctx.lineCap = "round";
       for (const dot of field.marks) {
         ctx.globalAlpha = dot.a;
+        if (dot.sx && dot.sx > 0.5) {
+          // A rushing dot is a streak: its trail is where it just was.
+          ctx.lineWidth = 2 * dot.r;
+          ctx.beginPath();
+          ctx.moveTo(dot.x - dot.sx, dot.y);
+          ctx.lineTo(dot.x, dot.y);
+          ctx.stroke();
+          continue;
+        }
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
+      }
+      // Two rings ripple out from the agent as it lands.
+      ctx.lineWidth = 1.5;
+      for (const lag of [0, 0.16]) {
+        const rp = seg(vt, T.agent - 0.3 + lag, 0.7);
+        if (rp <= 0 || rp >= 1) continue;
+        ctx.globalAlpha = 0.4 * (1 - rp);
+        ctx.beginPath();
+        ctx.arc(ax, LINE_Y, AGENT_R + 90 * ease(rp), 0, Math.PI * 2);
+        ctx.stroke();
       }
       ctx.globalAlpha = 1;
     };
@@ -360,11 +399,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
-            {/* The agent: the library's typing indicator at rest, then its reset and wave, then the composer's own line. */}
+            {/* The intake, behind the agent. */}
+            <div ref={haloRef} className="pointer-events-none absolute rounded-full" style={{ width: HALO, height: HALO, opacity: 0, background: "radial-gradient(circle, rgba(163,160,156,0.28) 0%, rgba(163,160,156,0.1) 40%, rgba(163,160,156,0) 70%)", transformOrigin: "50% 50%" }} />
+            {/* The agent: the library's typing indicator at rest, then its loop, then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
               {indicator ? <Stage frame={indicator} size={INDICATOR_PX} avatarSrc={AGENT.avatar} /> : null}
             </div>
 
+            <div ref={title0Ref} data-cs="title-0" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: STAGE.h / 2 - 20, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
+              Context is everywhere.
+            </div>
             <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: CARD.y + 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
               Everything becomes context for your agents.
             </div>

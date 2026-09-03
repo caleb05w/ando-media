@@ -7,10 +7,10 @@
 export type Timing = {
   /** The cloud pulls toward the line and the camera starts to move: the line streams left as it forms. */
   gather: number;
-  /** Every dot is seated. */
-  line: number;
   /** Things curve in from off-frame and join the line. */
   stream: number;
+  /** Every dot is seated. */
+  line: number;
   /** The camera settles; the agent is at the end of the line and the stream runs into it. First title. */
   agent: number;
   /** The agent becomes the typing indicator — the library's reset, then its wave. */
@@ -28,12 +28,12 @@ export type Timing = {
   end: number;
 };
 
-export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "agent", "indicator", "iface", "chat", "sidebar", "reply", "logo", "end"];
+export const ORDER: (keyof Timing)[] = ["gather", "stream", "line", "agent", "indicator", "iface", "chat", "sidebar", "reply", "logo", "end"];
 
 export const LABELS: Record<keyof Timing, string> = {
   gather: "congregate",
-  line: "the line",
   stream: "context stream",
+  line: "the line",
   agent: "the agent",
   indicator: "typing indicator",
   iface: "an interface",
@@ -45,15 +45,15 @@ export const LABELS: Record<keyof Timing, string> = {
 };
 
 export const DEFAULT_TIMING: Timing = {
-  gather: 1.4,
-  line: 2.8,
-  stream: 2.9,
-  agent: 5.0,
-  indicator: 7.1,
-  iface: 8.0,
-  chat: 9.4,
-  sidebar: 10.8,
-  reply: 13.0,
-  logo: 15.8,
-  end: 18.4,
+  gather: 1.6,
+  stream: 1.9,
+  line: 2.3,
+  agent: 3.4,
+  indicator: 4.6,
+  iface: 10.0,
+  chat: 11.4,
+  sidebar: 12.8,
+  reply: 15.0,
+  logo: 17.8,
+  end: 20.4,
 };

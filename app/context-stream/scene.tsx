@@ -22,7 +22,7 @@ import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
 import { ContextTrace } from "../the-library/context-trace";
 import { Logo } from "./logo";
-import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, PILL, SEAT, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, PILL, SEAT, SIDEBAR_W, STAGE, TRACE_SCALE, TRACE_SEAT_INSET, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -53,8 +53,6 @@ const STRIP_H = 36;
  *  product's 4px on a 6px pitch, so at 60px they land 1:1 on the composer's
  *  own indicator. */
 const INDICATOR_SMALL = 60;
-/** The agent in the trace's seat: its face at the seat's 22px. */
-const SEAT_SCALE = SEAT.d / (2 * AGENT_R);
 /** The trace runs the library's timeline at this many ms per film second,
  *  and its drawer opens once its first source has arrived (library T). */
 const TRACE_RATE = 2000;
@@ -267,15 +265,22 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // The trace: the agent shrinks into its seat while the pill draws out
       // to the right; the library's trace runs; then the pill folds back
       // into the seat and the agent grows out of it, centre stage.
+      // In: the agent reaches the seat, then the pill draws out. Out: the
+      // pill folds back to the seat first, then the seat becomes the agent
+      // again in one quick swap, and it heads back to centre.
       const toSeat = ease(seg(vt, T.trace, 0.45));
-      const back = ease(seg(vt, T.collapse + 0.1, 0.45));
+      const back = ease(seg(vt, T.collapse + 0.35, 0.45));
       const inSeat = toSeat * (1 - back);
       const drawn = ease(seg(vt, T.trace + TRACE_LEAD, 0.4)) * (1 - ease(seg(vt, T.collapse, 0.35)));
-      trace.style.top = `${PILL.y + PILL.h - traceH}px`;
-      trace.style.opacity = `${clamp01((toSeat - 0.8) / 0.2) * (1 - clamp01((back - 0.6) / 0.4))}`;
+      // Unscaled: the seat's centre sits at (PILL.x + inset, lineY); the
+      // transform scales about that point, so it stays put.
+      trace.style.top = `${PILL.lineY + PILL.h / 2 - traceH}px`;
+      trace.style.transformOrigin = `${TRACE_SEAT_INSET}px ${traceH - PILL.h / 2}px`;
+      trace.style.opacity = `${clamp01((toSeat - 0.8) / 0.2) * (1 - clamp01(back / 0.12))}`;
       trace.style.clipPath = `inset(-40px ${(1 - drawn) * (PILL.w - 46)}px -40px -40px round 14px)`;
       const ax = lerp(agentX(T, vt), SEAT.x, inSeat);
-      const seated = clamp01((inSeat - 0.85) / 0.15);
+      const ay = lerp(LINE_Y, SEAT.y, inSeat);
+      const seated = clamp01((inSeat - 0.88) / 0.12);
       // The agent pops out of the cluster the seeds snapped into: from
       // nothing, past full, and settles — fast.
       const appear = pop(seg(vt, T.agent - 0.04, 0.32));
@@ -287,12 +292,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // Measured against the rendered TypingIndicator with the camera at
       // rest (it must be at rest — mid pull-back the numbers lie).
       const P = { x: CARD.x + 28, y: cardY + bottomTop - 19.4 };
-      const C = { x: ax, y: LINE_Y };
+      const C = { x: ax, y: ay };
       const z = zoomed ? lerp(ZOOM, 1, zp) : 1;
       const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * lerp(1, SEAT_SCALE, inSeat);
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear;
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
@@ -441,7 +446,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
             {/* The context trace — /the-library's, as its shelf renders it, its seat wearing the agent's face. No data-cs: it transitions on its own. */}
-            <div ref={traceRef} data-trace className="absolute" style={{ left: PILL.x, top: PILL.y, width: PILL.w, opacity: 0 }}>
+            <div ref={traceRef} data-trace className="absolute" style={{ left: PILL.x, top: PILL.lineY, width: PILL.w, opacity: 0, transform: `scale(${TRACE_SCALE})` }}>
               {traceMs == null ? null : <ContextTrace theme="light" vt={traceMs} open={traceMs >= TRACE_OPEN_MS} onToggle={noop} width={PILL.w} avatar={AGENT.avatar} />}
             </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}
@@ -452,7 +457,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
             <div ref={title0Ref} data-cs="title-0" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: STAGE.h / 2 - 20, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
               Context is everywhere.
             </div>
-            <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: CARD.y + 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
+            <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: 64, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
               Everything becomes context for your agents.
             </div>
           </div>

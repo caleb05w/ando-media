@@ -358,7 +358,7 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "j0a", who: "oli", time: "10:41 AM", ms: 0, body: [[{ text: "morning all ☕️" }]] },
     // A first-time viewer needs a moment to see the room before anything
     // moves: a beat on the channel, then your line types at a readable pace.
-    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 1200, body: [[{ text: "deploy went out clean last night 🎉" }]] },
+    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 1700, body: [[{ text: "deploy went out clean last night 🎉" }]] },
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 800, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
     { kind: "typing", who: "sara", ms: 800 },
     { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 1000, body: [[{ text: "Is this for our launch video?" }]] },
@@ -431,20 +431,16 @@ const JAMS_CUT: Scene = {
     // unread in the sidebar while the call is still on. You hang up, then
     // open it.
     { kind: "dm-unread", who: "tadao", ms: 0 },
-    {
-      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1100,
-      body: [
-        [{ text: "Follow-ups from the jam, on you:" }],
-        [{ text: "1. Cut the video, agent first" }],
-        [{ text: "2. Send Sara the Figma" }],
-        [{ text: "3. Post it in #marketing" }],
-        [{ text: "I can remind you again tomorrow." }],
-      ],
-    },
+    { kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1100, body: [[{ text: "Follow-ups from the jam, on you:" }]] },
     { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 950 },
     { kind: "jam-end", ms: 300 },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 950 },
-    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3000 },
+    // The DM opens on his one line; he types the rest while you watch.
+    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 700 },
+    { kind: "typing", who: "tadao", ms: 900 },
+    { kind: "say", id: "d2", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1200, body: [[{ text: "1. Cut the video, agent first" }], [{ text: "2. Send Sara the Figma" }], [{ text: "3. Post it in #marketing" }]] },
+    { kind: "typing", who: "tadao", ms: 800 },
+    { kind: "say", id: "d3", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 2400, body: [[{ text: "I can remind you again tomorrow." }]] },
     // Shot 7 — white. The closer, then the logo.
     { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 3.6, ms: 3600 },
     { kind: "logo", ms: 2000 },

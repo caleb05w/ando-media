@@ -33,7 +33,9 @@ const ENTER_MOVE = "420ms cubic-bezier(0.2, 0, 0, 1)";
 /** The sky. The photo at public/ando-stage/sky.jpg when it is there; under
  *  it, a gradient in the photo's own blues with a little grain, so the shot
  *  reads the same before the file lands. */
-const HERO_GROUND = "url(/ando-stage/sky.jpg) center / cover no-repeat, linear-gradient(180deg, #8ab7e4 0%, #a9cbec 30%, #c4dbf1 62%, #dde9f4 100%)";
+const HERO_GROUND = "url(/ando-stage/sky.jpg) no-repeat";
+/** The sky image's own size (public/ando-stage/sky.jpg), for lining the overlay up with the canvas's cover-fit copy. */
+const SKY = { w: 2048, h: 1558 };
 const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>\")";
 
 type Rect = { left: number; top: number; width: number; height: number };
@@ -111,6 +113,37 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
   }, [row]);
 
   const floating = phase !== "docked";
+  // While the call floats, the window dissolves into the canvas's sky: no
+  // shadow, no edge — and the sky drawn inside the window is the canvas's
+  // own, pixel for pixel, so there is no seam at the window's bounds.
+  useLayoutEffect(() => {
+    const win = document.querySelector<HTMLElement>("[data-stage-window]");
+    if (!win) return;
+    win.style.transition = `box-shadow ${JAM_MOVE}`;
+    win.style.boxShadow = floating ? "none" : "0 24px 64px rgba(15,17,19,0.22), 0 0 0 1px rgba(15,17,19,0.06)";
+  }, [floating]);
+  useLayoutEffect(() => {
+    const sky = skyRef.current;
+    const canvas = document.querySelector<HTMLElement>("[data-stage-canvas]");
+    const win = document.querySelector<HTMLElement>("[data-stage-window]");
+    if (!sky || !canvas || !win) return;
+    const align = () => {
+      const c = canvas.getBoundingClientRect();
+      const w = win.getBoundingClientRect();
+      // object-fit: cover, centred — what the canvas's <img> draws.
+      const scale = Math.max(c.width / SKY.w, c.height / SKY.h);
+      const drawnW = SKY.w * scale;
+      const drawnH = SKY.h * scale;
+      const x = c.left + (c.width - drawnW) / 2 - w.left;
+      const y = c.top + (c.height - drawnH) / 2 - w.top;
+      sky.style.backgroundSize = `${drawnW}px ${drawnH}px`;
+      sky.style.backgroundPosition = `${x}px ${y}px`;
+    };
+    align();
+    const ro = new ResizeObserver(align);
+    ro.observe(canvas);
+    return () => ro.disconnect();
+  }, []);
   const lowerH = lowerHeightFor(phase, size.h, stageH);
   const panelH = phase === "docked" ? size.h : stageH + lowerH;
   // The hero scale, backed off when a deployed panel would not fit the row.
@@ -129,7 +162,7 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
       <div
         ref={skyRef}
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-10"
+        className="pointer-events-none absolute inset-0 z-10"
         style={{ background: HERO_GROUND, opacity: floating ? 1 : 0, transition: `opacity ${floating ? ENTER_MOVE : JAM_MOVE}` }}
       >
         {/* Plain grain, no blend mode: a blend over the whole room is recomposited every frame the box animates. */}

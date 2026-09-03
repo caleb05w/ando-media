@@ -584,6 +584,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // screen rect can be brought back to room px; `anchorCache` keeps the last
   // place each anchor was seen for the frames it is not in the DOM.
   const cameraRef = useRef<HTMLDivElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null);
   const cameraPose = useRef({ tx: 0, ty: 0, s: 1 });
   const anchorCache = useRef(new Map<string, { x: number; y: number }>());
   // The panel tab you clicked yourself overrides the script's until the next tab beat.
@@ -842,6 +843,14 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         }
       }
 
+      // The window arrives as the film opens: up from 24px, 0.96 → 1, fading in.
+      const win = windowRef.current;
+      if (win) {
+        const p = ease(seg(vt, 0.15, 0.85));
+        win.style.opacity = `${p}`;
+        win.style.transform = `translateY(${24 * (1 - p)}px) scale(${0.96 + 0.04 * p})`;
+      }
+
       // The camera. Every anchor is read from live layout and brought back
       // to room px through the pose last applied; a cut snaps, a shot change
       // glides over 0.9s, and within a shot the push runs on its own ease.
@@ -960,11 +969,21 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   }, [onCycleScene]);
 
   return (
-    <div className="relative h-dvh w-screen overflow-hidden bg-ando-bg-nav text-ando-fg-primary">
+    <div className="relative h-dvh w-screen overflow-hidden bg-[#0f1113] text-ando-fg-primary">
+      {/* The frame (Ando-Brand 3972-4994): a 16:9 canvas on the sky, letterboxed to the
+          viewport, with the window inset in it — 79% wide, 83% tall, centred. */}
+      <div
+        data-stage-canvas
+        className="absolute left-1/2 overflow-hidden"
+        style={{ top: `calc((100dvh - ${hooks && !chromeHidden ? STUDIO_CLEARANCE : 0}px) / 2)`, width: `min(100vw, calc((100dvh - ${hooks && !chromeHidden ? STUDIO_CLEARANCE : 0}px) * 16 / 9))`, aspectRatio: "16 / 9", transform: "translate(-50%, -50%)" }}
+      >
+        <img src="/ando-stage/sky.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
       {/* The camera: the whole room on one transform (cards.tsx). */}
-      <div ref={cameraRef} className="absolute inset-x-0 top-0 flex flex-col will-change-transform" style={{ bottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0, transformOrigin: "0 0" }}>
-      {/* No top bar and no rail: the sidebar, the room and the panel are the whole frame. */}
-      <div ref={rowRef} className="relative flex min-h-0 flex-1">
+      <div ref={cameraRef} className="absolute inset-0 will-change-transform" style={{ transformOrigin: "0 0" }}>
+      {/* The window. It arrives as the film opens (the driver writes its entrance). */}
+      <div ref={windowRef} data-stage-window className="absolute overflow-hidden rounded-xl bg-ando-bg-main" style={{ left: "10.4%", top: "8.4%", width: "79.2%", height: "83.2%", boxShadow: "0 24px 64px rgba(15,17,19,0.22), 0 0 0 1px rgba(15,17,19,0.06)", opacity: 0 }}>
+      {/* No top bar and no rail: the sidebar, the room and the panel are the whole window. */}
+      <div ref={rowRef} className="relative flex h-full min-h-0">
         <Sidebar scene={room} unreadDms={unreadDms} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
@@ -1005,6 +1024,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             </JamStage>
           </>
         ) : null}
+      </div>
+      </div>
       </div>
       </div>
 

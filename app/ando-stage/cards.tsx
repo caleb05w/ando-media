@@ -8,7 +8,7 @@
 import { useEffect, useState, type RefObject } from "react";
 import { LOGO_H, LOGO_PARTS } from "../context-stream/logo";
 import { ContextTrace } from "../the-library/context-trace";
-import { beatKey, type CameraAnchor, type Scene, type Timing } from "./scenes";
+import { beatKey, type Actor, type CameraAnchor, type Scene, type Timing } from "./scenes";
 
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
 export const ease = (p: number) => 1 - Math.pow(1 - clamp01(p), 2.2);
@@ -118,7 +118,11 @@ export const WORD_CADENCE = 0.15;
 /** How long a word takes to land. */
 export const WORD_LAND = 0.42;
 
-export type TypeCardOn = { key: string; words: string[]; t: number; hold: number };
+export type TypeCardOn = { key: string; words: string[]; t: number; hold: number; faces: Actor[] };
+/** Faces pop in one at a time, this far apart, and the words wait for them. */
+export const FACE_CADENCE = 0.12;
+export const FACE_LAND = 0.42;
+export const facesLead = (n: number) => (n === 0 ? 0 : (n - 1) * FACE_CADENCE + 0.3);
 
 export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | null {
   for (let index = 0; index < scene.beats.length; index += 1) {
@@ -126,7 +130,7 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
     if (beat.kind !== "type") continue;
     const t = T[beatKey(index)];
     if (vt < t || vt > t + beat.hold + TYPE_EXIT) continue;
-    return { key: beatKey(index), words: beat.text.split(" "), t, hold: beat.hold };
+    return { key: beatKey(index), words: beat.text.split(" "), t, hold: beat.hold, faces: (beat.faces ?? []).map((handle) => scene.cast[handle]) };
   }
   return null;
 }
@@ -135,7 +139,22 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
  *  written per frame by the driver via the `data-word` spans. */
 export function TypeCard({ card }: { card: TypeCardOn }) {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-white text-[#1a1817]" aria-hidden data-type-card>
+    <div className="pointer-events-none fixed inset-0 z-[80] flex flex-col items-center justify-center bg-white text-[#1a1817]" aria-hidden data-type-card>
+      {card.faces.length > 0 ? (
+        /* The stack: the product's overlapping faces with a stroke of the ground between them (avatar-group, ring 3px). */
+        <div className="mb-7 flex items-center justify-center" data-type-faces>
+          {card.faces.map((face, i) => (
+            <img
+              key={face.name}
+              data-face
+              src={face.avatar}
+              alt=""
+              className="size-14 rounded-full object-cover will-change-transform"
+              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", opacity: 0, background: face.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
+            />
+          ))}
+        </div>
+      ) : null}
       <div className="flex whitespace-nowrap will-change-transform" data-type-line style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.02em", fontWeight: 500, fontFamily: "var(--font-geist-sans), Geist, ui-sans-serif, system-ui, sans-serif" }}>
         {card.words.map((word, i) => (
           <span key={i} data-word className="inline-block will-change-transform" style={{ marginRight: i < card.words.length - 1 ? "0.26em" : 0, opacity: 0 }}>{word}</span>

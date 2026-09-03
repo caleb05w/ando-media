@@ -57,7 +57,7 @@ export type Beat =
    *  otherwise it glides from where it was. */
   | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
   /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
-  | { kind: "type"; text: string; hold: number; ms: number }
+  | { kind: "type"; text: string; hold: number; /** Cast handles shown as an avatar stack above the line — they pop in first. */ faces?: string[]; ms: number }
   /** The agent reading the jam: the library's context trace on white, run
    *  from its start for `hold` seconds, then a fade back to the room. */
   | { kind: "context"; hold: number; ms: number }
@@ -397,7 +397,7 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 190 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 340 },
     // Shot 4 — white. The middle line.
-    { kind: "type", text: "Jam it out with your human (and agent) teammates", hold: 2.4, ms: 2400 },
+    { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 2600 },
     // Shot 5 — back in the room. Sara asks Tadao in the Jam's thread; it
     // reads the call and answers there. Nobody has to summon it.
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 900 },

@@ -24,7 +24,7 @@ import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
-import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_CADENCE, FACE_LAND, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, facesLead, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -728,19 +728,29 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         const line = document.querySelector<HTMLElement>("[data-type-line]");
         if (line) {
           const local = vt - tc.t;
+          // The faces first — each pops in and settles — then the words.
+          const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
+          faces.forEach((face, i) => {
+            const p = seg(local, i * FACE_CADENCE, FACE_LAND);
+            face.style.opacity = `${Math.min(1, p * 3)}`;
+            face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
+          });
+          const lead = facesLead(faces.length);
           const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
           let pending = 0;
           words.forEach((word, i) => {
-            const p = ease(seg(local, i * WORD_CADENCE, WORD_LAND));
+            const p = ease(seg(local, lead + i * WORD_CADENCE, WORD_LAND));
             word.style.opacity = `${p}`;
             word.style.transform = `translateX(${(1 - p) * 44}px)`;
-            if (local < i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
+            if (local < lead + i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
           });
           // The line re-centres as it grows: the words still to come are held out of the count.
           // After its hold it lifts away for whatever takes the white next.
           const exit = ease(seg(local, tc.hold, TYPE_EXIT));
           line.style.transform = `translateX(${pending / 2}px) translateY(${-28 * exit}px)`;
           line.style.opacity = `${1 - exit}`;
+          const stack = document.querySelector<HTMLElement>("[data-type-faces]");
+          if (stack) { stack.style.transform = `translateY(${-28 * exit}px)`; stack.style.opacity = `${1 - exit}`; }
         }
       }
 

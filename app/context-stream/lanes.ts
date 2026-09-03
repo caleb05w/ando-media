@@ -8,16 +8,11 @@ const snap = (v: number) => Math.round(v * 100) / 100;
 
 /** What each beat drives, for the studio's spotlight. */
 const TARGETS: Partial<Record<keyof Timing, string[]>> = {
-  gather: ["[data-cs=card]"],
-  gather2: ["[data-cs=title-1]"],
+  agent: ["[data-cs=title-1]", "[data-cs=indicator]"],
   indicator: ["[data-cs=indicator]"],
   iface: ["[data-cs=title-2]", "[data-cs=composer]"],
   chat: ["[data-cs=header]", "[data-cs=transcript]"],
   sidebar: ["[data-cs=sidebar]"],
-  typing: ["[data-cs=composer]"],
-  sara: ["[data-row=sara]"],
-  ask: ["[data-cs=composer]"],
-  send: ["[data-row=ask]"],
   reply: ["[data-row=reply]"],
   logo: ["[data-cs=logo]"],
 };

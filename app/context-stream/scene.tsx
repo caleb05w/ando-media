@@ -3,27 +3,27 @@
 // The scene is the driver: one rAF loop, one virtual clock `vt`, and every
 // visual value a pure function of it — so the studio can run time
 // backwards, hold it still, and jump it. Continuous things (the dots, the
-// three dots they gather into, the camera, the composer's slide, every fade) are
-// written straight to the DOM each frame; the only React state is discrete
-// — the scripted draft, who is typing, the run's phase, the trace line's
-// coarse clock, the typing indicator's frame — set when they change.
+// camera, the agent's walk, the composer's slide, every fade) are written
+// straight to the DOM each frame; the only React state is discrete — who
+// is typing, the run's phase, the trace line's coarse clock, the typing
+// indicator's frame — set when they change.
 //
 // Layers, bottom to top, inside the camera: the grey ground · the window
 // (its card, then its contents: sidebar, header, transcript, composer) ·
-// the canvas (the dots, and the three they gather into) · the typing
-// indicator. Outside it: the second title, the logo.
+// the canvas (the dots) · the agent, which is the typing indicator.
+// Outside it: the second title, the logo.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { VARIANTS, cycleFrame, cycleMs, type Frame } from "../agent-typing-experience/variants";
+import { RESET_MS, resetFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { CARD, CARD_WIDE, CENTER_X, HUB_R, HUB_X, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, backOut, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
-import { AGENT, ASK, ROWS, RowView, tracePhasesFor, type RunPhase } from "./transcript";
+import { AGENT, CHAT_LEAD, CHAT_STAGGER, ROWS, RowView, runStart, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
 import "./context-stream.css";
 
@@ -42,19 +42,26 @@ const STUDIO_CLEARANCE = 72;
 const DOT_INK = "#a3a09c";
 /** The typing strip above the composer — the product's slot, h-9, 3px up. */
 const STRIP_H = 36;
-/** The library's agent typing indicator — Orbit v2, as /the-library shows
- *  it (shelf 04, 120px): dots, the morph into the face, the hold, the
- *  reset. Its 60-unit canvas puts the dots at the product's 4px on a 6px
- *  pitch, so at 60px they land 1:1 on the composer's own indicator. */
-const INDICATOR = VARIANTS.find((v) => v.key === "orbit-v2") ?? VARIANTS[0];
-const INDICATOR_CYCLE = cycleMs(INDICATOR);
-const INDICATOR_BIG = 120;
+/** The indicator at product scale: its 60-unit canvas puts the dots at the
+ *  product's 4px on a 6px pitch, so at 60px they land 1:1 on the composer's
+ *  own indicator. */
 const INDICATOR_SMALL = 60;
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
-const ZOOM = INDICATOR_BIG / INDICATOR_SMALL;
+const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
 const ZOOM_OUT = 1.2;
+/** The agent at rest — the library's Orbit v2 with the face landed. */
+const AGENT_FRAME = INDICATOR.morph(INDICATOR.morphMs);
 const noop = () => {};
+
+/** The agent's frame `t` seconds into `indicator`: at rest before, then the
+ *  library's reset — the face gives way to three dots — then its wave. */
+function agentFrame(t: number): Frame {
+  if (t < 0) return AGENT_FRAME;
+  const ms = t * 1000;
+  if (ms < RESET_MS) return resetFrame(ms);
+  return typingFrame(ms - RESET_MS, 1);
+}
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
   // Timing rides in a ref so a drag re-times the frame without restarting
@@ -83,7 +90,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     return () => window.removeEventListener("resize", fit);
   }, []);
 
-  const [scripted, setScripted] = useState<string | null>(null);
   const [runPhase, setRunPhase] = useState<RunPhase>(0);
   const [typing, setTyping] = useState<Actor | null>(null);
   const [traceVt, setTraceVt] = useState(0);
@@ -117,7 +123,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let vt = 0;
     let last = performance.now();
     let raf = 0;
-    let draftShown: string | null = null;
     let runShown: RunPhase = 0;
     let typingShown: Actor | null = null;
     let traceVtShown = 0;
@@ -190,52 +195,57 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       transcript.style.bottom = `${composerH + STRIP_H}px`;
 
       /* ── Rows ──────────────────────────────────────────────────── */
+      let chatIndex = 0;
       ROWS.forEach((row, i) => {
         const refs = rowRefs.current[i];
         if (!refs.wrap || !refs.inner) return;
-        const at = row.lands === "chat" ? T.chat + 0.25 : row.lands === "sara" ? T.sara : row.lands === "send" ? T.send : T.reply;
+        let at: number;
+        if (row.lands === "chat") {
+          at = T.chat + CHAT_LEAD + chatIndex * CHAT_STAGGER;
+          chatIndex += 1;
+          refs.wrap.style.height = "";
+        } else {
+          at = T.reply;
+        }
         const p = ease(seg(vt, at, 0.45));
-        if (row.lands === "chat") refs.wrap.style.height = "";
-        else refs.wrap.style.height = `${rowH[i] * p}px`;
+        if (row.lands !== "chat") refs.wrap.style.height = `${rowH[i] * p}px`;
         refs.inner.style.opacity = `${p}`;
         refs.inner.style.transform = `translateY(${8 * (1 - p)}px)`;
       });
 
-      /* ── The stream → three dots ───────────────────────────────── */
-      // After the pan the whole line flies to centre stage and lands in
-      // three dots, each landing ringing its dot; the dots fill as they
-      // take the stream in. At `indicator` they are the typing indicator.
+      /* ── The agent and the camera ──────────────────────────────── */
+      // The agent — the library's indicator at rest, face in its disc —
+      // comes in from the right as the camera settles, pops, and swells as
+      // the stream runs into it; walks to centre stage; at `indicator`
+      // resets into three dots and waves. At `iface` the camera is already
+      // in on it — the same 120px on screen — and pulls back while the
+      // window builds around it; when the pull ends the dots are exactly
+      // the composer's own, and hand over.
       const field = fieldAt(T, vt);
-      const hubIn = ease(seg(vt, T.gather2 + 0.2, 0.35));
-      const stageIn = ease(seg(vt, T.indicator, 0.3));
-
-      /* ── The typing indicator and the camera ───────────────────── */
-      // The library's cycle plays centre stage over the three dots: the
-      // wave, the morph into the face, the hold, the reset. At `iface` the
-      // camera is already in on it — the same 120px on screen — and pulls
-      // back while the window builds around it; when the pull ends the dots
-      // are exactly the composer's own, and hand over.
+      const pop = backOut(seg(vt, T.agent - 0.35, 0.5));
+      const swell = 0.88 + 0.12 * field.eaten + 0.04 * field.pulse;
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       const P = { x: CARD.x + 16, y: cardY + bottomTop - 19 };
-      const C = { x: CENTER_X, y: LINE_Y };
+      const C = { x: agentX(T, vt), y: LINE_Y };
       const z = zoomed ? lerp(ZOOM, 1, zp) : 1;
-      const S = zoomed ? { x: lerp(C.x, P.x, zp), y: lerp(C.y, P.y, zp) } : P;
+      const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      indicatorEl.style.left = `${at.x - INDICATOR_BIG / 2}px`;
-      indicatorEl.style.top = `${at.y - INDICATOR_BIG / 2}px`;
-      indicatorEl.style.transform = `scale(${(zoomed ? INDICATOR_SMALL : INDICATOR_BIG) / INDICATOR_BIG})`;
-      indicatorEl.style.opacity = `${stageIn * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * pop * swell;
+      indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
+      indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
+      indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.35, 0.2)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
-      const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= T.send + 0.3 ? 1 : 0;
+      const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
       if (run !== runShown) {
         runShown = run;
         setRunPhase(run);
       }
-      const who: Actor | null =
-        vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.chat + 0.4 ? AGENT : vt >= T.typing && vt < T.sara ? CAST.sara : vt >= T.send + 2.3 && vt < T.reply ? AGENT : null;
+      // The agent is typing from the moment the pull-back lands until it replies.
+      const who: Actor | null = vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.reply ? AGENT : null;
       if (who !== typingShown) {
         typingShown = who;
         setTyping(who);
@@ -246,19 +256,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         traceVtShown = coarse;
         setTraceVt(coarse);
       }
-      // The indicator's frame, at 30 a second, only while it is on stage —
-      // the library's own cycle, from its first dot.
-      const tick = vt >= T.indicator && vt < T.iface + ZOOM_OUT + 0.3 ? Math.floor((vt - T.indicator) * 30) / 30 : null;
+      // The agent's frame: at rest until `indicator` (one frame, no churn),
+      // then the library's reset and wave at 30 a second.
+      const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? -1 : Math.floor((vt - T.indicator) * 30) / 30;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
-        setIndicator(tick == null ? null : cycleFrame(INDICATOR, (tick * 1000) % INDICATOR_CYCLE).frame);
-      }
-      const typeP = seg(vt, T.ask, Math.max(0.3, T.send - T.ask - 0.25));
-      const chars = Math.floor(typeP * ASK.length);
-      const draft = vt >= T.send || chars === 0 ? null : ASK.slice(0, chars);
-      if (draft !== draftShown) {
-        draftShown = draft;
-        setScripted(draft);
+        setIndicator(tick == null ? null : agentFrame(tick));
       }
 
       /* ── Titles ────────────────────────────────────────────────── */
@@ -269,10 +272,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${a * b}`;
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
-      fadeIn(title1Ref.current, T.gather2 + 0.35, T.indicator + 1.1);
+      fadeIn(title1Ref.current, T.agent + 0.3, T.indicator + 0.5);
       fadeIn(title2Ref.current, T.iface + 0.3, T.chat + 0.9);
 
-      /* ── The canvas: the dots, and the three ───────────────────── */
+      /* ── The canvas: the dots ──────────────────────────────────── */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, STAGE.w, STAGE.h);
       ctx.fillStyle = DOT_INK;
@@ -281,16 +284,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
-      }
-      // The three dots give way to the indicator's own.
-      const hubA = hubIn * (1 - stageIn);
-      if (hubA > 0) {
-        field.hub.forEach((h, i) => {
-          ctx.globalAlpha = hubA * lerp(0.55, 1, h.fill);
-          ctx.beginPath();
-          ctx.arc(HUB_X[i], LINE_Y, lerp(2.5, HUB_R, h.fill) + 1.2 * h.pulse, 0, Math.PI * 2);
-          ctx.fill();
-        });
       }
       ctx.globalAlpha = 1;
     };
@@ -360,16 +353,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
                 </div>
                 {/* The composer slides up from under the window's floor. */}
                 <div ref={composerRef} data-cs="composer" className="absolute left-0 right-0" style={{ top: CARD.h + 12 }}>
-                  <Composer scene={ROOM} typing={typing} onSend={noop} scripted={scripted} />
+                  <Composer scene={ROOM} typing={typing} onSend={noop} scripted={null} />
                 </div>
               </div>
             </div>
 
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
-            {/* The typing indicator: the library's cycle over the three dots, then the composer's own line. */}
-            <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_BIG, height: INDICATOR_BIG, transformOrigin: "50% 50%" }}>
-              {indicator ? <Stage frame={indicator} size={INDICATOR_BIG} avatarSrc={AGENT.avatar} /> : null}
+            {/* The agent: the library's typing indicator at rest, then its reset and wave, then the composer's own line. */}
+            <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
+              {indicator ? <Stage frame={indicator} size={INDICATOR_PX} avatarSrc={AGENT.avatar} /> : null}
             </div>
 
             <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: CARD.y + 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>

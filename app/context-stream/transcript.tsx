@@ -1,13 +1,11 @@
 "use client";
 
-// The room's transcript — a short exchange in #general that shows how the
-// agent works: a line from Oliver, Sara typing then landing, your ask to
-// @Ando, the agent's trace under it (the product's TraceLine, shimmering
-// through what it reads), "Ando is typing…", and a short reply with the
-// run's duration filed under it. Rows are declared here with WHEN they
-// land; scene.tsx drives each one's arrival per frame (opacity, a small
-// rise, and for the late rows a height that grows so the transcript is
-// pushed up rather than jumping).
+// The room's transcript — the exchange the agent is answering, already
+// there when the interface builds around it: a line from Oliver, Sara's
+// line, your ask to @Tadao with the agent's trace under it (the product's
+// TraceLine, shimmering through what it reads), and then the reply, short,
+// with the run's duration filed under it. Rows are declared here with WHEN
+// they land; scene.tsx drives each one's arrival per frame.
 
 import { Avatar } from "../ando-stage/chrome";
 import { TraceLine, type TracePhases } from "../ando-stage/context-trace";
@@ -18,7 +16,7 @@ import type { Timing } from "./timing";
  *  one square so every slot shows the same one. */
 export const AGENT: Actor = { name: "Tadao", avatar: "/context-stream/tadao.png", agent: true };
 
-export type Lands = "chat" | "sara" | "send" | "reply";
+export type Lands = "chat" | "reply";
 
 export type RowDef = {
   key: string;
@@ -32,9 +30,6 @@ export type RowDef = {
   /** …and moves under this one, as a duration, once it has replied. */
   runDone?: true;
 };
-
-/** What you ask, typed into the composer over the `ask` beat. */
-export const ASK = "@Tadao what's Sara cooking in #marketing?";
 
 const ch = (text: string): Segment => ({ text, mention: true });
 const t = (text: string): Segment => ({ text });
@@ -51,14 +46,14 @@ export const ROWS: RowDef[] = [
     key: "sara",
     who: CAST.sara,
     time: "3:27 PM",
-    lands: "sara",
+    lands: "chat",
     body: [[t("check out what im cooking in "), ch("#marketing")]],
   },
   {
     key: "ask",
     who: CAST.caleb,
     time: "3:31 PM",
-    lands: "send",
+    lands: "chat",
     body: [[{ text: "@Tadao", mention: true, agent: true }, t(" what's Sara cooking in "), ch("#marketing"), t("?")]],
     run: true,
   },
@@ -77,20 +72,28 @@ export const ROWS: RowDef[] = [
   },
 ];
 
+/** How the chat rows stagger in after `chat`. */
+export const CHAT_LEAD = 0.25;
+export const CHAT_STAGGER = 0.4;
+
 /** The agent's run under the ask: 0 not yet, 1 reading, 2 done. */
 export type RunPhase = 0 | 1 | 2;
 
 /** Who the agent read on its way to the reply — the trace's facepile. */
 export const READ_FROM: Actor[] = [CAST.sara, CAST.oli, CAST.aj];
 
+/** When the run starts: once the ask has landed. */
+export const runStart = (T: Timing) => T.chat + CHAT_LEAD + 2 * CHAT_STAGGER + 0.45;
+
 /** The run's steps on the film clock, from the beats. */
 export function tracePhasesFor(T: Timing): TracePhases {
+  const start = runStart(T);
   return {
-    start: T.send + 0.3,
+    start,
     steps: [
-      { t: T.send + 0.3, label: "Starting agent session", icon: null },
-      { t: T.send + 0.9, label: "Reading #marketing…", icon: "transcript" },
-      { t: T.send + 2.2, label: "Drafting the reply…", icon: "write" },
+      { t: start, label: "Starting agent session", icon: null },
+      { t: start + 0.5, label: "Reading #marketing…", icon: "transcript" },
+      { t: start + 1.7, label: "Drafting the reply…", icon: "write" },
     ],
     done: T.reply - 0.05,
   };

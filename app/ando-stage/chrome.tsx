@@ -138,14 +138,14 @@ function rowIsActive(row: SidebarRow, surface: Surface) {
 }
 
 /** sidebar-conversation/styles.css — the 32px row. */
-function ConversationRow({ row, scene }: { row: SidebarRow; scene: Scene }) {
+function ConversationRow({ row, scene, unreadDms = [] }: { row: SidebarRow; scene: Scene; unreadDms?: string[] }) {
   const active = rowIsActive(row, scene.surface);
-  const unread = row.kind === "channel" && row.unread === true && !active;
+  const unread = !active && (row.kind === "channel" ? row.unread === true : unreadDms.includes(row.who));
   const muted = row.kind === "channel" && row.muted === true;
   return (
     <li className="ando-sidebar-conversation-row">
       <div className="ando-sidebar-conversation-primary">
-        <span className="ando-sidebar-conversation-button" data-active={active ? "true" : "false"} data-unread={unread ? "true" : "false"} style={muted ? { opacity: 0.55 } : undefined}>
+        <span className="ando-sidebar-conversation-button" data-active={active ? "true" : "false"} data-unread={unread ? "true" : "false"} data-sidebar-dm={row.kind === "dm" ? row.who : undefined} style={muted ? { opacity: 0.55 } : undefined}>
           <span className="ando-sidebar-conversation-main">
             {row.kind === "channel" ? (
               <span className="ando-sidebar-conversation-icon">
@@ -162,6 +162,7 @@ function ConversationRow({ row, scene }: { row: SidebarRow; scene: Scene }) {
               {row.kind === "channel" ? row.name : scene.cast[row.who].name}
             </span>
           </span>
+          {unread && row.kind === "dm" ? <span aria-hidden className="st-land ml-auto mr-1 size-2 shrink-0 rounded-full bg-ando-fg-primary" /> : null}
         </span>
       </div>
     </li>
@@ -169,12 +170,12 @@ function ConversationRow({ row, scene }: { row: SidebarRow; scene: Scene }) {
 }
 
 /** sidebar-folder-section-ui.tsx getFolderHeaderClassName + overline label. */
-function FolderHeader({ label }: { label: string }) {
+function FolderHeader({ label, collapsed = false }: { label: string; collapsed?: boolean }) {
   return (
     <div className="relative flex h-6 items-center gap-2 rounded-[6px] px-2 bg-transparent">
       <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
         <span className="relative size-4 shrink-0">
-          <Icon name="IconSidebarFolderOpen" size={14} fill="filled" className="absolute inset-0 m-auto size-3.5 overflow-visible text-ando-fg-secondary" />
+          <Icon name={collapsed ? "IconSidebarFolder" : "IconSidebarFolderOpen"} size={14} fill="filled" className="absolute inset-0 m-auto size-3.5 overflow-visible text-ando-fg-secondary" />
         </span>
         <span className="kanso-text-overline-11 min-w-0 flex-1 truncate text-ando-fg-secondary">{label}</span>
       </span>
@@ -183,7 +184,7 @@ function FolderHeader({ label }: { label: string }) {
 }
 
 /** global-sidebar-shell + sidebar-panel-header: the 354px panel. */
-export function Sidebar({ scene }: { scene: Scene }) {
+export function Sidebar({ scene, unreadDms = [] }: { scene: Scene; /** DM handles with something new in them. */ unreadDms?: string[] }) {
   return (
     <div className="relative flex h-full shrink-0 flex-col bg-ando-bg-main" style={{ width: 354 }}>
       {/* SidebarPanelHeaderPrimitive: surface header, padding 0 12px 0 10px */}
@@ -209,10 +210,10 @@ export function Sidebar({ scene }: { scene: Scene }) {
         <div className="flex flex-col gap-3">
           {SIDEBAR.map((section) => (
             <div key={section.label} className="flex flex-col">
-              <FolderHeader label={section.label} />
-              <ul className="ando-sidebar-conversation-list mt-1">
+              <FolderHeader label={section.label} collapsed={section.collapsed === true} />
+              {section.collapsed ? null : <ul className="ando-sidebar-conversation-list mt-1">
                 {section.rows.map((row) => (
-                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} />
+                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
                 ))}
                 {section.addRow ? (
                   <li className="ando-sidebar-conversation-row">
@@ -224,13 +225,13 @@ export function Sidebar({ scene }: { scene: Scene }) {
                     </span>
                   </li>
                 ) : null}
-              </ul>
+              </ul>}
             </div>
           ))}
           <div className="mx-2 h-px bg-ando-border-default" />
           <ul className="ando-sidebar-conversation-list">
             {SIDEBAR_LOOSE.map((row) => (
-              <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} />
+              <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
             ))}
           </ul>
         </div>

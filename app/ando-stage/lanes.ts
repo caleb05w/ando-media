@@ -15,7 +15,7 @@ function label(scene: Scene, beat: Beat): string {
   switch (beat.kind) {
     case "mark": return beat.label.toLowerCase();
     case "typing": return `${scene.cast[beat.who].name.split(" ")[0]} typing`;
-    case "say": return `${scene.cast[beat.who].name.split(" ")[0]}${beat.thread ? " · thread" : ""}`;
+    case "say": return `${scene.cast[beat.who].name.split(" ")[0]}${beat.thread ? " · thread" : beat.room === "dm" ? " · DM" : ""}`;
     case "card": return `${scene.cast[beat.who].name.split(" ")[0]} card`;
     case "attach": return `${scene.cast[beat.who].name.split(" ")[0]} file`;
     case "react": return beat.emoji;
@@ -24,6 +24,8 @@ function label(scene: Scene, beat: Beat): string {
     case "jam-start": return `${scene.cast[beat.participants[0]].name.split(" ")[0]} starts jam`;
     case "jam-join": return "you join";
     case "jam-answer": return "you pick up";
+    case "dm-unread": return `${scene.cast[beat.who].name} DMs you`;
+    case "surface": return beat.to.kind === "channel" ? `open #${beat.to.name}` : `open ${scene.cast[beat.to.who].name}`;
     case "jam-end": return "jam ends";
     case "jam-deploy": return "panel unfolds";
     case "jam-dock": return "panel docks";

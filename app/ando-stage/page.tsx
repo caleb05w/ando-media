@@ -25,7 +25,7 @@ import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
-import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
+import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
 const CURSOR_TARGETS = {
@@ -90,7 +90,7 @@ type MessageRow = Extract<Row, { kind: "message" }>;
  *  and scrubs away with everything after that beat. */
 type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string; /** sent from the Jam panel's thread composer */ thread?: true };
 
-type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; /** the DM the script opens */ dm: Row[]; /** what the room shows */ surface: Surface; /** DM handles gone unread */ unreadDms: string[]; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
   let scriptedJam: JamCall | null = null;
@@ -102,6 +102,9 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
   const transcript: TranscriptSegment[] = [];
   const rows: Row[] = [];
   const thread: Row[] = [];
+  const dm: Row[] = [];
+  let surface: Surface = scene.surface;
+  let unreadDms: string[] = [];
   const messages = new Map<string, MessageRow>();
   const runs = new Map<string, Run>();
   const push = (row: MessageRow, id: string, into: Row[] = rows) => {
@@ -211,9 +214,16 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
             row.traces.push(...moving.map((trace) => ({ ...trace, onReply: true })));
           }
         }
-        push(row, beat.id, beat.thread ? thread : rows);
+        push(row, beat.id, beat.thread ? thread : beat.room === "dm" ? dm : rows);
         break;
       }
+      case "dm-unread":
+        if (!unreadDms.includes(beat.who)) unreadDms = [...unreadDms, beat.who];
+        break;
+      case "surface":
+        surface = beat.to;
+        if (beat.to.kind === "dm") { const who = beat.to.who; unreadDms = unreadDms.filter((handle) => handle !== who); }
+        break;
       case "card":
         push({ ...base(scene.cast[beat.who], beat.time), key: beat.id, card: beat.card, beat: beatKey(index) }, beat.id);
         break;
@@ -241,7 +251,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, thread, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
+  return { rows, thread, dm, surface, unreadDms, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -555,7 +565,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, thread, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, thread, dm, surface, unreadDms, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -664,6 +674,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     return start && start.kind === "jam-start" ? [...joiner, ...start.participants.map((handle) => scene.cast[handle])] : [scene.cast[ME]];
   }, [scene]);
   const jamActions: JamActions = { muted: jamMuted, toggleMute: () => setJamMuted((current) => !current), end: endJam, join: () => setJamPanelOpen(true), elapsed: scriptedJam ? (jamElapsed ?? 0) : undefined, tracePhases, traceParticipants, traceVt };
+  // The room as shown: the scene with whatever surface the script has opened.
+  const room = useMemo<Scene>(() => ({ ...scene, surface }), [scene, surface]);
   const jamTarget = scene.surface.kind === "channel" ? `#${scene.surface.name}` : scene.cast[scene.surface.who].name;
 
   // The driver: one rAF loop, one virtual clock, the cursor derived from it
@@ -753,7 +765,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           mark.style.opacity = `${Math.min(1, drop * 4)}`;
           mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y * slide}px) scale(${markScale})`;
           letters.style.opacity = `${slide}`;
-          letters.style.transform = `translate(${LETTERS_OFFSET.x + 32 * (1 - slide)}px, ${LETTERS_OFFSET.y}px)`;
+          letters.style.transform = `translate(${LETTERS_OFFSET.x - 24 * (1 - slide)}px, ${LETTERS_OFFSET.y}px)`;
         }
       }
 
@@ -808,7 +820,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           pointer.style.opacity = "0";
         } else {
           const aim = (target: string | null) => {
-            const el = target ? document.querySelector<HTMLElement>(CURSOR_TARGETS[target as keyof typeof CURSOR_TARGETS]) : null;
+            const selector = target == null ? null : target.startsWith("dm:") ? `[data-sidebar-dm="${target.slice(3)}"]` : CURSOR_TARGETS[target as keyof typeof CURSOR_TARGETS];
+            const el = selector ? document.querySelector<HTMLElement>(selector) : null;
             if (!el) return null;
             const r = el.getBoundingClientRect();
             return target === "composer" ? { x: r.left + 28, y: r.top + 22 } : { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -872,15 +885,15 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       <div ref={cameraRef} className="absolute inset-x-0 top-0 flex flex-col will-change-transform" style={{ bottom: hooks && !chromeHidden ? STUDIO_CLEARANCE : 0, transformOrigin: "0 0" }}>
       {/* No top bar and no rail: the sidebar, the room and the panel are the whole frame. */}
       <div ref={rowRef} className="relative flex min-h-0 flex-1">
-        <Sidebar scene={scene} />
+        <Sidebar scene={room} unreadDms={unreadDms} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
-          <ConversationHeader scene={scene} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
+          <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
           <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8 }}>
             <div aria-hidden className="mt-auto shrink-0" />
-            {rows.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
+            {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
-          <Composer scene={scene} typing={typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
+          <Composer scene={room} typing={typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
         </main>
         {jamCall != null && jamCall.endedAt == null && panelOpen ? (
           <>

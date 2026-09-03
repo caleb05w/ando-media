@@ -6,7 +6,7 @@
 // mark's bounce, the camera's pose) straight to the DOM; see page.tsx.
 
 import { useEffect, useState, type RefObject } from "react";
-import { LOGO_H, LOGO_PARTS, LOGO_W } from "../context-stream/logo";
+import { LOGO_H, LOGO_PARTS } from "../context-stream/logo";
 import { ContextTrace } from "../the-library/context-trace";
 import { beatKey, type CameraAnchor, type Scene, type Timing } from "./scenes";
 
@@ -57,6 +57,7 @@ export function anchorSelector(at: CameraAnchor): string {
     case "jam-transcript": return "[data-jam-transcript], [data-jam-lower]";
     case "room": return "[data-stage-main]";
   }
+  if (at.startsWith("dm:")) return `[data-sidebar-dm="${at.slice(3)}"]`;
   return "[data-stage-main]";
 }
 
@@ -135,7 +136,7 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
 export function TypeCard({ card }: { card: TypeCardOn }) {
   return (
     <div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-white text-[#1a1817]" aria-hidden data-type-card>
-      <div className="flex whitespace-nowrap will-change-transform" data-type-line style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.02em", fontWeight: 500 }}>
+      <div className="flex whitespace-nowrap will-change-transform" data-type-line style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.02em", fontWeight: 500, fontFamily: "var(--font-geist-sans), Geist, ui-sans-serif, system-ui, sans-serif" }}>
         {card.words.map((word, i) => (
           <span key={i} data-word className="inline-block will-change-transform" style={{ marginRight: i < card.words.length - 1 ? "0.26em" : 0, opacity: 0 }}>{word}</span>
         ))}
@@ -156,19 +157,22 @@ export function logoAt(scene: Scene, T: Timing, vt: number): number | null {
   return null;
 }
 
-/** The lockup at this width, and where each half sits relative to its centre. */
+/** The lockup is Ando-Brand 3978-5015: the mark on the LEFT of the wordmark,
+ *  centre-aligned — 534×105 in Figma (mark 100×105 at x 0, wordmark 402×104
+ *  at x 132), rendered here at this width. Each half is one of the logo's
+ *  own paths, so the shapes are exact; the layout is the frame's. */
 export const LOCKUP_W = 260;
-const K = LOCKUP_W / LOGO_W;
-// Letters span x 0–157.7, y 35.8–76.6; the mark x 160.4–208.6, y 0–50.5 (viewBox units).
+const FIG = { w: 534.32, h: 105, mark: { x: 0, w: 100.17, h: 105 }, letters: { x: 132.17, y: 0.4, w: 402.15, h: 104.19 } };
+const K = LOCKUP_W / FIG.w;
+// In the logo's viewBox: letters span x 0–157.7, y 35.8–76.6; the mark x 160.4–208.6, y 0–50.5.
 export const LOCKUP = {
-  letters: { x: 0, y: 35.7, w: 157.8, h: 41.0 },
-  mark: { x: 160.3, y: 0, w: 48.4, h: 50.6 },
+  letters: { x: 0, y: 35.7, w: 157.8, h: 41.0, px: FIG.letters.w * K },
+  mark: { x: 160.3, y: 0, w: 48.4, h: 50.6, px: FIG.mark.w * K },
 };
-const lockupCx = (LOGO_W / 2) * K;
-const lockupCy = (LOGO_H / 2) * K;
 /** Each half's centre, offset from the lockup's centre, in px. */
-export const MARK_OFFSET = { x: (LOCKUP.mark.x + LOCKUP.mark.w / 2) * K - lockupCx, y: (LOCKUP.mark.y + LOCKUP.mark.h / 2) * K - lockupCy };
-export const LETTERS_OFFSET = { x: (LOCKUP.letters.x + LOCKUP.letters.w / 2) * K - lockupCx, y: (LOCKUP.letters.y + LOCKUP.letters.h / 2) * K - lockupCy };
+export const MARK_OFFSET = { x: (FIG.mark.x + FIG.mark.w / 2 - FIG.w / 2) * K, y: (FIG.mark.h / 2 - FIG.h / 2) * K };
+export const LETTERS_OFFSET = { x: (FIG.letters.x + FIG.letters.w / 2 - FIG.w / 2) * K, y: (FIG.letters.y + FIG.letters.h / 2 - FIG.h / 2) * K };
+void LOGO_H;
 
 /** White; the mark (data-logo-mark) and the wordmark (data-logo-letters),
  *  each centred, moved per frame by the driver. */
@@ -177,10 +181,10 @@ export function LogoCard() {
   const mark = LOCKUP.mark;
   return (
     <div className="pointer-events-none fixed inset-0 z-[80] bg-white" aria-hidden data-logo-card>
-      <svg data-logo-letters className="absolute left-1/2 top-1/2 will-change-transform" viewBox={`${letters.x} ${letters.y} ${letters.w} ${letters.h}`} width={letters.w * K} height={letters.h * K} fill="#1a1817" fillRule="evenodd" style={{ opacity: 0, marginLeft: (-letters.w * K) / 2, marginTop: (-letters.h * K) / 2 }}>
+      <svg data-logo-letters className="absolute left-1/2 top-1/2 will-change-transform" viewBox={`${letters.x} ${letters.y} ${letters.w} ${letters.h}`} width={letters.px} height={(letters.h / letters.w) * letters.px} fill="#1a1817" fillRule="evenodd" style={{ opacity: 0, marginLeft: -letters.px / 2, marginTop: -((letters.h / letters.w) * letters.px) / 2 }}>
         {LOGO_PARTS.slice(0, 4).map((d, i) => <path d={d} key={i} />)}
       </svg>
-      <svg data-logo-mark className="absolute left-1/2 top-1/2 will-change-transform" viewBox={`${mark.x} ${mark.y} ${mark.w} ${mark.h}`} width={mark.w * K} height={mark.h * K} fill="#1a1817" fillRule="evenodd" style={{ opacity: 0, marginLeft: (-mark.w * K) / 2, marginTop: (-mark.h * K) / 2 }}>
+      <svg data-logo-mark className="absolute left-1/2 top-1/2 will-change-transform" viewBox={`${mark.x} ${mark.y} ${mark.w} ${mark.h}`} width={mark.px} height={(mark.h / mark.w) * mark.px} fill="#1a1817" fillRule="evenodd" style={{ opacity: 0, marginLeft: -mark.px / 2, marginTop: -((mark.h / mark.w) * mark.px) / 2 }}>
         <path d={LOGO_PARTS[4]} />
       </svg>
     </div>

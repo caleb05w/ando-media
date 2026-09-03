@@ -66,7 +66,11 @@ export type Beat =
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; ms: number }
-  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; ms: number }
+  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; /** Lands in a DM (see the `surface` beat), not the channel. */ room?: "dm"; ms: number }
+  /** A DM goes unread in the sidebar. */
+  | { kind: "dm-unread"; who: string; ms: number }
+  /** The room switches to another conversation. */
+  | { kind: "surface"; to: Surface; ms: number }
   | { kind: "card"; id: string; who: string; time: string; card: LaunchCard; ms: number }
   /** A file lands. Optional body posts as the message text above it. */
   | { kind: "attach"; id: string; who: string; time: string; body?: Segment[][]; attachment: Attachment; ms: number }
@@ -76,7 +80,7 @@ export type Beat =
 
 /** What the main pane is: a channel (hashtag, member count) or a 1:1 DM
  *  (the other person's avatar and name, headphones instead of members). */
-export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "thread-tab" | "hang-up" | "send-button" | "thread-send";
+export type CursorTarget = "jam-button" | "join-button" | "composer" | "transcript-tab" | "thread-tab" | "hang-up" | "send-button" | "thread-send" | `dm:${string}`;
 
 /** Where the camera looks: a control, the panel, the room, or a message (`row:<id>`). */
 export type CameraAnchor = CursorTarget | "panel" | "jam-transcript" | "room" | `row:${string}`;
@@ -89,7 +93,7 @@ export type SidebarRow =
   | { kind: "channel"; name: string; private?: boolean; unread?: boolean; muted?: boolean }
   | { kind: "dm"; who: string; online?: boolean };
 
-export type SidebarSection = { label: string; rows: SidebarRow[]; addRow?: boolean };
+export type SidebarSection = { label: string; rows: SidebarRow[]; addRow?: boolean; /** Folded shut, so the sidebar stays quiet. */ collapsed?: true };
 
 export type Scene = {
   id: string;
@@ -124,9 +128,10 @@ export function isAgent(actor: Actor): boolean {
  *  matches the scene's surface. */
 export const SIDEBAR: SidebarSection[] = [
   { label: "Channels", rows: [], addRow: true },
-  { label: "Favorites", rows: [{ kind: "dm", who: "aj", online: true }, { kind: "dm", who: "oli", online: false }, { kind: "dm", who: "sara", online: true }] },
-  { label: "Core", rows: [{ kind: "channel", name: "launch", unread: true }, { kind: "channel", name: "general" }, { kind: "channel", name: "design" }, { kind: "channel", name: "bugs" }] },
-  { label: "Secondary", rows: [{ kind: "channel", name: "sf-team", private: true }, { kind: "channel", name: "social" }, { kind: "channel", name: "daily-updates", muted: true }, { kind: "channel", name: "gratitude" }] },
+  { label: "Favorites", rows: [{ kind: "dm", who: "tadao", online: true }, { kind: "dm", who: "aj", online: true }, { kind: "dm", who: "oli", online: false }, { kind: "dm", who: "sara", online: true }] },
+  // Folded, as in Caleb's own sidebar: the room stays quiet so a new DM reads.
+  { label: "Core", collapsed: true, rows: [{ kind: "channel", name: "launch", unread: true }, { kind: "channel", name: "general" }, { kind: "channel", name: "design" }, { kind: "channel", name: "bugs" }] },
+  { label: "Secondary", collapsed: true, rows: [{ kind: "channel", name: "sf-team", private: true }, { kind: "channel", name: "social" }, { kind: "channel", name: "daily-updates", muted: true }, { kind: "channel", name: "gratitude" }] },
 ];
 
 export const SIDEBAR_LOOSE: SidebarRow[] = [
@@ -343,46 +348,38 @@ const CHAT_THEN_JAM: Scene = {
 const JAMS_CUT: Scene = {
   id: "jams-cut",
   name: "Jams launch — the cut",
-  blurb: "Join, transcript, agent recap, tickets, logo. In #marketing, where the agent already is.",
+  blurb: "Ring, card, jam, recap in the thread, Tadao's DM, closer, logo. In #marketing.",
   surface: { kind: "channel", name: "marketing", members: 9 },
   cast: CAST,
   beats: [
-    // Every line earns its keystrokes: yours type into the composer over
-    // the gap before they land (the link pastes in as one chunk), Sara's
-    // show her typing first.
-    { kind: "mark", label: "TODAY", ms: 1700 },
-    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 600, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
-    { kind: "typing", who: "sara", ms: 800 },
-    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 1100, body: [[{ text: "Is this for our launch video?" }]] },
-    // Shot 1 — the DM. Your reply types itself into the composer over the
-    // gap before it lands; Sara's shows her typing first.
-    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 500, body: [[{ text: "Yeah, I had a few ideas." }]] },
-    { kind: "typing", who: "sara", ms: 800 },
-    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 900, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
-    // Sara starts the Jam: the headphones ring in the header until the
-    // cursor presses them. The press IS the join — the call arrives and
-    // the card lands in the transcript on the same beat.
-    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 400 },
+    // The opening in about two seconds: the link is up, Sara's question
+    // shows her typing, your reply types itself, she asks for the jam.
+    { kind: "mark", label: "TODAY", ms: 0 },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 300, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
+    { kind: "typing", who: "sara", ms: 500 },
+    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 900, body: [[{ text: "Is this for our launch video?" }]] },
+    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 400, body: [[{ text: "Yeah, I had a few ideas." }]] },
+    { kind: "typing", who: "sara", ms: 500 },
+    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 700, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
+    // Sara starts the Jam: the headphones ring, the camera pushes into them
+    // and the cursor grows with it. The press IS the join — but first, the
+    // card, so a viewer who has never seen Ando knows what they are watching.
+    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
+    { kind: "camera", at: "jam-button", scale: 1.0, push: 0.6, cut: true, ms: 0 },
     { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
-    // Shot 2 — cut to the sky: the call arrives, the transcript unfolds
-    // under it at once on the Live transcript tab, and the talking starts
-    // right away. Four lines land before the room comes back.
-    // A second and a half of the call alone — and it is a call: the ring
-    // trades between you as the first lines are spoken. The transcript is
-    // folded away, so when it unfolds those lines are already in it.
+    { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },
+    // Shot 2 — cut to the sky: the call arrives, the ring trades between
+    // you as the first lines are spoken, the transcript unfolds with them
+    // already in it and keeps pouring. The agent can keep up; nobody else can.
+    { kind: "camera", at: "room", scale: 1.0, cut: true, ms: 0 },
     { kind: "jam-join", ms: 200 },
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 500 },
     { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 450 },
     { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 350 },
-    // Shot 2b — the transcript unfolds with three lines already there, and
-    // keeps pouring: short lines, fast turns, two people talking over each
-    // other the way a real call does — more than anyone can keep up with,
-    // which is the point. The agent can.
     { kind: "jam-deploy", tab: "transcript", ms: 200 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1650 },
-    // Shot 3 — the room comes back; the panel docks; the jam does not slow
-    // down. Fifteen lines in three seconds: a blur on purpose.
+    // Shot 3 — the room comes back; the panel docks; fifteen lines in three seconds.
     { kind: "jam-dock", ms: 300 },
     { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 190 },
     { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 200 },
@@ -399,38 +396,43 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 180 },
     { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 190 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 340 },
-    // Shot 4 — white. One line, word by word.
-    { kind: "type", text: "Your agents were in the jam.", hold: 2.2, ms: 2200 },
-    // Shot 5 — back in the room, the jam still open. You ask the agent in
-    // the Jam's own thread; it takes its time reading the transcript.
-    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1000 },
-    { kind: "tab", tab: "thread", ms: 400 },
-    { kind: "cursor", to: "thread-send", glyph: "pointer", press: true, ms: 1500 },
-    { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", thread: true, ms: 500, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
+    // Shot 4 — white. The middle line.
+    { kind: "type", text: "Jam it out with your human (and agent) teammates", hold: 2.4, ms: 2400 },
+    // Shot 5 — back in the room. Sara asks Tadao in the Jam's thread; it
+    // reads the call and answers there. Nobody has to summon it.
+    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 900 },
+    { kind: "tab", tab: "thread", ms: 500 },
+    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 500, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1500 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 800 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 800 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
-      kind: "say", id: "j8", who: "tadao", time: "11:13 AM", thread: true, ms: 2600,
+      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, ms: 2600,
       body: [
-        [{ text: "Quick recap of the jam:" }],
+        [{ text: "for sure, and here's a quick recap for posterity:" }],
         [{ text: "Two launch-video ideas — the Slack import coming apart, and an agent answering in a thread. Golden ticket as the close." }],
         [{ text: "You landed on: agent first as a cold open, then the import, the ticket as the call to action, no voiceover, two seconds on the logo. Caleb cuts it, Sara does the type." }],
       ],
     },
-    { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Filing tickets in Linear…", icon: "write", ms: 1600 },
-    { kind: "trace-done", run: "t2", tool: "Create Issue", ms: 200 },
-    // Shot 6 — the tickets, in the thread.
+    // Shot 6 — the jam ends, and Tadao does what it said: a DM, unread in
+    // the sidebar. You open it.
+    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "jam-end", ms: 900 },
+    { kind: "dm-unread", who: "tadao", ms: 0 },
     {
-      kind: "say", id: "j9", who: "tadao", time: "11:13 AM", thread: true, ms: 2800,
+      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", ms: 900,
       body: [
-        [{ text: "Filed three tickets:" }],
-        [{ text: "AND-7110", link: true }, { text: " — Launch video: agent cold open" }],
-        [{ text: "AND-7111", link: true }, { text: " — Launch video: Slack import sequence" }],
-        [{ text: "AND-7112", link: true }, { text: " — Launch video: golden ticket close" }],
+        [{ text: "Follow-ups from the jam, as Sara asked. Three on you:" }],
+        [{ text: "1. Cut the launch video — agent first, as the cold open." }],
+        [{ text: "2. Send Sara the Figma for the type pass." }],
+        [{ text: "3. Two seconds on the logo, no more." }],
+        [{ text: "I can remind you again tomorrow morning." }],
       ],
     },
-    // Shot 7 — white. The mark, then the wordmark.
+    { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 1000 },
+    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3000 },
+    // Shot 7 — white. The closer, then the logo.
+    { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 2.4, ms: 2400 },
     { kind: "logo", ms: 3000 },
   ],
 };

@@ -373,7 +373,7 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 1300 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 1100 },
     // Shot 4 — white. One line, word by word.
-    { kind: "type", text: "Jams are live transcribed.", hold: 2.0, ms: 2000 },
+    { kind: "type", text: "Your agents were in the jam.", hold: 2.2, ms: 2200 },
     // Shot 5 — back in the room, the jam still open. You ask the agent in
     // the Jam's own thread; it takes its time reading the transcript.
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1000 },

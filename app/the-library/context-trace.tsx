@@ -79,6 +79,8 @@ const T = {
   done: 12600,
   cycle: 16600,
 };
+/** The run's beats, for a film that drives this trace on its own clock. */
+export const TRACE_T = T;
 
 const SOURCES: Source[] = [
   {
@@ -429,16 +431,20 @@ export function CheckDisc() {
 
 /* -------------------------------- component -------------------------------- */
 
-function ContextTrace({
+export function ContextTrace({
   vt,
   open,
   onToggle,
   theme = "dark",
+  width = 360,
 }: {
+  /** ms on the trace's own clock — see T above for the beats */
   vt: number;
   open: boolean;
   onToggle: () => void;
   theme?: "dark" | "light";
+  /** the card's width; /the-library's canvas gives it 360 */
+  width?: number | string;
 }) {
   const done = vt >= T.done;
   const arrived = SOURCES.filter((s) => vt >= s.arrive);
@@ -469,7 +475,8 @@ function ContextTrace({
 
   return (
     <div
-      className={`ct-${theme} w-[360px] rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
+      className={`ct-${theme} rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
+      style={{ width }}
     >
       {/* The rail rides ABOVE the line: sources queue overhead and drain
           downward into the agent as they're read. */}

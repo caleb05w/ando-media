@@ -3,25 +3,28 @@
 // The scene is the driver: one rAF loop, one virtual clock `vt`, and every
 // visual value a pure function of it — so the studio can run time
 // backwards, hold it still, and jump it. Continuous things (the frame, the
-// dots, the disc, the composer's morph, the sidebar's slide, every fade)
-// are written straight to the DOM each frame; the only React state is the
-// scripted draft and the agent's run phase, set when they change.
+// dots, the disc, the card's growth, the composer's slide, every fade) are
+// written straight to the DOM each frame; the only React state is discrete
+// — the scripted draft, who is typing, the run's phase, and two coarse
+// clocks the trace lines read seconds from — set when they change.
 //
-// Layers, bottom to top: the grey ground · the card · the canvas (dots,
-// hairline, disc) · the card's contents (sidebar, header, transcript,
-// composer, the travelling avatar) · the titles · the logo. The card,
-// canvas and contents share one group so the whole window can leave
-// together for the logo.
+// Layers, bottom to top: the grey ground · the card (a hairline frame,
+// then the agent's card, then the window) · the window's contents
+// (sidebar, header, transcript, composer) · the agent's card · the canvas
+// (dots, hairline, disc) · the agent, travelling · the titles · the logo.
+// The card, contents and canvas share one group so the whole window can
+// leave together for the logo.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
-import { CAST, ME, type Scene as Room } from "../ando-stage/scenes";
+import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
+import { AgentCard } from "./agent-card";
 import { Logo } from "./logo";
-import { AGENT_X, CARD, CARD_WIDE, DISC_R, FRAME_CLOUD, LINE_Y, PANE_W, SIDEBAR_W, STAGE, backOut, clamp01, dotsAt, ease, hairlineAt, lerp, seg } from "./stream";
+import { AGENT_CARD_W, AGENT_X, CARD, CARD_WIDE, DISC_R, FRAME_CLOUD, HERO_AVATAR_R, HERO_H, LINE_Y, PANE_W, SIDEBAR_W, STAGE, absorbedAt, backOut, clamp01, dotsAt, ease, hairlineAt, lerp, seg } from "./stream";
 import type { Timing } from "./timing";
-import { ASK, ROWS, RowView, type RunPhase } from "./transcript";
+import { ASK, ROWS, RowView, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
 import "./context-stream.css";
 
@@ -39,7 +42,14 @@ const ROOM: Room = {
 const STUDIO_CLEARANCE = 72;
 const DOT_INK = "#a3a09c";
 const DISC_INK = "#d9d6d3";
+/** The trace in the card runs the library's timeline at this many ms per film second. */
+const TRACE_RATE = 2000;
+/** The typing strip above the composer — the product's slot, h-9, 3px up. */
+const STRIP_H = 36;
 const noop = () => {};
+
+type Rect = { x: number; y: number; w: number; h: number };
+const mix = (a: Rect, b: Rect, p: number): Rect => ({ x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p), w: lerp(a.w, b.w, p), h: lerp(a.h, b.h, p) });
 
 /** offsetLeft/Top of `el` summed up to `root` — transform-immune. */
 function within(el: HTMLElement, root: HTMLElement) {
@@ -53,6 +63,8 @@ function within(el: HTMLElement, root: HTMLElement) {
   }
   return { x, y };
 }
+
+const REPLY_INDEX = ROWS.findIndex((row) => row.key === "reply");
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
   // Timing rides in a ref so a drag re-times the frame without restarting
@@ -72,6 +84,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
   const [scripted, setScripted] = useState<string | null>(null);
   const [runPhase, setRunPhase] = useState<RunPhase>(0);
+  const [typing, setTyping] = useState<Actor | null>(null);
+  const [traceVt, setTraceVt] = useState(0);
+  const [traceMs, setTraceMs] = useState<number | null>(null);
 
   const groundRef = useRef<HTMLDivElement>(null);
   const filmRef = useRef<HTMLDivElement>(null);
@@ -82,8 +97,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const mainRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const agentCardRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLDivElement>(null);
+  const traceRef = useRef<HTMLDivElement>(null);
   const floatRef = useRef<HTMLImageElement>(null);
   const title1Ref = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
@@ -104,6 +121,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let raf = 0;
     let draftShown: string | null = null;
     let runShown: RunPhase = 0;
+    let typingShown: Actor | null = null;
+    let traceVtShown = 0;
+    let traceMsShown: number | null = null;
 
     const paint = (T: Timing) => {
       const ground = groundRef.current;
@@ -114,19 +134,34 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const main = mainRef.current;
       const header = headerRef.current;
       const transcript = transcriptRef.current;
-      const shell = shellRef.current;
       const composer = composerRef.current;
+      const agentCard = agentCardRef.current;
+      const copy = copyRef.current;
+      const trace = traceRef.current;
       const float = floatRef.current;
-      if (!ground || !film || !card || !content || !sidebar || !main || !header || !transcript || !shell || !composer || !float) return;
+      if (!ground || !film || !card || !content || !sidebar || !main || !header || !transcript || !composer || !agentCard || !copy || !trace || !float) return;
 
-      /* ── The frame → the card → the window ─────────────────────── */
+      /* ── The frame → the agent's card → the window ─────────────── */
       const tight = ease(seg(vt, T.gather, 0.9));
+      const formP = ease(seg(vt, T.form + 0.1, 0.7));
+      const workP = ease(seg(vt, T.work, 0.5));
+      const breakP = ease(seg(vt, T.breakout, 0.7));
       const side = ease(seg(vt, T.sidebar, 0.7));
-      const cardX = lerp(lerp(FRAME_CLOUD.x, CARD.x, tight), CARD_WIDE.x, side);
-      const cardW = lerp(lerp(FRAME_CLOUD.w, CARD.w, tight), CARD_WIDE.w, side);
-      const cardY = CARD.y;
-      const cardH = CARD.h;
-      const grey = ease(seg(vt, T.agent - 0.2, 0.7));
+
+      // The card's body is whichever of its two bodies is showing — the
+      // introduction, then the trace — so its height follows the crossfade.
+      const bodyH = lerp(copy.offsetHeight, trace.offsetHeight, workP);
+      const centerH = HERO_H + bodyH;
+      const center: Rect = { x: (STAGE.w - AGENT_CARD_W) / 2, y: STAGE.h / 2 - centerH / 2, w: AGENT_CARD_W, h: centerH };
+      const frame = mix(FRAME_CLOUD, CARD, tight);
+      const formed = mix(frame, center, formP);
+      const window_ = mix(formed, CARD, breakP);
+      const cardX = lerp(window_.x, CARD_WIDE.x, side);
+      const cardW = lerp(window_.w, CARD_WIDE.w, side);
+      const cardY = window_.y;
+      const cardH = window_.h;
+
+      const grey = ease(seg(vt, T.form, 0.7));
       ground.style.opacity = `${grey}`;
       const rect = (el: HTMLElement) => {
         el.style.left = `${cardX}px`;
@@ -138,6 +173,15 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       rect(content);
       card.style.background = `rgba(255,255,255,${grey})`;
       card.style.boxShadow = `0 0 0 1px rgba(26,24,23,${lerp(0.1, 0.07, grey)}), 0 ${18 * grey}px ${44 * grey}px rgba(26,24,23,${0.07 * grey})`;
+
+      // The agent's card: its contents live at the centre rect, fading in
+      // as the frame arrives there and out as it grows into the window.
+      agentCard.style.left = `${center.x}px`;
+      agentCard.style.top = `${center.y}px`;
+      agentCard.style.height = `${centerH}px`;
+      agentCard.style.opacity = `${clamp01((formP - 0.45) / 0.55) * (1 - clamp01(breakP / 0.4))}`;
+      copy.style.opacity = `${1 - workP}`;
+      trace.style.opacity = `${workP}`;
 
       // The window leaves for the logo.
       const out = ease(seg(vt, T.logo, 0.55));
@@ -155,52 +199,53 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       sidebar.style.opacity = `${side}`;
       main.style.boxShadow = side > 0 ? "-1px 0 0 var(--color-ando-border-default)" : "none";
 
-      /* ── The header and the composer's two homes ───────────────── */
+      /* ── The header and the composer's slide ───────────────────── */
       const chatP = ease(seg(vt, T.chat, 0.5));
       const headerH = header.offsetHeight;
       header.style.transform = `translateY(${-headerH * (1 - chatP)}px)`;
       header.style.opacity = `${chatP}`;
 
       const composerH = composer.offsetHeight; // the box plus its 16px floor
-      const boxH = Math.max(1, composerH - 16);
-      const centerTop = LINE_Y - cardY - boxH / 2;
       const bottomTop = cardH - composerH;
-      const drop = ease(seg(vt, T.chat, 0.7));
-      const morph = ease(seg(vt, T.iface + 0.15, 0.8));
-      composer.style.top = `${lerp(centerTop, bottomTop, drop)}px`;
-      composer.style.opacity = `${clamp01((morph - 0.45) / 0.4)}`;
-      // The shell: the line, thickening into the composer's box.
-      shell.style.top = `${LINE_Y - cardY - (boxH * morph) / 2}px`;
-      shell.style.height = `${Math.max(1, boxH * morph)}px`;
-      shell.style.opacity = morph <= 0 ? "0" : `${1 - clamp01((morph - 0.6) / 0.4)}`;
+      const slide = ease(seg(vt, T.breakout + 0.2, 0.65));
+      const composerTop = lerp(cardH + 12, bottomTop, slide);
+      composer.style.top = `${composerTop}px`;
       transcript.style.top = `${headerH}px`;
-      transcript.style.bottom = `${composerH}px`;
+      transcript.style.bottom = `${composerH + STRIP_H}px`;
 
       /* ── Rows ──────────────────────────────────────────────────── */
-      let chatIndex = 0;
-      let firstRowP = 0;
       ROWS.forEach((row, i) => {
         const refs = rowRefs.current[i];
         if (!refs.wrap || !refs.inner) return;
-        let p: number;
-        if (row.lands === "chat") {
-          p = ease(seg(vt, T.chat + 0.2 + chatIndex * 0.14, 0.45));
-          chatIndex += 1;
-          refs.wrap.style.height = "";
-        } else {
-          p = ease(seg(vt, row.lands === "send" ? T.send : T.reply, 0.45));
-          refs.wrap.style.height = `${refs.inner.offsetHeight * p}px`;
-        }
-        if (i === 0) firstRowP = p;
+        const at = row.lands === "chat" ? T.chat + 0.25 : row.lands === "sara" ? T.sara : row.lands === "send" ? T.send : T.reply;
+        const p = ease(seg(vt, at, 0.45));
+        if (row.lands === "chat") refs.wrap.style.height = "";
+        else refs.wrap.style.height = `${refs.inner.offsetHeight * p}px`;
         refs.inner.style.opacity = `${p}`;
         refs.inner.style.transform = `translateY(${8 * (1 - p)}px)`;
       });
 
-      /* ── The run and the draft — the only React state ──────────── */
-      const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= T.send + 0.35 ? 1 : 0;
+      /* ── The discrete state — the only React state ─────────────── */
+      const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= T.send + 0.3 ? 1 : 0;
       if (run !== runShown) {
         runShown = run;
         setRunPhase(run);
+      }
+      const who: Actor | null = vt >= T.typing && vt < T.sara ? CAST.sara : vt >= T.send + 2.3 && vt < T.reply ? CAST.ando : null;
+      if (who !== typingShown) {
+        typingShown = who;
+        setTyping(who);
+      }
+      // The trace line reads whole seconds off this; a tenth is plenty.
+      const coarse = run === 0 ? 0 : Math.floor(vt * 10) / 10;
+      if (coarse !== traceVtShown) {
+        traceVtShown = coarse;
+        setTraceVt(coarse);
+      }
+      const ms = vt >= T.work - 0.05 && vt < T.breakout + 0.6 ? Math.floor(((vt - T.work) * TRACE_RATE) / 50) * 50 : null;
+      if (ms !== traceMsShown) {
+        traceMsShown = ms;
+        setTraceMs(ms);
       }
       const typeP = seg(vt, T.ask, Math.max(0.3, T.send - T.ask - 0.25));
       const chars = Math.floor(typeP * ASK.length);
@@ -218,31 +263,50 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${a * b}`;
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
-      fadeIn(title1Ref.current, T.agent + 0.35, T.iface);
-      fadeIn(title2Ref.current, T.iface, T.chat + 0.5);
+      fadeIn(title1Ref.current, T.agent + 0.35, T.form - 0.1);
+      fadeIn(title2Ref.current, T.breakout + 0.1, T.chat + 0.9);
       fadeIn(captionRef.current, T.stream + 0.15, T.agent - 0.35, 4);
 
-      /* ── The disc → the agent's avatar ─────────────────────────── */
+      /* ── The disc → the agent, travelling ──────────────────────── */
+      // Lands on the line, swells as it takes the line in, rises to the
+      // hero and becomes the avatar, drops to sit above the composer, and
+      // finally takes its seat on the reply.
       const paneLeft = cardX + cardW - PANE_W;
       const agentP = seg(vt, T.agent, 0.6);
-      const travel = seg(vt, T.iface + 0.1, 0.8);
-      const e = ease(travel);
+      const absorbed = absorbedAt(T, vt);
+      const travel = seg(vt, T.form, 0.8);
+      const e1 = ease(travel);
+      const cross = clamp01((travel - 0.5) / 0.5);
+      const leave = seg(vt, T.breakout + 0.1, 0.8);
+      const e2 = ease(leave);
+      const seat = seg(vt, T.reply, 0.5);
+      const e3 = ease(seat);
       let disc: { x: number; y: number; r: number; a: number } | null = null;
       if (agentP > 0) {
-        const avatarEl = refs0Avatar();
-        const target = avatarEl ? within(avatarEl, main) : { x: 16, y: headerH + 12 };
-        const tx = paneLeft + target.x + 16;
-        const ty = cardY + target.y + 16;
-        const x = lerp(AGENT_X, tx, e);
-        const y = lerp(LINE_Y, ty, e) - Math.sin(Math.PI * e) * 36;
-        const r = lerp(DISC_R * backOut(agentP), 16, e);
-        const cross = clamp01((travel - 0.6) / 0.4);
+        const heroX = center.x + AGENT_CARD_W / 2;
+        const heroY = center.y + HERO_H / 2;
+        let x = lerp(AGENT_X, heroX, e1);
+        let y = lerp(LINE_Y, heroY, e1) - Math.sin(Math.PI * e1) * 24;
+        let r = lerp(DISC_R * backOut(agentP) * (1 + 0.16 * absorbed), HERO_AVATAR_R, e1);
+        const aboveX = paneLeft + PANE_W / 2;
+        const aboveY = cardY + composerTop - 3 - STRIP_H / 2;
+        x = lerp(x, aboveX, e2);
+        y = lerp(y, aboveY, e2);
+        r = lerp(r, 16, e2);
+        const avatarEl = rowRefs.current[REPLY_INDEX]?.inner?.querySelector<HTMLElement>("[data-row-avatar]") ?? null;
+        if (avatarEl && seat > 0) {
+          const target = within(avatarEl, main);
+          x = lerp(x, paneLeft + target.x + 16, e3);
+          y = lerp(y, cardY + target.y + 16, e3);
+        }
         disc = { x, y, r, a: 1 - cross };
-        float.style.left = `${x - paneLeft - r}px`;
-        float.style.top = `${y - cardY - r}px`;
+        const heroness = cross * (1 - e2);
+        float.style.left = `${x - r}px`;
+        float.style.top = `${y - r}px`;
         float.style.width = `${2 * r}px`;
         float.style.height = `${2 * r}px`;
-        float.style.opacity = `${cross * (1 - clamp01((firstRowP - 0.98) / 0.02))}`;
+        float.style.opacity = `${cross * (1 - clamp01((seat - 0.7) / 0.3))}`;
+        float.style.boxShadow = `0 0 0 ${4 * heroness}px #fff, 0 ${10 * heroness}px ${28 * heroness}px rgba(26,24,23,${0.18 * heroness})`;
       } else {
         float.style.opacity = "0";
       }
@@ -276,8 +340,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       ctx.globalAlpha = 1;
     };
 
-    const refs0Avatar = () => rowRefs.current[0].inner?.querySelector<HTMLElement>("[data-row-avatar]") ?? null;
-
     const frame = (now: number) => {
       const T = timingRef.current;
       const speed = hooks.pausedRef.current ? 0 : hooks.speedRef.current;
@@ -298,6 +360,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     return () => cancelAnimationFrame(raf);
   }, [hooks]);
 
+  const phases = tracePhasesFor(timing);
+
   return (
     <div className="cs-stage relative w-screen overflow-hidden bg-white text-ando-fg-primary" style={{ height: `calc(100dvh - ${STUDIO_CLEARANCE}px)` }}>
       <div
@@ -306,14 +370,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         onClick={onReplay}
         role="presentation"
       >
-        {/* The ground goes grey when the frame becomes a window. */}
+        {/* The ground goes grey when the frame becomes a card. */}
         <div ref={groundRef} className="absolute inset-0 bg-ando-bg-nav" style={{ opacity: 0 }} />
 
         <div ref={filmRef} className="absolute inset-0" style={{ transformOrigin: "50% 50%" }}>
-          {/* The focus frame — a hairline first, the window once the ground turns. */}
+          {/* The focus frame — a hairline first, the agent's card, then the window. */}
           <div ref={cardRef} data-cs="card" className="absolute rounded-xl" style={{ left: FRAME_CLOUD.x, top: FRAME_CLOUD.y, width: FRAME_CLOUD.w, height: FRAME_CLOUD.h }} />
-
-          <canvas ref={canvasRef} className="absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
           {/* The window's contents, clipped to the card. */}
           <div ref={contentRef} className="absolute overflow-hidden rounded-xl" style={{ left: CARD.x, top: CARD.y, width: CARD.w, height: CARD.h }}>
@@ -324,7 +386,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
               <div ref={headerRef} data-cs="header" className="absolute left-0 right-0 top-0" style={{ opacity: 0 }}>
                 <ConversationHeader scene={ROOM} jamControl={<JamHeaderControl active={false} participants={[CAST[ME]]} onClick={noop} />} />
               </div>
-              <div ref={transcriptRef} data-cs="transcript" className="absolute left-0 right-0 flex flex-col justify-end overflow-hidden pb-1" style={{ top: 44, bottom: 140 }}>
+              <div ref={transcriptRef} data-cs="transcript" className="absolute left-0 right-0 flex flex-col justify-end overflow-hidden pb-1" style={{ top: 44, bottom: 140 + STRIP_H }}>
                 {ROWS.map((row, i) => (
                   <div
                     key={row.key}
@@ -334,24 +396,31 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
                     style={{ overflow: row.lands === "chat" ? undefined : "hidden", height: row.lands === "chat" ? undefined : 0 }}
                   >
                     <div ref={(el) => { rowRefs.current[i].inner = el; }} style={{ opacity: 0 }}>
-                      <RowView row={row} runPhase={runPhase} />
+                      <RowView row={row} runPhase={runPhase} phases={phases} traceVt={traceVt} />
                     </div>
                   </div>
                 ))}
               </div>
-              {/* The line, thickening into the composer's box. */}
-              <div ref={shellRef} className="absolute left-4 right-4 rounded-lg bg-ando-bg-input shadow-[0_0_0_1px_var(--color-ando-border-alpha)]" style={{ top: LINE_Y - CARD.y, height: 1, opacity: 0 }} />
-              <div ref={composerRef} data-cs="composer" className="absolute left-0 right-0" style={{ top: 0, opacity: 0 }}>
-                <Composer scene={ROOM} typing={null} onSend={noop} scripted={scripted} />
-              </div>
-              {/* The disc, become the agent — travels to the first row's avatar and waits there. */}
-              <img ref={floatRef} src={CAST.ando.avatar} alt="" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 32, height: 32 }} />
-              <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
-                Everything becomes context for your agents.
+              {/* The composer slides up from under the window's floor at the breakout. */}
+              <div ref={composerRef} data-cs="composer" className="absolute left-0 right-0" style={{ top: CARD.h + 12 }}>
+                <Composer scene={ROOM} typing={typing} onSend={noop} scripted={scripted} />
               </div>
             </div>
           </div>
 
+          {/* The agent's card — its hero and body; the avatar rides over it. */}
+          <div ref={agentCardRef} className="absolute overflow-hidden rounded-xl" style={{ left: (STAGE.w - AGENT_CARD_W) / 2, top: 180, width: AGENT_CARD_W, opacity: 0 }}>
+            <AgentCard copyRef={copyRef} traceRef={traceRef} traceMs={traceMs} />
+          </div>
+
+          <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
+
+          {/* The disc, become the agent — hero, then above the composer, then its seat on the reply. */}
+          <img ref={floatRef} src={CAST.ando.avatar} alt="" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 32, height: 32 }} />
+
+          <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: CARD.y + 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
+            Everything becomes context for your agents.
+          </div>
           <div ref={captionRef} data-cs="caption" className="kanso-text-label-12 absolute whitespace-nowrap text-ando-fg-tertiary" style={{ left: CARD.x + 96, top: LINE_Y - 30, opacity: 0, transform: "translate(-50%, 0)" }}>
             “context stream”
           </div>

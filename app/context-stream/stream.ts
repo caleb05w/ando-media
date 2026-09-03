@@ -24,6 +24,11 @@ export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
 export const AGENT_X = STAGE.w / 2;
 export const DISC_R = 28;
 export const DOT_R = 2.5;
+/** The agent's card, centre stage: a fixed width, the height its content
+ *  measures. The hero band holds the avatar. */
+export const AGENT_CARD_W = 690;
+export const HERO_H = 240;
+export const HERO_AVATAR_R = 48;
 
 /* ── Curves ─────────────────────────────────────────────────────────── */
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
@@ -36,6 +41,8 @@ export const backOut = (p: number) => {
   const q = clamp01(p) - 1;
   return q * q * ((s + 1) * q + s) + 1;
 };
+/** Accelerating — for something being pulled in. */
+export const easeIn = (p: number) => Math.pow(clamp01(p), 2.4);
 /** 0→1 over `dur` seconds from `from`. */
 export const seg = (vt: number, from: number, dur: number) => clamp01((vt - from) / Math.max(0.001, dur));
 
@@ -155,13 +162,35 @@ function bezier(p0: number, p1: number, p2: number, p3: number, t: number) {
 
 export type Mark = { x: number; y: number; a: number; r: number };
 
-/** Every dot at `vt`. Empty once the line has become the composer. */
+/** How much of the line the disc has taken in by `vt`, 0→1. */
+export function absorbedAt(T: Timing, vt: number) {
+  return ease(seg(vt, T.absorb, absorbDur(T)));
+}
+const absorbDur = (T: Timing) => Math.max(0.6, T.form - T.absorb);
+
+/** A seated dot being pulled into the disc: from its seat `x` on the line
+ *  to the disc's centre, accelerating, gone as it crosses the rim. `d` is
+ *  its stagger. Returns null once it is inside. */
+function pullIn(T: Timing, vt: number, x: number, d: number): { x: number; y: number; a: number; r: number } | null {
+  const dur = absorbDur(T);
+  // The far end of the line leaves first, so the pull reads as a current.
+  const far = Math.abs(x - AGENT_X) / (FRAME_TIGHT.w / 2);
+  const q = seg(vt, T.absorb + (0.55 * (1 - far) + 0.25 * d) * dur * 0.6, 0.4 * dur);
+  if (q <= 0) return { x, y: LINE_Y, a: 1, r: DOT_R };
+  const p = easeIn(q);
+  const nx = lerp(x, AGENT_X, p);
+  const inside = Math.abs(nx - AGENT_X) < DISC_R * 0.9;
+  if (inside || q >= 1) return null;
+  return { x: nx, y: LINE_Y - Math.sin(Math.PI * p) * 10 * (d - 0.5), a: 1, r: DOT_R + 0.8 * p };
+}
+
+/** Every dot at `vt`. Empty once the disc has taken the line in. */
 export function dotsAt(T: Timing, vt: number): Mark[] {
-  const fade = 1 - ease(seg(vt, T.iface, 0.45));
-  if (fade <= 0) return [];
+  if (vt >= T.form) return [];
   const gatherDur = Math.max(0.5, T.line - T.gather);
   const agentP = ease(seg(vt, T.agent, 0.6));
   const dd = driftDist(T, vt);
+  const absorbing = vt >= T.absorb;
   const out: Mark[] = [];
 
   for (const dot of DOTS) {
@@ -170,10 +199,15 @@ export function dotsAt(T: Timing, vt: number): Mark[] {
     const cx = dot.cx + Math.sin(vt * 0.7 + dot.phase) * wander;
     const cy = dot.cy + Math.cos(vt * 0.5 + dot.phase * 1.3) * wander;
     const lx = gapX(wrapX(slotX(dot.slot) + dd), agentP);
+    if (absorbing) {
+      const mark = pullIn(T, vt, lx, dot.d);
+      if (mark) out.push({ ...mark, a: mark.a * edgeAlpha(lx) });
+      continue;
+    }
     const x = lerp(cx, lx, p);
     // A touch of arc so the gather reads as a flock, not a tween.
     const y = lerp(cy, LINE_Y, p) - Math.sin(Math.PI * p) * 22 * (dot.d - 0.5);
-    const a = lerp(1, edgeAlpha(lx), p) * fade;
+    const a = lerp(1, edgeAlpha(lx), p);
     if (a > 0.005) out.push({ x, y, a, r: DOT_R });
   }
 
@@ -186,13 +220,18 @@ export function dotsAt(T: Timing, vt: number): Mark[] {
       const e = ease(q);
       const x = bezier(flow.ox, flow.ox + 20, flow.tx - 170, flow.tx, e);
       const y = bezier(flow.oy, flow.oy + (LINE_Y - flow.oy) * 0.62, LINE_Y, LINE_Y, e);
-      out.push({ x, y, a: Math.min(1, q / 0.15) * fade, r: DOT_R });
+      out.push({ x, y, a: Math.min(1, q / 0.15), r: DOT_R });
       return;
     }
     const arrive = start + FLOW_DUR;
     const x = gapX(wrapX(flow.tx + dd - driftDist(T, arrive)), agentP);
+    if (absorbing) {
+      const mark = pullIn(T, vt, x, flow.order);
+      if (mark) out.push({ ...mark, a: mark.a * edgeAlpha(x) });
+      return;
+    }
     const pulse = Math.sin(Math.PI * seg(vt, arrive, 0.3));
-    out.push({ x, y: LINE_Y, a: edgeAlpha(x) * fade, r: DOT_R + 1.4 * pulse });
+    out.push({ x, y: LINE_Y, a: edgeAlpha(x), r: DOT_R + 1.4 * pulse });
   });
 
   return out;

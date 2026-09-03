@@ -365,7 +365,7 @@ const JAMS_CUT: Scene = {
     // The press IS the join — but first, the card, so a viewer who has
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, zoom: 2.3, ms: 1900 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1900 },
     // The call arrives the moment this card starts to leave: its white fades
     // as the line lifts, and the sky and the call come up through it.
     { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },

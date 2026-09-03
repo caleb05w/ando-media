@@ -354,7 +354,6 @@ const JAMS_CUT: Scene = {
   beats: [
     // The opening in about two seconds: the link is up, Sara's question
     // shows her typing, your reply types itself, she asks for the jam.
-    { kind: "mark", label: "TODAY", ms: 0 },
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 300, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
     { kind: "typing", who: "sara", ms: 500 },
     { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 900, body: [[{ text: "Is this for our launch video?" }]] },

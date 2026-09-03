@@ -15,7 +15,7 @@ import { useState, type ReactNode } from "react";
 export const LAND_EASE = [0.3, 0.8, 0.3, 1] as const;
 export const LAND_MS = 300;
 
-export function Landing({ children, className = "", anchor = "top", ...rest }: { children: ReactNode; className?: string; /** Which edge the row holds while the slot grows. */ anchor?: "top" | "bottom" } & Record<`data-${string}`, string | undefined>) {
+export function Landing({ children, className = "", anchor = "top", ease = LAND_EASE, ...rest }: { children: ReactNode; className?: string; /** Which edge the row holds while the slot grows. */ anchor?: "top" | "bottom"; /** The slot's growth curve. Lines that arrive as fast as they grow — a live transcript — want `"linear"`: an ease-out that dies just as the next line kicks makes the whole list pulse. */ ease?: readonly [number, number, number, number] | "linear" } & Record<`data-${string}`, string | undefined>) {
   const [grown, setGrown] = useState(false);
   return (
     <motion.div
@@ -23,7 +23,7 @@ export function Landing({ children, className = "", anchor = "top", ...rest }: {
       style={{ overflow: grown ? "visible" : "hidden" }}
       initial={{ height: 0 }}
       animate={{ height: "auto" }}
-      transition={{ duration: LAND_MS / 1000, ease: LAND_EASE }}
+      transition={{ duration: LAND_MS / 1000, ease: ease === "linear" ? "linear" : ([...ease] as [number, number, number, number]) }}
       onAnimationComplete={() => setGrown(true)}
       {...rest}
     >

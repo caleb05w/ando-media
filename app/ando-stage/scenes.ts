@@ -365,7 +365,7 @@ const JAMS_CUT: Scene = {
     // The press IS the join — but first, the card, so a viewer who has
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1900 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
     // The call arrives the moment this card starts to leave: its white fades
     // as the line lifts, and the sky and the call come up through it.
     { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },
@@ -392,14 +392,14 @@ const JAMS_CUT: Scene = {
     { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 3300 },
     // Shot 5 — back in the room. Sara asks Tadao in the Jam's thread; it
     // reads the call and answers there. Nobody has to summon it.
-    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1200 },
-    { kind: "tab", tab: "thread", ms: 500 },
-    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 500, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1500 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 800 },
+    { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
+    { kind: "tab", tab: "thread", ms: 300 },
+    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
-      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2400,
+      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2000,
       body: [
         [{ text: "for sure — quick recap:" }],
         [{ text: "• Agent first, then the Slack import" }],
@@ -413,7 +413,7 @@ const JAMS_CUT: Scene = {
     // open it.
     { kind: "dm-unread", who: "tadao", ms: 0 },
     {
-      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1600,
+      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 1100,
       body: [
         [{ text: "Follow-ups from the jam, on you:" }],
         [{ text: "1. Cut the video, agent first" }],
@@ -422,10 +422,10 @@ const JAMS_CUT: Scene = {
         [{ text: "I can remind you again tomorrow." }],
       ],
     },
-    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 1000 },
-    { kind: "jam-end", ms: 900 },
-    { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 1000 },
-    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3400 },
+    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 950 },
+    { kind: "jam-end", ms: 500 },
+    { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 950 },
+    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3000 },
     // Shot 7 — white. The closer, then the logo.
     { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 2.4, ms: 2400 },
     { kind: "logo", ms: 3000 },

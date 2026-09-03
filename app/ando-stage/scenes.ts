@@ -362,20 +362,18 @@ const JAMS_CUT: Scene = {
     // Shot 2 — cut to the sky: the call arrives, the transcript unfolds
     // under it at once on the Live transcript tab, and the talking starts
     // right away. Four lines land before the room comes back.
-    // Three seconds of the call alone — and it is a call: the two of you
-    // trade the green ring before a word is transcribed.
-    { kind: "jam-join", ms: 300 },
-    { kind: "speak", who: "caleb", ms: 1100 },
-    { kind: "speak", who: "sara", ms: 900 },
-    { kind: "speak", who: "caleb", ms: 700 },
+    // A second and a half of the call alone — and it is a call: the ring
+    // trades between you as the first lines are spoken. The transcript is
+    // folded away, so when it unfolds those lines are already in it.
+    { kind: "jam-join", ms: 200 },
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 500 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 450 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 350 },
+    // Shot 2b — the transcript unfolds with three lines already there, and
+    // keeps pouring: short lines, fast turns, two people talking over each
+    // other the way a real call does — more than anyone can keep up with,
+    // which is the point. The agent can.
     { kind: "jam-deploy", tab: "transcript", ms: 200 },
-    // The transcript starts the moment the panel opens, and it pours:
-    // short lines, fast turns, two people talking over each other the way
-    // a real call does — more than anyone can keep up with, which is the
-    // point. The agent can.
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 550 },
-    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 600 },
-    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 550 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 650 },
     // Shot 3 — the room comes back; the panel docks; the jam does not slow

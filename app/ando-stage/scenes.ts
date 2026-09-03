@@ -391,17 +391,19 @@ const JAMS_CUT: Scene = {
     // Rule: a card's dwell covers its hold AND its 0.6s lift, plus a breath,
     // so nothing that follows — the cursor's trip to Thread, the press —
     // ever happens behind it. Change the hold, change the dwell with it.
-    // Jam(0) it(1) out(2) with(3) your(4) human(5) (and(6) agent)(7) teammates(8): you on "your", Sara on "human", Tadao on "agent".
-    // One card, three lines: what it is, then how it works. Each line
-    // holds `lineHold`, lifts away, and the next arrives beneath it.
+    // Jam(0) it(1) out(2) together(3): you on "it", Sara on "out", Tadao on "together".
+    // One card, three lines, four words each (Caleb: five or more is too
+    // much to read): what it is, then how it works. Each line holds
+    // `lineHold`, lifts away, and the next arrives beneath it. The dwell
+    // covers the card (three arrivals + holds + the lift = 6.9s).
     {
       kind: "type",
-      text: "Jam it out with your human (and agent) teammates",
-      faces: [{ who: "caleb", on: 4 }, { who: "sara", on: 5 }, { who: "tadao", on: 7 }],
-      lines: ["Every jam is live transcribed", "so your agents can follow along, and follow up."],
+      text: "Jam it out together",
+      faces: [{ who: "caleb", on: 1 }, { who: "sara", on: 2 }, { who: "tadao", on: 3 }],
+      lines: ["Every jam, live transcribed", "Your agents follow up"],
       lineHold: 0.8,
       hold: 2.1,
-      ms: 8100,
+      ms: 7000,
     },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
     { kind: "tab", tab: "thread", ms: 250 },

@@ -356,13 +356,15 @@ const JAMS_CUT: Scene = {
     // shows her typing, your reply types itself, she asks for the jam.
     // Already there when we open, so the channel reads lived-in.
     { kind: "say", id: "j0a", who: "oli", time: "10:41 AM", ms: 0, body: [[{ text: "morning all ☕️" }]] },
-    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 0, body: [[{ text: "deploy went out clean last night 🎉" }]] },
-    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 300, body: [[{ text: "What do you think of this?" }], [{ text: "Ando Brand · launch video storyboard", link: true }]] },
-    { kind: "typing", who: "sara", ms: 500 },
-    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 900, body: [[{ text: "Is this for our launch video?" }]] },
-    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 400, body: [[{ text: "Yeah, I had a few ideas." }]] },
-    { kind: "typing", who: "sara", ms: 500 },
-    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 700, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
+    // A first-time viewer needs a moment to see the room before anything
+    // moves: a beat on the channel, then your line types at a readable pace.
+    { kind: "say", id: "j0b", who: "sara", time: "10:52 AM", ms: 1200, body: [[{ text: "deploy went out clean last night 🎉" }]] },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 800, body: [[{ text: "What do you think of this?" }], [{ text: "Ando Brand · launch video storyboard", link: true }]] },
+    { kind: "typing", who: "sara", ms: 800 },
+    { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 1000, body: [[{ text: "Is this for our launch video?" }]] },
+    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 700, body: [[{ text: "Yeah, I had a few ideas." }]] },
+    { kind: "typing", who: "sara", ms: 700 },
+    { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1200, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
     // Sara starts the Jam: the headphones ring and the cursor goes to them.
     // Every press zooms the frame in around it (the auto camera, cards.tsx).
     // The press IS the join — but first, the card, so a viewer who has

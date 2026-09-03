@@ -366,25 +366,22 @@ const JAMS_CUT: Scene = {
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 300 },
     { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1000 },
-    // The call arrives the moment this card starts to leave: its white fades
-    // as the line lifts, and the sky and the call come up through it.
-    { kind: "type", text: "A call that doesn't leave the channel.", hold: 2.0, ms: 2000 },
     // Shot 2 — cut to the sky: the call arrives, the ring trades between
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
     { kind: "jam-join", ms: 200 },
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 500 },
-    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 450 },
-    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 350 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 480 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 400 },
     { kind: "jam-deploy", tab: "transcript", ms: 200 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1650 },
     // Shot 3 — the room comes back; the panel docks; five more lines, quick.
     { kind: "jam-dock", ms: 300 },
-    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 320 },
-    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 280 },
-    { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 340 },
-    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 320 },
+    { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 430 },
+    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 400 },
+    { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 450 },
+    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 430 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 1500 },
     // Shot 4 — white. The middle line.
     // This one clears fully before the cursor moves — a press is never

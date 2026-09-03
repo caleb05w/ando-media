@@ -311,7 +311,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             {transcript.length === 0 ? (
               <div className="flex h-full items-center justify-center kanso-text-label-12 text-ando-fg-secondary">Listening…</div>
             ) : transcript.map((segment, index) => (
-              <Landing key={index} className="shrink-0" ease="linear">
+              <Landing key={index} className="shrink-0">
                 <div className="flex space-x-2">
                   <div className="shrink-0 pt-0.5"><Avatar actor={segment.who} size={20} /></div>
                   <div className="flex flex-col space-y-0.5 min-w-0">

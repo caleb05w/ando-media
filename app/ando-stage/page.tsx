@@ -463,7 +463,7 @@ const bodyLength = (body: Segment[][]) => body.reduce((n, paragraph) => n + para
 /** message-row-frame.tsx + message-view-sections.tsx. Lands the way the
  *  landing hero's rows do: the slot grows from nothing so what is above is
  *  pushed up by layout, and the row fades in — no scale. */
-function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamActions }) {
+function MessageRowView({ row, jamActions, anchor = "bottom" }: { row: MessageRow; jamActions: JamActions; /** Which edge the row holds while its slot grows: bottom in a bottom-anchored transcript (what is above is pushed up), top in a top-anchored list like the Jam thread (the row reveals downward). */ anchor?: "bottom" | "top" }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
   // A typed line reveals itself at TYPE_CPS from the second it landed.
   const total = row.body ? bodyLength(row.body) : 0;
@@ -472,7 +472,7 @@ function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamA
   const body = row.body && row.typedAt != null ? sliceBody(row.body, shown) : row.body;
   return (
     <motion.div
-      className="flex w-full flex-col justify-end"
+      className={`flex w-full flex-col ${anchor === "top" ? "justify-start overflow-hidden" : "justify-end"}`}
       data-beat={row.beat}
       data-row-id={row.key}
       initial={{ height: 0 }}
@@ -990,7 +990,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 scripted={draftInThread ? scriptedDraft : null}
                 onSend={sendThread}
                 threadCount={thread.length}
-                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
+                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" />)}
               />
             </JamStage>
           </>

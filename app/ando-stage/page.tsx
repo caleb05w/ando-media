@@ -15,6 +15,7 @@
 // play, pause, speed, seek, notes and takes; this file owns the room.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { Studio, type Hooks } from "../../lib/timeline-studio/studio";
 import { lanesFor } from "./lanes";
 import "./stage.css";
@@ -60,6 +61,11 @@ type Run = { run: string; who: Actor; task: string; done: boolean };
 type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | "transcript" | null; done: boolean; tool: string | null; /** the row is the agent's own reply */ onReply: boolean };
 
 
+/** Agent lines type out at this pace once they land (the landing hero: 55 cps; faster here so a recap fits its beat). */
+const TYPE_CPS = 110;
+/** The landing hero's entrance curve for anything that lands. */
+const LAND_EASE = [0.3, 0.8, 0.3, 1] as const;
+
 type Row =
   | { kind: "mark"; key: string; label: string; tone?: "attention"; beat?: string }
   | {
@@ -81,6 +87,8 @@ type Row =
       burst: boolean;
       /** Timing key of the beat that landed this row — the Studio's spotlight target. */
       beat?: string;
+      /** Stage-clock second this line landed, when it types out rather than arriving whole. */
+      typedAt?: number;
     };
 
 type MessageRow = Extract<Row, { kind: "message" }>;
@@ -92,7 +100,7 @@ type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall;
 
 type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; /** the DM the script opens */ dm: Row[]; /** what the room shows */ surface: Surface; /** DM handles gone unread */ unreadDms: string[]; typing: Actor | null; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
-function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
+function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Timing): StageState {
   let scriptedJam: JamCall | null = null;
   let ringing = false;
   let speakingNow: Actor | null = null;
@@ -204,7 +212,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
       case "typing":
         break;
       case "say": {
-        const row: MessageRow = { ...base(scene.cast[beat.who], beat.time), key: beat.id, body: beat.body, beat: beatKey(index) };
+        const row: MessageRow = { ...base(scene.cast[beat.who], beat.time), key: beat.id, body: beat.body, beat: beatKey(index), typedAt: beat.typed ? T[beatKey(index)] : undefined };
         // A finished run moves from the ask onto the agent's reply; runs already
         // sitting on a reply stay where they are.
         for (const other of messages.values()) {
@@ -269,7 +277,7 @@ function fitImage(width: number, height: number) {
 
 /* ------------------------------ transcript ------------------------------ */
 
-function Body({ body }: { body: Segment[][] }) {
+function Body({ body, caret = false }: { body: Segment[][]; /** the line is still being written — a caret rides its last letter */ caret?: boolean }) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col gap-2">
       {body.map((paragraph, pIndex) => (
@@ -283,6 +291,7 @@ function Body({ body }: { body: Segment[][] }) {
               <span key={sIndex}>{segment.text}</span>
             ),
           )}
+          {caret && pIndex === body.length - 1 ? <span className="st-caret ml-px inline-block h-[15px] w-px translate-y-[3px] bg-ando-fg-primary" aria-hidden /> : null}
         </p>
       ))}
     </div>
@@ -428,15 +437,57 @@ function titleCardAt(scene: Scene, timing: Timing, vt: number): TitleCard | null
   return null;
 }
 
-type JamActions = { muted: boolean; toggleMute: () => void; end: () => void; join: () => void; /** stage-clock seconds for a scripted Jam */ elapsed?: number; tracePhases: Record<string, TracePhases>; traceParticipants: Actor[]; traceVt: number };
+type JamActions = { muted: boolean; toggleMute: () => void; end: () => void; join: () => void; /** stage-clock seconds for a scripted Jam */ elapsed?: number; tracePhases: Record<string, TracePhases>; traceParticipants: Actor[]; traceVt: number; /** the clock typed lines read */ typeVt: number };
 
 /** message-row-frame.tsx + message-view-sections.tsx */
+/** The first `n` characters of a body, paragraph and segment structure kept. */
+function sliceBody(body: Segment[][], n: number): Segment[][] {
+  let left = n;
+  const out: Segment[][] = [];
+  for (const paragraph of body) {
+    if (left <= 0) break;
+    const p: Segment[] = [];
+    for (const segment of paragraph) {
+      if (left <= 0) break;
+      const take = Math.min(left, segment.text.length);
+      p.push({ ...segment, text: segment.text.slice(0, take) });
+      left -= take;
+    }
+    out.push(p);
+    left -= 1; // the paragraph break
+  }
+  return out;
+}
+const bodyLength = (body: Segment[][]) => body.reduce((n, paragraph) => n + paragraph.reduce((m, segment) => m + segment.text.length, 0) + 1, -1);
+
+/** message-row-frame.tsx + message-view-sections.tsx. Lands the way the
+ *  landing hero's rows do: the slot grows from nothing so what is above is
+ *  pushed up by layout, while the row scales up out of its bottom-left. */
 function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamActions }) {
   const activeCall = row.jam != null && row.jam.endedAt == null;
+  // A typed line reveals itself at TYPE_CPS from the second it landed.
+  const total = row.body ? bodyLength(row.body) : 0;
+  const shown = row.typedAt != null && row.body ? Math.min(total, Math.max(0, Math.floor((jamActions.typeVt - row.typedAt) * TYPE_CPS))) : total;
+  const typing = row.typedAt != null && shown < total;
+  const body = row.body && row.typedAt != null ? sliceBody(row.body, shown) : row.body;
   return (
-    <div className="flex w-full flex-col" data-beat={row.beat} data-row-id={row.key}>
+    <motion.div
+      className="flex w-full flex-col justify-end"
+      data-beat={row.beat}
+      data-row-id={row.key}
+      initial={{ height: 0 }}
+      animate={{ height: "auto" }}
+      transition={{ duration: 0.3, ease: LAND_EASE }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ opacity: { duration: 0.18, ease: "easeOut" }, scale: { duration: 0.3, ease: LAND_EASE } }}
+        style={{ originX: 0, originY: 1 }}
+        className="flex w-full flex-col"
+      >
       {/* message-row-frame.tsx: a live call row wears the success wash and a 2px success edge */}
-      <div className={`st-land group relative min-w-0 -ml-4 px-4 py-1.5 ${activeCall ? "pl-3.5 pb-1.5 bg-ando-bg-success-subtle border-l-2 border-l-ando-action-success rounded-l-none rounded-r-md" : "rounded-r-md hover:bg-ando-bg-fill-subtle"}`}>
+      <div className={`group relative min-w-0 -ml-4 px-4 py-1.5 ${activeCall ? "pl-3.5 pb-1.5 bg-ando-bg-success-subtle border-l-2 border-l-ando-action-success rounded-l-none rounded-r-md" : "rounded-r-md hover:bg-ando-bg-fill-subtle"}`}>
         <div className="flex min-w-0 w-full max-w-full items-start gap-2 overflow-visible">
           {row.burst ? (
             <div className="relative h-5 w-8 shrink-0 overflow-visible">
@@ -453,7 +504,7 @@ function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamA
               </div>
             )}
             <div className="flex min-w-0 w-full max-w-full flex-col gap-2">
-              {row.body ? <Body body={row.body} /> : null}
+              {body ? <Body body={body} caret={typing} /> : null}
               {row.card ? <LaunchPost card={row.card} /> : null}
               {row.attachment ? <div className="pt-1.5"><AttachmentView attachment={row.attachment} /></div> : null}
               {row.jam ? (row.jam.endedAt == null ? <ActiveJamCallCard call={row.jam} muted={jamActions.muted} elapsed={jamActions.elapsed} onToggleMute={jamActions.toggleMute} onEnd={jamActions.end} onJoin={jamActions.join} /> : <EndedJamCallCard call={row.jam} />) : null}
@@ -464,7 +515,8 @@ function MessageRowView({ row, jamActions }: { row: MessageRow; jamActions: JamA
           </div>
         </div>
       </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -525,6 +577,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   // the phase to move.
   const [traceVt, setTraceVt] = useState(0);
   const traceVtRef = useRef(0);
+  // Typed agent lines read the clock at 30Hz.
+  const [typeVt, setTypeVt] = useState(0);
+  const typeVtRef = useRef(0);
   // The title card is a hard cut, so it is written the frame the beat lands —
   // not on the 10Hz clock the trace line rides.
   const [titleCard, setTitleCard] = useState<TitleCard | null>(null);
@@ -565,7 +620,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, thread, dm, surface, unreadDms, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, thread, dm, surface, unreadDms, typing, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted, timing), [scene, cursor, sent, mounted, timing]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -624,14 +679,19 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       scrollFrame.current = null;
       return;
     }
+    // Rows grow their slot over 300ms (the landing hero's entrance), so the
+    // bottom keeps moving while we chase it: track the live maximum each
+    // frame for the length of that entrance, then ease onto the final one.
     const started = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - started) / 380);
+      const live = element.scrollHeight - element.clientHeight;
       const eased = 1 - Math.pow(1 - t, 3);
-      element.scrollTop = from + (target - from) * eased;
+      element.scrollTop = t < 0.85 ? live : from + (live - from) * eased;
       scrollFrame.current = t < 1 ? requestAnimationFrame(tick) : null;
     };
     scrollFrame.current = requestAnimationFrame(tick);
+    void target;
   }, []);
 
   useEffect(() => () => { if (scrollFrame.current !== null) cancelAnimationFrame(scrollFrame.current); }, []);
@@ -673,7 +733,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     const joiner = scene.beats.some((beat) => beat.kind === "jam-join") ? [scene.cast[ME]] : [];
     return start && start.kind === "jam-start" ? [...joiner, ...start.participants.map((handle) => scene.cast[handle])] : [scene.cast[ME]];
   }, [scene]);
-  const jamActions: JamActions = { muted: jamMuted, toggleMute: () => setJamMuted((current) => !current), end: endJam, join: () => setJamPanelOpen(true), elapsed: scriptedJam ? (jamElapsed ?? 0) : undefined, tracePhases, traceParticipants, traceVt };
+  const jamActions: JamActions = { muted: jamMuted, toggleMute: () => setJamMuted((current) => !current), end: endJam, join: () => setJamPanelOpen(true), elapsed: scriptedJam ? (jamElapsed ?? 0) : undefined, tracePhases, traceParticipants, traceVt, typeVt };
   // The room as shown: the scene with whatever surface the script has opened.
   const room = useMemo<Scene>(() => ({ ...scene, surface }), [scene, surface]);
   const jamTarget = scene.surface.kind === "channel" ? `#${scene.surface.name}` : scene.cast[scene.surface.who].name;
@@ -716,6 +776,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (elapsed !== elapsedRef.current) { elapsedRef.current = elapsed; setJamElapsed(elapsed); }
       const coarse = Math.floor(vt * 10) / 10;
       if (coarse !== traceVtRef.current) { traceVtRef.current = coarse; setTraceVt(coarse); }
+      const fine = Math.floor(vt * 30) / 30;
+      if (fine !== typeVtRef.current) { typeVtRef.current = fine; setTypeVt(fine); }
       const card = titleCardAt(scene, T, vt);
       const cardKey = card ? card.headline : null;
       if (cardKey !== titleRef.current) { titleRef.current = cardKey; setTitleCard(card); }

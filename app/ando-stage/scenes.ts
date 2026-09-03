@@ -66,7 +66,7 @@ export type Beat =
   /** A full-frame title card over the app, held for `hold` seconds. */
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; ms: number }
-  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; /** Lands in a DM (see the `surface` beat), not the channel. */ room?: "dm"; ms: number }
+  | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; /** Lands in a DM (see the `surface` beat), not the channel. */ room?: "dm"; /** Types out character by character from the moment it lands (an agent writing), instead of arriving whole. */ typed?: true; ms: number }
   /** A DM goes unread in the sidebar. */
   | { kind: "dm-unread"; who: string; ms: number }
   /** The room switches to another conversation. */
@@ -407,7 +407,7 @@ const JAMS_CUT: Scene = {
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 800 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
-      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, ms: 2600,
+      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 3200,
       body: [
         [{ text: "for sure, and here's a quick recap for posterity:" }],
         [{ text: "Two launch-video ideas — the Slack import coming apart, and an agent answering in a thread. Golden ticket as the close." }],
@@ -420,7 +420,7 @@ const JAMS_CUT: Scene = {
     { kind: "jam-end", ms: 900 },
     { kind: "dm-unread", who: "tadao", ms: 0 },
     {
-      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", ms: 900,
+      kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 900,
       body: [
         [{ text: "Follow-ups from the jam, as Sara asked. Three on you:" }],
         [{ text: "1. Cut the launch video — agent first, as the cold open." }],
@@ -430,7 +430,7 @@ const JAMS_CUT: Scene = {
       ],
     },
     { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 1000 },
-    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3000 },
+    { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 3400 },
     // Shot 7 — white. The closer, then the logo.
     { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 2.4, ms: 2400 },
     { kind: "logo", ms: 3000 },

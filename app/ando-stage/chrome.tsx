@@ -6,6 +6,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Icon, ComposeConversationIcon, HashtagLockIcon } from "./glyph";
 import { TypingIndicator } from "./typing";
+import { motion } from "motion/react";
 import { SIDEBAR, SIDEBAR_LOOSE, WORKSPACE, isAgent, type Actor, type Scene, type SidebarRow, type Surface } from "./scenes";
 
 /* ------------------------------- avatars ------------------------------- */
@@ -162,7 +163,10 @@ function ConversationRow({ row, scene, unreadDms = [] }: { row: SidebarRow; scen
               {row.kind === "channel" ? row.name : scene.cast[row.who].name}
             </span>
           </span>
-          {unread && row.kind === "dm" ? <span aria-hidden className="st-land ml-auto mr-1 size-2 shrink-0 rounded-full bg-ando-fg-primary" /> : null}
+          {unread && row.kind === "dm" ? (
+            /* The landing hero's notification badge (conversations-sidebar.tsx), popping in on its pill spring. */
+            <motion.span aria-hidden className="ml-auto mr-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-[12px] bg-[#2563eb] px-1 text-[10px] font-medium leading-[10px] text-white" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ opacity: { duration: 0.12 }, scale: { type: "spring", stiffness: 480, damping: 16, mass: 0.7 } }}>1</motion.span>
+          ) : null}
         </span>
       </div>
     </li>

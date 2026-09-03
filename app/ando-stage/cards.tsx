@@ -5,7 +5,9 @@
 // stage's driver writes the per-frame motion (each word's arrival, the
 // mark's bounce, the camera's pose) straight to the DOM; see page.tsx.
 
+import { useEffect, useState, type RefObject } from "react";
 import { LOGO_H, LOGO_PARTS, LOGO_W } from "../context-stream/logo";
+import { ContextTrace } from "../the-library/context-trace";
 import { beatKey, type CameraAnchor, type Scene, type Timing } from "./scenes";
 
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
@@ -58,6 +60,54 @@ export function anchorSelector(at: CameraAnchor): string {
   return "[data-stage-main]";
 }
 
+/* ── The context card ───────────────────────────────────────────────── */
+
+/** How long the type line takes to lift away after its hold. */
+export const TYPE_EXIT = 0.45;
+export const CONTEXT_FADE_IN = 0.4;
+export const CONTEXT_FADE_OUT = 0.5;
+
+export type ContextOn = { key: string; t: number; hold: number };
+
+/** The context beat on at `vt`, through its fade back. */
+export function contextAt(scene: Scene, T: Timing, vt: number): ContextOn | null {
+  for (let index = 0; index < scene.beats.length; index += 1) {
+    const beat = scene.beats[index];
+    if (beat.kind !== "context") continue;
+    const t = T[beatKey(index)];
+    if (vt < t || vt > t + beat.hold + CONTEXT_FADE_OUT) continue;
+    return { key: beatKey(index), t, hold: beat.hold };
+  }
+  return null;
+}
+
+/** White; the library's context trace centred, run from its own zero.
+ *  It reads the stage clock through `localRef` on its own frame loop, so
+ *  the trace re-renders at 30Hz without the room doing the same. */
+export function ContextCard({ localRef, hold }: { localRef: RefObject<number>; hold: number }) {
+  const [local, setLocal] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    let shown = -1;
+    const tick = () => {
+      const coarse = Math.floor((localRef.current ?? 0) * 30) / 30;
+      if (coarse !== shown) { shown = coarse; setLocal(coarse); }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [localRef]);
+  const fadeIn = ease(seg(local, 0, CONTEXT_FADE_IN));
+  const fadeOut = ease(seg(local, hold, CONTEXT_FADE_OUT));
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[81] flex items-center justify-center bg-white" aria-hidden data-context-card style={{ opacity: 1 - fadeOut }}>
+      <div className="w-[460px]" style={{ opacity: fadeIn, transform: `translateY(${(1 - fadeIn) * 12}px)` }}>
+        <ContextTrace vt={Math.max(0, local * 1000)} open onToggle={() => {}} theme="light" />
+      </div>
+    </div>
+  );
+}
+
 /* ── The type card ──────────────────────────────────────────────────── */
 
 /** Seconds between one word's arrival and the next. */
@@ -65,15 +115,15 @@ export const WORD_CADENCE = 0.15;
 /** How long a word takes to land. */
 export const WORD_LAND = 0.42;
 
-export type TypeCardOn = { key: string; words: string[]; t: number };
+export type TypeCardOn = { key: string; words: string[]; t: number; hold: number };
 
 export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | null {
   for (let index = 0; index < scene.beats.length; index += 1) {
     const beat = scene.beats[index];
     if (beat.kind !== "type") continue;
     const t = T[beatKey(index)];
-    if (vt < t || vt > t + beat.hold) continue;
-    return { key: beatKey(index), words: beat.text.split(" "), t };
+    if (vt < t || vt > t + beat.hold + TYPE_EXIT) continue;
+    return { key: beatKey(index), words: beat.text.split(" "), t, hold: beat.hold };
   }
   return null;
 }

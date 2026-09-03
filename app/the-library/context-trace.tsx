@@ -429,7 +429,8 @@ export function CheckDisc() {
 
 /* -------------------------------- component -------------------------------- */
 
-function ContextTrace({
+/** The trace at `vt` ms — pure in its clock, so a stage can drive it. */
+export function ContextTrace({
   vt,
   open,
   onToggle,

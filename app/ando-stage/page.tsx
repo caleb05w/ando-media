@@ -24,7 +24,7 @@ import { ScriptControl, type ScriptLine } from "./script";
 import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
-import { LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, WORD_CADENCE, WORD_LAND, anchorSelector, backOut, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type TypeCardOn } from "./cards";
+import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, backOut, contextAt, ease, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -172,6 +172,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
       case "title":
       case "camera":
       case "type":
+      case "context":
       case "logo":
         break;
       case "tab":
@@ -523,6 +524,11 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const typeKeyRef = useRef<string | null>(null);
   const [logoOn, setLogoOn] = useState(false);
   const logoOnRef = useRef(false);
+  // The agent's context trace between the type card and the cut back; it
+  // reads its own local time off this ref every frame.
+  const [contextCard, setContextCard] = useState<ContextOn | null>(null);
+  const contextKeyRef = useRef<string | null>(null);
+  const contextLocalRef = useRef(0);
   // The camera: the whole room on one transform, posed every frame from the
   // shot that is on. `cameraPose` is what was last applied, so an anchor's
   // screen rect can be brought back to room px; `anchorCache` keeps the last
@@ -715,9 +721,18 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             if (local < i * WORD_CADENCE) pending += word.offsetWidth + 11.4;
           });
           // The line re-centres as it grows: the words still to come are held out of the count.
-          line.style.transform = `translateX(${pending / 2}px)`;
+          // After its hold it lifts away for whatever takes the white next.
+          const exit = ease(seg(local, tc.hold, TYPE_EXIT));
+          line.style.transform = `translateX(${pending / 2}px) translateY(${-28 * exit}px)`;
+          line.style.opacity = `${1 - exit}`;
         }
       }
+
+      // The context card: mounted on its beat; its clock is a ref it reads itself.
+      const cc = contextAt(scene, T, vt);
+      const ccKey = cc?.key ?? null;
+      if (ccKey !== contextKeyRef.current) { contextKeyRef.current = ccKey; setContextCard(cc); }
+      contextLocalRef.current = cc ? vt - cc.t : 0;
 
       // The logo: the mark bounces in, then slides over as the wordmark lands.
       const logoT = logoAt(scene, T, vt);
@@ -903,6 +918,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         </div>
       ) : null}
       {typeCard ? <TypeCard card={typeCard} /> : null}
+      {contextCard ? <ContextCard localRef={contextLocalRef} hold={contextCard.hold} /> : null}
       {logoOn ? <LogoCard /> : null}
       {/* Your pointer, when the script moves it. The brand cursor set from
           /public/cursors (see app/affiliate/mini-ando.tsx); hotspot offsets

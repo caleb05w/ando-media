@@ -58,6 +58,9 @@ export type Beat =
   | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
   /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
   | { kind: "type"; text: string; hold: number; ms: number }
+  /** The agent reading the jam: the library's context trace on white, run
+   *  from its start for `hold` seconds, then a fade back to the room. */
+  | { kind: "context"; hold: number; ms: number }
   /** The end: cut to white, the mark bounces in, the wordmark lands beside it. */
   | { kind: "logo"; ms: number }
   /** A full-frame title card over the app, held for `hold` seconds. */
@@ -391,6 +394,9 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "caleb", text: "ship it", ms: 900 },
     // Shot 4 — white. One line, word by word.
     { kind: "type", text: "Your agents were in the jam.", hold: 2.2, ms: 2200 },
+    // The line lifts away and the agent's context trace takes the white:
+    // starting a session, then reading today's jam. Then we fade back.
+    { kind: "context", hold: 4.8, ms: 4800 },
     // Shot 5 — back in the room, the jam still open. You ask the agent in
     // the Jam's own thread; it takes its time reading the transcript.
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1000 },

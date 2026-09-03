@@ -11,7 +11,7 @@ export type Timing = {
   stream: number;
   /** Every dot is seated. */
   line: number;
-  /** The camera settles; the agent is at the end of the line and the stream runs into it. First title. */
+  /** The agent is born out of the dots at the end of the line; the stream keeps pouring into it. First title. */
   agent: number;
   /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
   indicator: number;

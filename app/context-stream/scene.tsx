@@ -236,8 +236,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
       /* ── The agent and the camera ──────────────────────────────── */
       // The agent is /the-library's agent typing indicator, untouched: its
-      // own avatar, its own 120px, its own animation. It scales up at the
-      // end of the line as the camera settles, the stream runs into it, it
+      // own avatar, its own 120px, its own animation. It is born out of the
+      // dots at the end of the line, the stream keeps pouring into it, it
       // walks to centre stage; at `indicator` its animation plays backwards
       // — the face spins out into the dots — and the moment it lands on
       // them the interface starts: the camera is already in on the dots —
@@ -246,8 +246,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // own, and hand over.
       const field = fieldAt(T, vt);
       const ax = agentX(T, vt);
-      // The agent pops: from nothing, past full, and settles — fast.
-      const appear = pop(seg(vt, T.agent - 0.05, 0.32));
+      // The agent pops out of the cluster the seeds snapped into: from
+      // nothing, past full, and settles — fast.
+      const appear = pop(seg(vt, T.agent - 0.04, 0.32));
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       // Where the composer's own indicator draws its middle dot: the strip
@@ -265,7 +266,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.05, 0.06)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.04, 0.06)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -314,10 +315,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       for (const dot of field.marks) {
         ctx.globalAlpha = dot.a;
         if (dot.sx && dot.sx > 0.5) {
-          // A rushing dot is a streak: its trail is where it just was.
+          // A pouring dot is a streak: its trail is where it just was, upstream.
           ctx.lineWidth = 2 * dot.r;
           ctx.beginPath();
-          ctx.moveTo(dot.x - dot.sx, dot.y);
+          ctx.moveTo(dot.x + dot.sx, dot.y);
           ctx.lineTo(dot.x, dot.y);
           ctx.stroke();
           continue;

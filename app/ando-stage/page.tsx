@@ -88,10 +88,12 @@ type MessageRow = Extract<Row, { kind: "message" }>;
  *  and scrubs away with everything after that beat. */
 type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string };
 
-type StageState = { rows: Row[]; typing: Actor | null; scriptedJam: JamCall | null; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
+type StageState = { rows: Row[]; typing: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
 function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): StageState {
   let scriptedJam: JamCall | null = null;
+  let ringing = false;
+  let pendingJamRow: { row: MessageRow; id: string } | null = null;
   let jamPhase: JamPhase = "docked";
   let tab: "thread" | "transcript" = "thread";
   const transcript: TranscriptSegment[] = [];
@@ -128,9 +130,20 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
         // until a jam-join beat. Scrubbing back removes the whole thing.
         const call: JamCall = { id: beat.id, startedAt: now, endedAt: null, participants: beat.participants.map((handle) => scene.cast[handle]), joined: beat.participants[0] === ME };
         scriptedJam = call;
-        push({ ...base(scene.cast[beat.participants[0]], beat.time), key: beat.id, jam: call, beat: beatKey(index) }, beat.id);
+        const row: MessageRow = { ...base(scene.cast[beat.participants[0]], beat.time), key: beat.id, jam: call, beat: beatKey(index) };
+        if (beat.ring) {
+          // Rings in the header until you pick up; the card waits.
+          ringing = true;
+          pendingJamRow = { row, id: beat.id };
+        } else {
+          push(row, beat.id);
+        }
         break;
       }
+      case "jam-answer":
+        ringing = false;
+        if (pendingJamRow) { push(pendingJamRow.row, pendingJamRow.id); pendingJamRow = null; }
+        break;
       case "jam-join":
         if (scriptedJam && !scriptedJam.joined) {
           scriptedJam.joined = true;
@@ -215,7 +228,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number): Stage
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, jamPhase, tab, transcript };
+  return { rows, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -524,7 +537,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamMuted, setJamMuted] = useState(false);
 
   const total = scene.beats.length;
-  const { rows, typing, scriptedJam, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
+  const { rows, typing, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted), [scene, cursor, sent, mounted]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -618,7 +631,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const jamCall = scriptedJam ?? liveJam;
   // A scripted Jam docks its panel while it runs; a live one opens on start
   // and can be collapsed.
-  const panelOpen = scriptedJam != null ? scriptedJam.joined && jamPanelOpen !== false : jamPanelOpen === true;
+  const panelOpen = scriptedJam != null ? scriptedJam.joined && !ringing && jamPanelOpen !== false : jamPanelOpen === true;
   // Joining a scripted Jam by hand just opens the panel; the script decides when you are in.
   // Each run's moments, off the current timing: first trace beat, the one
   // that reads the transcript, the one that drafts, and trace-done.
@@ -827,7 +840,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         <Sidebar scene={scene} />
         {/* layout.tsx: main content card, 1px hairline from the panel */}
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
-          <ConversationHeader scene={scene} jamControl={<JamHeaderControl active={jamCall != null} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
+          <ConversationHeader scene={scene} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
           <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing ? 44 : 8 }}>
             <div aria-hidden className="mt-auto shrink-0" />
             {rows.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}

@@ -23,6 +23,7 @@ function label(scene: Scene, beat: Beat): string {
     case "agent-done": return "run done";
     case "jam-start": return `${scene.cast[beat.participants[0]].name.split(" ")[0]} starts jam`;
     case "jam-join": return "you join";
+    case "jam-answer": return "you pick up";
     case "jam-end": return "jam ends";
     case "jam-deploy": return "panel unfolds";
     case "jam-dock": return "panel docks";
@@ -45,7 +46,7 @@ function closerOf(scene: Scene, index: number): number | null {
   if (beat.kind === "typing" || beat.kind === "trace" || beat.kind === "transcript") return index + 1 < scene.beats.length ? index + 1 : null;
   if (beat.kind === "title" || beat.kind === "type" || beat.kind === "camera" || beat.kind === "logo") return null;
   if (beat.kind === "jam-start") {
-    const end = scene.beats.findIndex((b, i) => i > index && b.kind === "jam-end");
+    const end = scene.beats.findIndex((b, i) => i > index && (b.kind === "jam-end" || (beat.ring && b.kind === "jam-answer")));
     return end === -1 ? null : end;
   }
   return null;

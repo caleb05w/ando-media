@@ -28,7 +28,9 @@ export type Beat =
   | { kind: "mark"; label: string; ms: number; tone?: "attention" }
   /** Someone opens a Jam. `participants` are who is in it at that moment;
    *  the card is authored by the first. You are in it only after `jam-join`. */
-  | { kind: "jam-start"; id: string; time: string; participants: string[]; ms: number }
+  | { kind: "jam-start"; id: string; time: string; participants: string[]; /** Rings in the header first; the card lands on `jam-answer`. */ ring?: true; ms: number }
+  /** You pick up: the ringing stops and the Jam card lands in the transcript. */
+  | { kind: "jam-answer"; ms: number }
   /** You press Join: you enter the call and the panel docks. */
   | { kind: "jam-join"; ms: number }
   | { kind: "jam-end"; ms: number }
@@ -346,8 +348,12 @@ const JAMS_CUT: Scene = {
     // Shot 1 — the DM.
     { kind: "typing", who: "sara", ms: 600 },
     { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1000, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
-    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ms: 900 },
-    { kind: "cursor", to: "join-button", glyph: "arrow", press: true, ms: 1100 },
+    // Sara starts the Jam: the headphones ring in the header. You pick up,
+    // the card lands, you press Join.
+    { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 500 },
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 1300 },
+    { kind: "jam-answer", ms: 500 },
+    { kind: "cursor", to: "join-button", glyph: "pointer", press: true, ms: 1100 },
     // Shot 2 — cut to the sky: the call arrives, the transcript unfolds
     // under it at once, and the talking starts right away.
     { kind: "jam-join", ms: 600 },

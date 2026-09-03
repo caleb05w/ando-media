@@ -90,19 +90,19 @@ function clockTime(ms: number): string {
 /** JamHeaderButtonGroup. Idle: two secondary xs pills with a hairline gap.
  *  Active: one split control in action-success, participants beside the
  *  headphones, the caret sharing the fill. */
-export function JamHeaderControl({ active, participants, onClick }: { active: boolean; participants: Actor[]; onClick: () => void }) {
+export function JamHeaderControl({ active, ringing = false, participants, onClick }: { active: boolean; /** A Jam is calling: the headphones ring like a phone until you pick up. */ ringing?: boolean; participants: Actor[]; onClick: () => void }) {
   const tone = active ? "bg-ando-action-success text-ando-fg-white hover:bg-ando-action-success-hover" : "text-ando-fg-secondary";
   return (
     <span className={`ando-button-group select-none shrink-0 ${active ? "" : "gap-px"}`} data-orientation="horizontal" aria-label="Jam controls">
       <button type="button" onClick={onClick} aria-label={active ? "Open Jam" : "Start Jam"} className={`ando-button rounded-l-sm rounded-r-[1px] ${active ? "group/jam gap-2 py-1 pl-1.5 pr-1" : "w-7 px-0"} ${tone}`} data-variant="secondary" data-size="xs">
-        <Icon name="IconHeadphones" size={16} fill={active ? "filled" : "outlined"} className="text-current" />
+        <span className={ringing ? "st-ring inline-flex" : "inline-flex"}><Icon name="IconHeadphones" size={16} fill={active ? "filled" : "outlined"} className="text-current" /></span>
         {active ? (
-          <span className="ando-avatar-group pr-1" style={{ ["--ando-avatar-group-overlap" as string]: "4px", ["--ando-avatar-group-ring-width" as string]: "0px" }}>
+          <span className="ando-avatar-group pr-1" style={{ ["--ando-avatar-group-overlap" as string]: "4px", ["--ando-avatar-group-ring-width" as string]: "1.5px", ["--color-ando-bg-main" as string]: "var(--color-ando-action-success)" }}>
             {participants.slice(0, 3).map((actor) => <Avatar key={actor.name} actor={actor} size={16} />)}
           </span>
         ) : null}
       </button>
-      {active ? <span className="ando-button-group__separator" /> : null}
+      {active ? <span className="ando-separator ando-button-group__separator" data-orientation="vertical" /> : null}
       <span className={`ando-button ando-button-group__caret px-0 rounded-l-[1px] rounded-r-sm ${tone}`} data-variant="secondary" data-size="xs" style={{ width: 24 }} aria-hidden>
         <Icon name="IconChevronDownSmall" size={12} />
       </span>

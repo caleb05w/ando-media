@@ -810,7 +810,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (ccKey !== contextKeyRef.current) { contextKeyRef.current = ccKey; setContextCard(cc); }
       contextLocalRef.current = cc ? vt - cc.t : 0;
 
-      // The logo: the mark bounces in, then slides over as the wordmark lands.
+      // The logo: cut in, whole, and hold. No motion.
       const logoT = logoAt(scene, T, vt);
       const on = logoT != null;
       if (on !== logoOnRef.current) { logoOnRef.current = on; setLogoOn(on); }
@@ -818,14 +818,10 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
         const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
         if (mark && letters) {
-          const local = vt - logoT;
-          const drop = seg(local, 0, 0.62);
-          const slide = ease(seg(local, 0.8, 0.6));
-          const markScale = 0.3 + 0.7 * backOut(drop);
-          mark.style.opacity = `${Math.min(1, drop * 4)}`;
-          mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y * slide}px) scale(${markScale})`;
-          letters.style.opacity = `${slide}`;
-          letters.style.transform = `translate(${LETTERS_OFFSET.x - 24 * (1 - slide)}px, ${LETTERS_OFFSET.y}px)`;
+          mark.style.opacity = "1";
+          mark.style.transform = `translate(${MARK_OFFSET.x}px, ${MARK_OFFSET.y}px)`;
+          letters.style.opacity = "1";
+          letters.style.transform = `translate(${LETTERS_OFFSET.x}px, ${LETTERS_OFFSET.y}px)`;
         }
       }
 

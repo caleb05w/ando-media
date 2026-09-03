@@ -353,15 +353,16 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             once, when the panel docks; a tab switch shows it in place. */}
         {composer && tab === "thread" ? <motion.div className="relative z-10 flex flex-col space-y-2 overflow-hidden px-4 pb-4 pt-2" initial={composerGrown ? false : { height: 0, paddingBottom: 0, paddingTop: 0 }} animate={{ height: "auto", paddingBottom: 16, paddingTop: 8 }} transition={{ duration: 0.7, ease: [0.2, 0, 0, 1] }} onAnimationComplete={() => setComposerGrown(true)}>
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
-            <div className="relative min-h-[70px]" data-jam-editor>
+            {/* The editor is shorter than the room's so the whole box, with its "Also send to" row, is the same height. */}
+            <div className="relative min-h-[58px]" data-jam-editor>
               {/* Text at label-14 (the product's editor is 16; 14 reads better beside the messages on film), placeholder label-14 tertiary. */}
               {scripted != null ? (
-                <div aria-hidden className="kanso-text-label-14 pointer-events-none absolute inset-x-0 top-0 whitespace-pre-wrap break-words px-5 pt-4 pb-1 text-ando-fg-primary">
+                <div aria-hidden className="kanso-text-label-14 pointer-events-none absolute inset-x-0 top-0 whitespace-pre-wrap break-words px-5 pt-3 pb-1 text-ando-fg-primary">
                   {scripted}
                   <span className="st-caret ml-px inline-block h-[16px] w-px translate-y-[3px] bg-ando-fg-primary" />
                 </div>
               ) : shown.length === 0 ? (
-                <span className="kanso-text-label-14 pointer-events-none absolute left-5 top-4 text-ando-fg-tertiary">Enter your message</span>
+                <span className="kanso-text-label-14 pointer-events-none absolute left-5 top-3 text-ando-fg-tertiary">Enter your message</span>
               ) : null}
               <textarea
                 ref={editorRef}
@@ -376,10 +377,10 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                 }}
                 rows={1}
                 aria-label="Message the jam thread"
-                className={`kanso-text-label-14 block w-full resize-none bg-transparent px-5 pt-4 pb-1 outline-none ${scripted != null ? "text-transparent caret-transparent" : "text-ando-fg-primary"}`}
+                className={`kanso-text-label-14 block w-full resize-none bg-transparent px-5 pt-3 pb-1 outline-none ${scripted != null ? "text-transparent caret-transparent" : "text-ando-fg-primary"}`}
               />
             </div>
-            <div className="px-3 pt-2">
+            <div className="px-3 pt-1">
               <label className="flex min-w-0 select-none items-center space-x-2 pl-1">
                 <span className="ando-checkbox flex size-4 shrink-0 items-center justify-center rounded-xs border border-ando-border-strong bg-ando-bg-main" data-state="unchecked" aria-hidden />
                 <span className="kanso-text-label-12 min-w-0 truncate text-ando-fg-secondary">{"Also send to "}<span className="text-ando-fg-primary">{target}</span></span>

@@ -407,7 +407,7 @@ const JAMS_CUT: Scene = {
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
-      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 2000,
+      kind: "say", id: "j8", who: "tadao", time: "11:12 AM", thread: true, typed: true, ms: 3000,
       body: [
         [{ text: "for sure — quick recap:" }],
         [{ text: "• Agent first, then the Slack import" }],

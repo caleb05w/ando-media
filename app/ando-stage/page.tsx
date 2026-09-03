@@ -216,8 +216,8 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
         for (const other of messages.values()) {
           const moving = other.traces.filter((trace) => trace.done && !trace.onReply && trace.who === row.who);
           if (moving.length > 0) {
+            // The finished run leaves the ask; the reply carries no "worked for" line.
             other.traces = other.traces.filter((trace) => !moving.includes(trace));
-            row.traces.push(...moving.map((trace) => ({ ...trace, onReply: true })));
           }
         }
         push(row, beat.id, beat.thread ? thread : beat.room === "dm" ? dm : rows);

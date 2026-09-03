@@ -326,10 +326,9 @@ const CHAT_THEN_JAM: Scene = {
 };
 
 /* The launch cut — the same story as CHAT_THEN_JAM at the reference's pace
- * (app/context-stream/MOTION.md): ~30s, seven shots, hard cuts, a camera
- * that drifts in toward whatever the cursor is about to press (a slow push,
- * never a crop — the room is the whole frame), one type card,
- * the logo to close. The first four lines are already on screen when it
+ * (app/context-stream/MOTION.md): ~30s, seven shots, hard cuts, one type
+ * card, the logo to close. No camera beats for now — the timing is what is
+ * being tuned; `camera` beats can come back per shot when the pacing is set. The first four lines are already on screen when it
  * opens; the room is a set, not a screenshot. */
 const JAMS_CUT: Scene = {
   id: "jams-cut",
@@ -343,25 +342,20 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 0, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
     { kind: "say", id: "j2", who: "sara", time: "11:06 AM", ms: 0, body: [[{ text: "Wait, which parts?" }]] },
     { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 0, body: [[{ text: "Is this for our launch video?" }]] },
-    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 0, body: [[{ text: "Yeah, I had a few ideas." }]] },
-    // Shot 1 — the DM, cropped low on the composer, pushing.
-    { kind: "camera", at: "composer", scale: 1.0, push: 0.06, cut: true, ms: 700 },
+    { kind: "say", id: "j4", who: "caleb", time: "11:06 AM", ms: 700, body: [[{ text: "Yeah, I had a few ideas." }]] },
+    // Shot 1 — the DM.
     { kind: "typing", who: "sara", ms: 600 },
     { kind: "say", id: "j5", who: "sara", time: "11:07 AM", ms: 1000, body: [[{ text: "Awesome, let's see them — let's jam?" }]] },
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ms: 900 },
-    { kind: "camera", at: "join-button", scale: 1.06, push: 0.06, ms: 0 },
     { kind: "cursor", to: "join-button", glyph: "arrow", press: true, ms: 1100 },
-    // Shot 2 — cut to the sky: the call, alone, growing; push in.
-    { kind: "jam-join", ms: 0 },
-    { kind: "camera", at: "panel", scale: 1.0, push: 0.1, cut: true, ms: 1600 },
+    // Shot 2 — cut to the sky: the call, alone, growing.
+    { kind: "jam-join", ms: 1600 },
     { kind: "jam-deploy", ms: 900 },
-    { kind: "camera", at: "transcript-tab", scale: 1.1, push: 0.04, ms: 0 },
     { kind: "cursor", to: "transcript-tab", glyph: "pointer", press: true, ms: 900 },
     { kind: "tab", tab: "transcript", ms: 500 },
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 900 },
-    // Shot 3 — the room comes back; the camera pans onto the panel as it docks.
-    { kind: "jam-dock", ms: 0 },
-    { kind: "camera", at: "panel", scale: 1.0, push: 0.08, ms: 900 },
+    // Shot 3 — the room comes back; the panel docks.
+    { kind: "jam-dock", ms: 900 },
     { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1500 },
     { kind: "transcript", who: "caleb", text: "no voiceover", ms: 900 },
     { kind: "transcript", who: "sara", text: "that one", ms: 900 },
@@ -369,14 +363,12 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "caleb", text: "ship it", ms: 1000 },
     // Shot 4 — white. One line, word by word.
     { kind: "type", text: "Jams are live transcribed.", hold: 2.0, ms: 2000 },
-    // Shot 5 — cut back, pushed in on the composer. You ask; the agent reads the call.
-    { kind: "jam-end", ms: 0 },
-    { kind: "camera", at: "composer", scale: 1.0, push: 0.05, cut: true, ms: 300 },
+    // Shot 5 — cut back to the room. You ask; the agent reads the call.
+    { kind: "jam-end", ms: 300 },
     { kind: "cursor", to: "send-button", glyph: "pointer", press: true, ms: 1000 },
     { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", ms: 800, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
-    { kind: "camera", at: "row:j8", scale: 1.05, push: 0.06, ms: 0 },
     {
       kind: "say", id: "j8", who: "tadao", time: "11:13 AM", ms: 2600,
       body: [
@@ -387,8 +379,7 @@ const JAMS_CUT: Scene = {
     },
     { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Filing tickets in Linear…", icon: "write", ms: 1400 },
     { kind: "trace-done", run: "t2", tool: "Create Issue", ms: 200 },
-    // Shot 6 — the tickets, pushed in.
-    { kind: "camera", at: "row:j9", scale: 1.1, push: 0.05, ms: 0 },
+    // Shot 6 — the tickets.
     {
       kind: "say", id: "j9", who: "tadao", time: "11:13 AM", ms: 2600,
       body: [

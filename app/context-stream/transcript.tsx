@@ -14,6 +14,10 @@ import { TraceLine, type TracePhases } from "../ando-stage/context-trace";
 import { CAST, type Actor, type Segment } from "../ando-stage/scenes";
 import type { Timing } from "./timing";
 
+/** The film's agent — the card's face (Ando-Brand 3968-2558), baked into
+ *  one square so every slot shows the same one. */
+export const AGENT: Actor = { name: "Tadao", avatar: "/context-stream/tadao.png", agent: true };
+
 export type Lands = "chat" | "sara" | "send" | "reply";
 
 export type RowDef = {
@@ -30,7 +34,7 @@ export type RowDef = {
 };
 
 /** What you ask, typed into the composer over the `ask` beat. */
-export const ASK = "@Ando what's Sara cooking in #marketing?";
+export const ASK = "@Tadao what's Sara cooking in #marketing?";
 
 const ch = (text: string): Segment => ({ text, mention: true });
 const t = (text: string): Segment => ({ text });
@@ -55,12 +59,12 @@ export const ROWS: RowDef[] = [
     who: CAST.caleb,
     time: "3:31 PM",
     lands: "send",
-    body: [[{ text: "@Ando", mention: true, agent: true }, t(" what's Sara cooking in "), ch("#marketing"), t("?")]],
+    body: [[{ text: "@Tadao", mention: true, agent: true }, t(" what's Sara cooking in "), ch("#marketing"), t("?")]],
     run: true,
   },
   {
     key: "reply",
-    who: CAST.ando,
+    who: AGENT,
     time: "3:31 PM",
     lands: "reply",
     body: [[t("Three things from "), ch("#marketing"), t(" this week:")]],
@@ -133,7 +137,7 @@ export function RowView({ row, runPhase, phases, traceVt }: { row: RowDef; runPh
                 ))}
               </ul>
             ) : null}
-            {showRunning || showDone ? <TraceLine agent={CAST.ando} participants={READ_FROM} phases={phases} vt={traceVt} onReply={showDone} /> : null}
+            {showRunning || showDone ? <TraceLine agent={AGENT} participants={READ_FROM} phases={phases} vt={traceVt} onReply={showDone} /> : null}
           </div>
         </div>
       </div>

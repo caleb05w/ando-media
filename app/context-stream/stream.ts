@@ -24,11 +24,14 @@ export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
 export const AGENT_X = STAGE.w / 2;
 export const DISC_R = 28;
 export const DOT_R = 2.5;
-/** The agent's card, centre stage: a fixed width, the height its content
- *  measures. The hero band holds the avatar. */
-export const AGENT_CARD_W = 690;
-export const HERO_H = 240;
-export const HERO_AVATAR_R = 48;
+/** The trace's pill — the library's context trace, 360 wide, its line on
+ *  the stream's y. The disc drifts into its seat. */
+export const PILL = { x: STAGE.w / 2 - 180, y: LINE_Y - 24, w: 360, h: 48 } as const;
+export const SEAT = { x: PILL.x + 12 + 11, y: LINE_Y, r: 11 } as const;
+/** What the pill collapses into: the agent's card (Ando-Brand 3968-2558),
+ *  centred on the stream's y; its face sits on the band. */
+export const AGENT_CARD = { w: 288, h: 342, r: 15, band: 108, inset: 6, faceTop: 48, faceR: 66 } as const;
+export const AGENT_CARD_FACE_Y = LINE_Y - AGENT_CARD.h / 2 + AGENT_CARD.faceTop + AGENT_CARD.faceR;
 
 /* ── Curves ─────────────────────────────────────────────────────────── */
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
@@ -166,7 +169,7 @@ export type Mark = { x: number; y: number; a: number; r: number };
 export function absorbedAt(T: Timing, vt: number) {
   return ease(seg(vt, T.absorb, absorbDur(T)));
 }
-const absorbDur = (T: Timing) => Math.max(0.6, T.form - T.absorb);
+const absorbDur = (T: Timing) => Math.max(0.6, T.sky - T.absorb);
 
 /** A seated dot being pulled into the disc: from its seat `x` on the line
  *  to the disc's centre, accelerating, gone as it crosses the rim. `d` is
@@ -186,7 +189,7 @@ function pullIn(T: Timing, vt: number, x: number, d: number): { x: number; y: nu
 
 /** Every dot at `vt`. Empty once the disc has taken the line in. */
 export function dotsAt(T: Timing, vt: number): Mark[] {
-  if (vt >= T.form) return [];
+  if (vt >= T.sky) return [];
   const gatherDur = Math.max(0.5, T.line - T.gather);
   const agentP = ease(seg(vt, T.agent, 0.6));
   const dd = driftDist(T, vt);

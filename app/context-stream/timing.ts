@@ -15,12 +15,16 @@ export type Timing = {
   agent: number;
   /** The line is pulled into the disc — every dot, sucked in. */
   absorb: number;
-  /** The disc takes centre stage, becomes the agent; the card forms around it. */
-  form: number;
-  /** The card shows the agent working — the context trace runs. */
-  work: number;
-  /** The agent breaks out: the card becomes the window, the composer slides up. */
-  breakout: number;
+  /** The ground becomes the sky; the disc drifts to the seat of a pill. */
+  sky: number;
+  /** The trace: "Starting agent session", the sources, the reading, the draft. */
+  trace: number;
+  /** The pill collapses into the agent's card; the sky goes. */
+  collapse: number;
+  /** The agent becomes the typing indicator. */
+  indicator: number;
+  /** "so we built an interface around that": the window, the composer, the indicator finds its line. */
+  iface: number;
   /** Header and the first message arrive. */
   chat: number;
   /** The sidebar slides in and the window widens. */
@@ -33,14 +37,14 @@ export type Timing = {
   ask: number;
   /** The ask lands; the agent starts reading. */
   send: number;
-  /** The agent's reply lands; the agent takes its seat. */
+  /** The agent's reply lands. */
   reply: number;
   /** The window goes; the logo comes. */
   logo: number;
   end: number;
 };
 
-export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "agent", "absorb", "form", "work", "breakout", "chat", "sidebar", "typing", "sara", "ask", "send", "reply", "logo", "end"];
+export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "agent", "absorb", "sky", "trace", "collapse", "indicator", "iface", "chat", "sidebar", "typing", "sara", "ask", "send", "reply", "logo", "end"];
 
 export const LABELS: Record<keyof Timing, string> = {
   gather: "congregate",
@@ -48,9 +52,11 @@ export const LABELS: Record<keyof Timing, string> = {
   stream: "context stream",
   agent: "the agent",
   absorb: "absorb",
-  form: "centre stage",
-  work: "at work",
-  breakout: "breakout",
+  sky: "the sky",
+  trace: "the trace",
+  collapse: "collapse",
+  indicator: "typing indicator",
+  iface: "an interface",
   chat: "chat",
   sidebar: "sidebar",
   typing: "sara typing",
@@ -68,16 +74,18 @@ export const DEFAULT_TIMING: Timing = {
   stream: 3.9,
   agent: 6.6,
   absorb: 8.4,
-  form: 9.7,
-  work: 11.4,
-  breakout: 18.0,
-  chat: 19.3,
-  sidebar: 20.3,
-  typing: 21.0,
-  sara: 22.2,
-  ask: 22.9,
-  send: 24.9,
-  reply: 27.9,
-  logo: 30.8,
-  end: 33.4,
+  sky: 9.8,
+  trace: 11.2,
+  collapse: 18.4,
+  indicator: 19.6,
+  iface: 21.4,
+  chat: 22.8,
+  sidebar: 23.8,
+  typing: 24.5,
+  sara: 25.7,
+  ask: 26.4,
+  send: 28.4,
+  reply: 31.4,
+  logo: 34.3,
+  end: 36.9,
 };

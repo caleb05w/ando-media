@@ -437,6 +437,7 @@ export function ContextTrace({
   onToggle,
   theme = "dark",
   width = 360,
+  avatar = "/agent-working/agent-1.png",
 }: {
   /** ms on the trace's own clock — see T above for the beats */
   vt: number;
@@ -445,6 +446,8 @@ export function ContextTrace({
   theme?: "dark" | "light";
   /** the card's width; /the-library's canvas gives it 360 */
   width?: number | string;
+  /** the face in the seat — the library's storyboard agent unless told otherwise */
+  avatar?: string;
 }) {
   const done = vt >= T.done;
   const arrived = SOURCES.filter((s) => vt >= s.arrive);
@@ -552,7 +555,7 @@ export function ContextTrace({
           ) : (
             <img
               key={seat === "avatar-back" ? "back" : "front"}
-              src="/agent-working/agent-1.png"
+              src={avatar}
               alt=""
               className={`size-[22px] rounded-full object-cover ${
                 seat === "avatar-out"

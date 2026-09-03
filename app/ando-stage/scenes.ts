@@ -373,15 +373,21 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 500 },
     { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 480 },
     { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 400 },
-    { kind: "jam-deploy", tab: "transcript", ms: 200 },
+    // No line lands while the section is moving (its unfold and its dock
+    // take 700ms): a slot pushing up against a bottom edge still coming down
+    // reads as a stutter.
+    { kind: "jam-deploy", tab: "transcript", ms: 750 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
     { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1650 },
     // Shot 3 — the room comes back; the panel docks; five more lines, quick.
-    { kind: "jam-dock", ms: 300 },
+    { kind: "jam-dock", ms: 750 },
     { kind: "transcript", who: "caleb", text: "idea two: Tadao answering in a thread", ms: 430 },
     { kind: "transcript", who: "sara", text: "no voiceover?", ms: 400 },
     { kind: "transcript", who: "caleb", text: "no voiceover. agent first, then the import", ms: 450 },
     { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 430 },
+    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 480 },
+    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 430 },
+    { kind: "transcript", who: "caleb", text: "two seconds on the logo, no more", ms: 480 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 1500 },
     // Shot 4 — white. The middle line.
     // The cursor sets off for Thread as the card's white is still fading;

@@ -16,7 +16,7 @@ import { SIDEBAR, SIDEBAR_LOOSE, WORKSPACE, isAgent, type Actor, type Scene, typ
 export function Avatar({ actor, size = 32, online, className }: { actor: Actor; size?: number; online?: boolean; className?: string }) {
   return (
     <span className={["ando-avatar relative inline-flex shrink-0", className].filter(Boolean).join(" ")} style={{ width: size, height: size }}>
-      <img src={actor.avatar} alt="" className="size-full rounded-full object-cover" style={{ borderRadius: isAgent(actor) ? 999 : 999 }} />
+      <img src={actor.avatar} alt="" className={`size-full rounded-full ${actor.avatar.endsWith(".svg") ? "bg-white object-contain" : "object-cover"}`} style={{ borderRadius: 999, padding: actor.avatar.endsWith(".svg") ? Math.round(size * 0.2) : 0 }} />
       {online != null ? (
         <span
           className="ando-avatar__status absolute rounded-full"
@@ -33,7 +33,8 @@ export function Avatar({ actor, size = 32, online, className }: { actor: Actor; 
 
 /** WorkspaceAvatar — rounded-[3px] square. */
 function WorkspaceMark({ size }: { size: number }) {
-  return <img src={WORKSPACE.mark} alt="" className="shrink-0 rounded-[3px] object-cover shadow-xs" style={{ width: size, height: size }} />;
+  // The mark sits on its own white tile: the SVG is the bare glyph.
+  return <img src={WORKSPACE.mark} alt="" className="shrink-0 rounded-[3px] bg-white object-contain shadow-xs" style={{ width: size, height: size, padding: Math.round(size * 0.18) }} />;
 }
 
 /* ------------------------------- topbar -------------------------------- */

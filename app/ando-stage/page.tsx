@@ -573,7 +573,10 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [scriptedJam?.id, jamId]);
+    // Re-measure whenever the panel mounts or changes phase: the call stage
+    // is only in the DOM once you have joined, and the docked thread
+    // section is sized from its height.
+  }, [scriptedJam?.id, scriptedJam?.joined, ringing, jamId, jamPhase]);
   const jamTab = tabOverride ?? scriptedTab;
   // The newest transcript segment is still being said; its speaker is live.
   const lastSegment = transcript[transcript.length - 1];

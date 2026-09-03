@@ -100,7 +100,9 @@ export type Scene = {
   beats: Beat[];
 };
 
-export const WORKSPACE = { name: "Ando Corp.", mark: `${AV}/agent-2.png` };
+/** The mark is the brand's own (Ando-Brand 3932-109), not an agent face. */
+export const ANDO_MARK = "/ando-stage/ando-mark.svg";
+export const WORKSPACE = { name: "Ando Corp.", mark: ANDO_MARK };
 export const ME = "caleb";
 
 export const CAST = {
@@ -109,7 +111,7 @@ export const CAST = {
   oli: { name: "Oliver", avatar: `${AV}/oli.png` },
   aj: { name: "AJ", avatar: `${AV}/aj.png` },
   alex: { name: "Alex", avatar: `${AV}/alex.png` },
-  ando: { name: "Ando", avatar: `${AV}/agent-1.png`, agent: true },
+  ando: { name: "Ando", avatar: ANDO_MARK, agent: true },
   scout: { name: "Scout", avatar: `${AV}/agent-2.png`, agent: true },
   tadao: { name: "Tadao", avatar: `${AV}/agent-1.png`, agent: true },
 } as const satisfies Record<string, Actor>;
@@ -404,9 +406,9 @@ const JAMS_CUT: Scene = {
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 1000 },
     { kind: "tab", tab: "thread", ms: 400 },
     { kind: "cursor", to: "thread-send", glyph: "pointer", press: true, ms: 1500 },
-    { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", thread: true, ms: 800, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 2800 },
-    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 1200 },
+    { kind: "say", id: "j7", who: "caleb", time: "11:12 AM", thread: true, ms: 500, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you summarize what we decided?" }]] },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1500 },
+    { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the summary…", icon: "write", ms: 800 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },
     {
       kind: "say", id: "j8", who: "tadao", time: "11:13 AM", thread: true, ms: 2600,

@@ -364,14 +364,31 @@ const JAMS_CUT: Scene = {
     // You start talking before the transcript has anything: the ring on
     // your tile, "Listening…" under it, then the first line catches up.
     { kind: "speak", who: "caleb", ms: 3000 },
-    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 1100 },
-    { kind: "transcript", who: "caleb", text: "agents in every channel. Tadao answering in a thread", ms: 1600 },
-    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 900 },
-    { kind: "transcript", who: "sara", text: "that one", ms: 1000 },
-    // Shot 3 — the room comes back; the panel docks; the jam goes on.
-    { kind: "jam-dock", ms: 900 },
-    { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 1300 },
-    { kind: "transcript", who: "caleb", text: "ship it", ms: 1100 },
+    // Then it pours. Short lines, fast turns, two people talking over each
+    // other the way a real call does — more than anyone can keep up with,
+    // which is the point: the agent can.
+    { kind: "transcript", who: "caleb", text: "okay, idea one", ms: 700 },
+    { kind: "transcript", who: "caleb", text: "we open on the Slack import", ms: 800 },
+    { kind: "transcript", who: "sara", text: "the whole workspace coming apart?", ms: 750 },
+    { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 700 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 900 },
+    // Shot 3 — the room comes back; the panel docks; the jam does not slow down.
+    { kind: "jam-dock", ms: 600 },
+    { kind: "transcript", who: "caleb", text: "fair. idea two", ms: 650 },
+    { kind: "transcript", who: "caleb", text: "agents in every channel", ms: 650 },
+    { kind: "transcript", who: "caleb", text: "Tadao answering in a thread", ms: 700 },
+    { kind: "transcript", who: "sara", text: "no voiceover?", ms: 550 },
+    { kind: "transcript", who: "caleb", text: "no voiceover", ms: 550 },
+    { kind: "transcript", who: "sara", text: "that one. and the golden ticket as the close", ms: 850 },
+    { kind: "transcript", who: "caleb", text: "wait, ticket before or after the import", ms: 750 },
+    { kind: "transcript", who: "sara", text: "after. import, agent, ticket", ms: 700 },
+    { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 700 },
+    { kind: "transcript", who: "sara", text: "ooh. agent, import, ticket", ms: 650 },
+    { kind: "transcript", who: "caleb", text: "and the door mark at the very end", ms: 700 },
+    { kind: "transcript", who: "sara", text: "two seconds on the logo, no more", ms: 700 },
+    { kind: "transcript", who: "caleb", text: "ok. who's cutting it", ms: 600 },
+    { kind: "transcript", who: "sara", text: "you. I'll do the type", ms: 650 },
+    { kind: "transcript", who: "caleb", text: "ship it", ms: 900 },
     // Shot 4 — white. One line, word by word.
     { kind: "type", text: "Your agents were in the jam.", hold: 2.2, ms: 2200 },
     // Shot 5 — back in the room, the jam still open. You ask the agent in
@@ -387,8 +404,8 @@ const JAMS_CUT: Scene = {
       kind: "say", id: "j8", who: "tadao", time: "11:13 AM", thread: true, ms: 2600,
       body: [
         [{ text: "Quick recap of the jam:" }],
-        [{ text: "Three launch-video ideas — the Slack import coming apart, an agent answering in a thread, and the golden ticket as the close." }],
-        [{ text: "You landed on: cold open on the agent, no voiceover, the ticket as the call to action." }],
+        [{ text: "Two launch-video ideas — the Slack import coming apart, and an agent answering in a thread. Golden ticket as the close." }],
+        [{ text: "You landed on: agent first as a cold open, then the import, the ticket as the call to action, no voiceover, two seconds on the logo. Caleb cuts it, Sara does the type." }],
       ],
     },
     { kind: "trace", run: "t2", on: "j8", who: "tadao", label: "Filing tickets in Linear…", icon: "write", ms: 1600 },

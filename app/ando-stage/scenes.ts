@@ -345,9 +345,12 @@ const JAMS_CUT: Scene = {
   surface: { kind: "dm", who: "sara" },
   cast: CAST,
   beats: [
-    // Already there when we open: the link and Sara's question.
-    { kind: "mark", label: "TODAY", ms: 0 },
-    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 0, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
+    // Every line earns its keystrokes: yours type into the composer over
+    // the gap before they land (the link pastes in as one chunk), Sara's
+    // show her typing first.
+    { kind: "mark", label: "TODAY", ms: 1700 },
+    { kind: "say", id: "j1", who: "caleb", time: "11:05 AM", ms: 600, body: [[{ text: "What do you think of this?" }], [{ text: "figma.com/design/e4gEqJUqBMec19Al1BhLEc/Ando-Brand?node-id=3963-1565", link: true }]] },
+    { kind: "typing", who: "sara", ms: 800 },
     { kind: "say", id: "j3", who: "sara", time: "11:06 AM", ms: 1100, body: [[{ text: "Is this for our launch video?" }]] },
     // Shot 1 — the DM. Your reply types itself into the composer over the
     // gap before it lands; Sara's shows her typing first.
@@ -375,7 +378,7 @@ const JAMS_CUT: Scene = {
     // which is the point. The agent can.
     { kind: "jam-deploy", tab: "transcript", ms: 200 },
     { kind: "transcript", who: "caleb", text: "yeah, and landing in Ando", ms: 520 },
-    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 650 },
+    { kind: "transcript", who: "sara", text: "love it. too much for the first three seconds though", ms: 1650 },
     // Shot 3 — the room comes back; the panel docks; the jam does not slow
     // down. Fifteen lines in three seconds: a blur on purpose.
     { kind: "jam-dock", ms: 300 },

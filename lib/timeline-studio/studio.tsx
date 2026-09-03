@@ -250,6 +250,14 @@ export function Studio<T extends Record<string, number>>({
   const snap = (v: number) => Math.round(v / snapStep) * snapStep;
 
   const [timing, setTiming] = useState<T>(defaultTiming);
+  // The scene's own timing changed under us (a beat added or moved in the
+  // source, hot-reloaded in): the edited map is keyed by beat index and
+  // would now scramble the cut. Re-seed from the new defaults.
+  const [seed, setSeed] = useState(defaultTiming);
+  if (seed !== defaultTiming && JSON.stringify(seed) !== JSON.stringify(defaultTiming)) {
+    setSeed(defaultTiming);
+    setTiming(defaultTiming);
+  }
   const [run, setRun] = useState(0);
   const [paused, setPaused] = useState(false);
   const [speedStr, setSpeedStr] = useState("1");

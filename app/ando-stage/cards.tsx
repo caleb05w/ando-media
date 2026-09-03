@@ -112,10 +112,11 @@ export function ContextCard({ localRef, hold }: { localRef: RefObject<number>; h
 }
 
 /* ── The auto camera — Screen Studio's zoom ──────────────────────────
-   No camera beats needed: every cursor press zooms the frame in around
-   the thing pressed, 1.6× over 0.9s on an ease-in-out, holds, pans to the
-   next press on the same ease, and eases back out after 1.5s without one.
-   Clamped by the driver so the frame never shows past the room's edge. */
+   No camera beats needed: a cursor press marked `zoom` pulls the frame in
+   around the thing pressed, 1.6× over 0.9s on an ease-in-out, holds, pans
+   to the next zooming press on the same ease, and eases back out after
+   1.5s without one. Clamped by the driver so the frame never shows past
+   the room's edge. */
 export const AUTO_ZOOM = 1.6;
 export const AUTO_IN = 0.9;
 export const AUTO_HOLD = 1.5;
@@ -125,11 +126,11 @@ const PRESS_GLIDE = 0.9;
 
 export type Press = { t: number; at: CameraAnchor };
 
-/** Every press in the scene, in order, with the second it lands. */
+/** Every zooming press in the scene, in order, with the second it lands. */
 export function pressesOf(scene: Scene, T: Timing): Press[] {
   const out: Press[] = [];
   scene.beats.forEach((beat, index) => {
-    if (beat.kind === "cursor" && beat.press) out.push({ t: T[beatKey(index)] + PRESS_GLIDE, at: beat.to });
+    if (beat.kind === "cursor" && beat.press && beat.zoom) out.push({ t: T[beatKey(index)] + PRESS_GLIDE, at: beat.to });
   });
   return out;
 }

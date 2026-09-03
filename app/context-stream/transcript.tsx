@@ -9,6 +9,7 @@
 
 import { Avatar } from "../ando-stage/chrome";
 import { TraceLine, type TracePhases } from "../ando-stage/context-trace";
+import { DocsDisc, DriveDisc, GrainDisc, NotionDisc, SlackDisc, ZoomDisc } from "../the-library/context-trace";
 import { AVATAR } from "../agent-typing-experience/variants";
 import { CAST, type Actor, type Segment } from "../ando-stage/scenes";
 import type { Timing } from "./timing";
@@ -96,8 +97,8 @@ export function valuePhasesFor(T: Timing): TracePhases {
     steps: [
       { t: T.trace + 0.3, label: "Starting agent session", icon: null },
       { t: T.trace + 1.1, label: "Reading today's jam…", icon: "transcript" },
-      { t: T.trace + 2.5, label: "Checking company policies…", icon: "read" },
-      { t: T.trace + 3.6, label: "Reading the call transcripts…", icon: "transcript" },
+      { t: T.trace + 2.5, label: "Checking company policies…", icon: "read", pile: [<NotionDisc key="n" />, <DriveDisc key="d" />, <DocsDisc key="g" />] },
+      { t: T.trace + 3.6, label: "Reading the call transcripts…", icon: "transcript", pile: [<GrainDisc key="a" />, <ZoomDisc key="z" />, <SlackDisc key="s" />, <GrainDisc key="b" />] },
       { t: T.trace + 4.8, label: "Drafting the standup summary…", icon: "write" },
     ],
     done: T.collapse + 10,

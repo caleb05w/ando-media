@@ -22,7 +22,7 @@ import { JamHeaderControl } from "../ando-stage/jam";
 import { TraceLine } from "../ando-stage/context-trace";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { AGENT_R, CARD, CARD_WIDE, CENTER_X, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -54,11 +54,9 @@ const STRIP_H = 36;
  *  own indicator. */
 const INDICATOR_SMALL = 60;
 /** The trace line beside the agent: the product's 12px line at this
- *  scale, this far from the agent's edge; the agent slides this far left
- *  to make room for it. */
+ *  scale, this far from the agent's edge. */
 const TRACE_SCALE = 3;
 const TRACE_GAP = 28;
-const TRACE_SHIFT = 330;
 const TRACE_LEAD = 0.3;
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
@@ -264,14 +262,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // around them; when the pull ends they are exactly the composer's
       // own, and hand over.
       const field = fieldAt(T, vt);
-      // The trace line: the agent slides left on its line to make room, and
-      // the product's trace line draws out beside it, narrating the run;
-      // at `collapse` it folds back into the agent, which returns to centre.
-      const toLine = ease(seg(vt, T.trace, 0.45));
-      const back = ease(seg(vt, T.collapse + 0.3, 0.45));
-      const inLine = toLine * (1 - back);
+      // The trace line: the agent is already at the left of its line, so
+      // the product's trace line simply draws out beside it, narrating the
+      // run; at `collapse` it folds back into the agent.
       const drawn = ease(seg(vt, T.trace + TRACE_LEAD, 0.4)) * (1 - ease(seg(vt, T.collapse, 0.3)));
-      const ax = lerp(agentX(T, vt), CENTER_X - TRACE_SHIFT, inLine);
+      const ax = agentX(T, vt);
       const ay = LINE_Y;
       trace.style.left = `${ax + AGENT_R + TRACE_GAP}px`;
       trace.style.top = `${LINE_Y - 12 * TRACE_SCALE}px`;
@@ -290,7 +285,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const P = { x: CARD.x + 28, y: cardY + bottomTop - 19.4 };
       const C = { x: ax, y: ay };
       const z = zoomed ? lerp(ZOOM, 1, zp) : 1;
-      const S = zoomed ? { x: lerp(CENTER_X, P.x, zp), y: lerp(LINE_Y, P.y, zp) } : P;
+      const S = zoomed ? { x: lerp(C.x, P.x, zp), y: lerp(C.y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
       const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear;
@@ -442,7 +437,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
             {/* The trace line beside the agent — the product's TraceLine at the agent's scale. No data-cs: its shimmer and pops are its own. */}
-            <div ref={traceRef} data-trace className="absolute whitespace-nowrap" style={{ left: CENTER_X, top: LINE_Y, opacity: 0, transform: `scale(${TRACE_SCALE})`, transformOrigin: "0 0" }}>
+            <div ref={traceRef} data-trace className="absolute whitespace-nowrap" style={{ left: AGENT_X, top: LINE_Y, opacity: 0, transform: `scale(${TRACE_SCALE})`, transformOrigin: "0 0" }}>
               {valueOn ? <TraceLine agent={AGENT} participants={READ_FROM} phases={valuePhases} vt={traceVt} onReply={false} /> : null}
             </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}

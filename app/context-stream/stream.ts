@@ -2,11 +2,12 @@
 //
 // A cloud of dots (messages, docs, files, images) drifts over the stage
 // and pulls into one line — and as it does, the camera starts to move:
-// the line streams left under it as it forms, one motion. More dots curve
-// in from off-frame and join it. The agent is born out of the dots at the
-// far right; the stream never halts — the camera eases off only once the
-// agent is there while its pull ramps up, so the dots slow, swing back,
-// and pour into it, one curve of motion, until the line is gone. Every
+// the line streams right under it as it forms, one motion. More dots
+// curve in from off-frame and join it. The agent is born out of the dots
+// at the left — where it will stay: the trace line draws out beside it —
+// and the stream never halts: the camera eases off only once the agent is
+// there while its pull ramps up, so the dots slow, swing back, and pour
+// into it, one curve of motion, until the line is gone. Every
 // position here is a function of (timing, vt) and a per-dot constant fixed
 // at module load, so scrubbing backwards puts every dot exactly where it
 // was.
@@ -26,10 +27,10 @@ export const CARD = FRAME_TIGHT;
 export const SIDEBAR_W = 354;
 export const PANE_W = CARD.w;
 export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
-/** Where the agent is born — the far right of the line — and centre
- *  stage, where it walks to. */
-export const AGENT_X = CARD.x + Math.round(CARD.w * 0.72);
+/** Centre stage, and where the agent is born — the left of the line,
+ *  where it stays: the trace line draws out to its right. */
 export const CENTER_X = STAGE.w / 2;
+export const AGENT_X = CENTER_X - 330;
 export const DOT_R = 2.5;
 /** The agent is one of /the-library's typing indicators, at rest — the face
  *  in its disc — drawn at twice the shelf's 120px. Swap the key for another
@@ -198,10 +199,10 @@ const rush = (T: Timing, vt: number) => {
   return 0.5 * ACCEL * u * u;
 };
 
-/** Where the agent is at `vt`: born at the far right of the line, it walks
- *  to centre stage once the stream is in it. */
-export function agentX(T: Timing, vt: number) {
-  return lerp(AGENT_X, CENTER_X, ease(seg(vt, T.agent + 0.45, 0.8)));
+/** Where the agent is at `vt`: born at the left of the line, and it stays
+ *  there. */
+export function agentX(_T: Timing, _vt: number) {
+  return AGENT_X;
 }
 /** A dot is eaten when it is this far into the disc. */
 const EAT_R = AGENT_R * 0.6;
@@ -224,26 +225,26 @@ function bisect(f: (t: number) => number, lo: number, hi: number) {
 
 /** A mark riding the line: seated on screen at `x0` at `t0`, where is it at
  *  `vt`, and when is it eaten? Before the agent the line is endless — it
- *  wraps under the camera. From the agent on it keeps its leftward motion
+ *  wraps under the camera. From the agent on it keeps its rightward motion
  *  as the camera eases off, and the agent's pull turns it back — one
  *  smooth swing — until it reaches the disc. */
 function ride(T: Timing, vt: number, x0: number, t0: number): { x: number; eatenAt: number | null; tA: number; v: number } {
-  const pre = (t: number) => wrapX(x0 + drift(T, t) - drift(T, t0) - (camX(T, t) - camX(T, t0)));
+  const pre = (t: number) => wrapX(x0 + drift(T, t) - drift(T, t0) + (camX(T, t) - camX(T, t0)));
   if (vt < T.agent) return { x: pre(vt), eatenAt: null, tA: T.agent, v: 0 };
   const tA = Math.max(t0, T.agent);
   const xA = t0 >= T.agent ? x0 : pre(T.agent);
-  const at = (t: number) => xA + drift(T, t) - drift(T, tA) - (camX(T, t) - camX(T, tA)) + rush(T, t) - rush(T, tA);
-  const vel = (t: number) => DRIFT - camV(T, t) + ACCEL * (t - T.agent);
-  // The mark's turn: where its velocity crosses zero (it only rises).
-  const tTurn = vel(tA) >= 0 ? tA : bisect(vel, tA, tA + 3);
+  const at = (t: number) => xA + drift(T, t) - drift(T, tA) + (camX(T, t) - camX(T, tA)) - (rush(T, t) - rush(T, tA));
+  const vel = (t: number) => DRIFT + camV(T, t) - ACCEL * (t - T.agent);
+  // The mark's turn: where its velocity crosses zero (it only falls).
+  const tTurn = vel(tA) <= 0 ? tA : bisect((t) => -vel(t), tA, tA + 3);
   let eatenAt: number;
-  if (xA < agentX(T, tA)) {
-    // Left of the agent: it drifts on, turns, and comes back to the disc.
-    const gap = (t: number) => at(t) - (agentX(T, t) - EAT_R);
+  if (xA > agentX(T, tA)) {
+    // Right of the agent: it drifts on, turns, and comes back to the disc.
+    const gap = (t: number) => (agentX(T, t) + EAT_R) - at(t);
     eatenAt = gap(tA) >= 0 ? tA : bisect(gap, tTurn, tTurn + 6);
   } else {
-    // Right of the agent: still moving left, it meets the disc on its way.
-    const gap = (t: number) => (agentX(T, t) + EAT_R) - at(t);
+    // Left of the agent: still moving right, it meets the disc on its way.
+    const gap = (t: number) => at(t) - (agentX(T, t) - EAT_R);
     eatenAt = gap(tA) >= 0 ? tA : gap(tTurn) < 0 ? tTurn : bisect(gap, tA, tTurn);
   }
   return { x: at(vt), eatenAt, tA, v: vel(vt) };
@@ -358,7 +359,7 @@ export function fieldAt(T: Timing, vt: number): Field {
     // The flight is in the camera's frame — it curves in from the edge and
     // lands on the moving line, rather than being dragged off-screen by the
     // pan mid-flight. A late one lands short of the agent, never behind it.
-    const tx = arrive > T.agent - 0.3 ? Math.min(flow.tx, AGENT_X - AGENT_R - 40) : flow.tx;
+    const tx = arrive > T.agent - 0.3 ? Math.max(flow.tx, AGENT_X + AGENT_R + 40) : flow.tx;
     if (q < 1) {
       const e = ease(q);
       const x = bezier(flow.ox, flow.ox + 20, tx - 170, tx, e);

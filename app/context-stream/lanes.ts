@@ -10,10 +10,9 @@ const snap = (v: number) => Math.round(v * 100) / 100;
 const TARGETS: Partial<Record<keyof Timing, string[]>> = {
   gather: ["[data-cs=card]"],
   stream: ["[data-cs=caption]"],
+  pan: ["[data-cs=card]"],
   agent: ["[data-cs=title-1]"],
-  sky: ["[data-cs=sky]"],
-  trace: ["[data-trace]"],
-  collapse: ["[data-cs=pill]"],
+  card: ["[data-cs=agent-card]"],
   indicator: ["[data-cs=indicator]"],
   iface: ["[data-cs=title-2]", "[data-cs=composer]"],
   chat: ["[data-cs=header]", "[data-cs=transcript]"],

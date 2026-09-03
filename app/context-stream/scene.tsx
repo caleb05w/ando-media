@@ -3,27 +3,26 @@
 // The scene is the driver: one rAF loop, one virtual clock `vt`, and every
 // visual value a pure function of it — so the studio can run time
 // backwards, hold it still, and jump it. Continuous things (the frame, the
-// dots, the disc, the sky, the pill's collapse, the composer's slide, every
-// fade) are written straight to the DOM each frame; the only React state is
-// discrete — the scripted draft, who is typing, the run's phase, the trace's
-// coarse clocks, the typing indicator's frame — set when they change.
+// dots, the disc, the card's growth, the composer's slide, every fade) are
+// written straight to the DOM each frame; the only React state is discrete
+// — the scripted draft, who is typing, the run's phase, the trace line's
+// coarse clock, the typing indicator's frame — set when they change.
 //
-// Layers, bottom to top: the sky · the grey ground · the window (its card,
-// then its contents: sidebar, header, transcript, composer) · the trace ·
-// the card it collapses into · the canvas (dots, hairline, disc) · the
-// agent, travelling · the typing indicator · the titles · the logo.
-// Everything but the logo shares one group so the film can leave for it.
+// Layers, bottom to top: the grey ground · the window (its card, then its
+// contents: sidebar, header, transcript, composer) · the agent's card · the
+// canvas (dots, hairline, disc) · the agent's face, travelling · the typing
+// indicator · the titles · the logo. Everything but the logo shares one
+// group so the film can leave for it.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { RESET_MS, VARIANTS, resetFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
+import { VARIANTS, cycleFrame, cycleMs, type Frame } from "../agent-typing-experience/variants";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room } from "../ando-stage/scenes";
-import { ContextTrace } from "../the-library/context-trace";
 import { Logo } from "./logo";
-import { AGENT_CARD, AGENT_CARD_FACE_Y, AGENT_X, CARD, CARD_WIDE, DISC_R, LINE_Y, PANE_W, PILL, SEAT, SIDEBAR_W, STAGE, absorbedAt, backOut, clamp01, dotsAt, ease, hairlineAt, lerp, seg } from "./stream";
+import { AGENT_CARD, AGENT_CARD_FACE_Y, AGENT_X, CARD, CARD_WIDE, DISC_R, LINE_Y, PANE_W, SIDEBAR_W, STAGE, backOut, clamp01, ease, fieldAt, hairlineAt, lerp, seg } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, ASK, ROWS, RowView, tracePhasesFor, type RunPhase } from "./transcript";
 import "../ando-stage/stage.css";
@@ -42,32 +41,18 @@ const ROOM: Room = {
 /** Room the studio's pill needs below the stage. */
 const STUDIO_CLEARANCE = 72;
 const DOT_INK = "#a3a09c";
-/** The disc on white, and the disc on the sky. */
-const DISC_INK = [217, 214, 211] as const;
-const DISC_SKY = [244, 244, 244] as const;
-/** The trace runs the library's timeline at this many ms per film second. */
-const TRACE_RATE = 2000;
-/** The trace's drawer opens once its first source has arrived (library T). */
-const TRACE_OPEN_MS = 1500;
+const DISC_INK = "#d9d6d3";
 /** The typing strip above the composer — the product's slot, h-9, 3px up. */
 const STRIP_H = 36;
-/** The library's typing indicator: Orbit v2. Its dots sit at 60 units = the product's 4px dots on a 6px pitch. */
+/** The library's agent typing indicator — Orbit v2, as /the-library shows
+ *  it (shelf 04, 120px): dots, the morph into the face, the hold, the
+ *  reset. Its 60-unit canvas puts the dots at the product's 4px on a 6px
+ *  pitch, so at 60px they land 1:1 on the composer's own indicator. */
 const INDICATOR = VARIANTS.find((v) => v.key === "orbit-v2") ?? VARIANTS[0];
+const INDICATOR_CYCLE = cycleMs(INDICATOR);
 const INDICATOR_BIG = 120;
 const INDICATOR_SMALL = 60;
-/** How long the face holds before it resets into the dots. */
-const FACE_HOLD = 0.5;
 const noop = () => {};
-
-/** The indicator's frame `t` seconds into its beat: the face, then the
- *  reset into three dots, then the wave — the library's cycle from its
- *  agent phase on, so it plays backwards from the avatar it just was. */
-function indicatorFrame(t: number): Frame {
-  if (t < FACE_HOLD) return INDICATOR.morph(INDICATOR.morphMs);
-  const reset = (t - FACE_HOLD) * 1000;
-  if (reset < RESET_MS) return resetFrame(reset);
-  return typingFrame(reset - RESET_MS, 1);
-}
 
 /** offsetLeft/Top of `el` summed up to `root` — transform-immune. */
 function within(el: HTMLElement, root: HTMLElement) {
@@ -91,10 +76,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   }, [timing]);
 
   // Every face the film will show, decoded up front — the 500px avatars
-  // otherwise decode on the frame they first paint, a 100ms hitch in the
-  // trace's facepile.
+  // otherwise decode on the frame they first paint, a 100ms hitch.
   useEffect(() => {
-    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), AGENT.avatar, "/avatars/jordan.png", "/context-stream/sora.jpg"])];
+    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), AGENT.avatar])];
     for (const src of faces) {
       const img = new Image();
       img.src = src;
@@ -114,10 +98,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const [runPhase, setRunPhase] = useState<RunPhase>(0);
   const [typing, setTyping] = useState<Actor | null>(null);
   const [traceVt, setTraceVt] = useState(0);
-  const [traceMs, setTraceMs] = useState<number | null>(null);
   const [indicator, setIndicator] = useState<Frame | null>(null);
 
-  const skyRef = useRef<HTMLDivElement>(null);
   const groundRef = useRef<HTMLDivElement>(null);
   const filmRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -128,8 +110,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const headerRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
-  const traceRef = useRef<HTMLDivElement>(null);
-  const pillRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const cardInnerRef = useRef<HTMLDivElement>(null);
   const floatRef = useRef<HTMLImageElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
@@ -154,11 +135,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let runShown: RunPhase = 0;
     let typingShown: Actor | null = null;
     let traceVtShown = 0;
-    let traceMsShown: number | null = null;
     let indicatorShown: number | null = null;
 
     const paint = (T: Timing) => {
-      const sky = skyRef.current;
       const ground = groundRef.current;
       const film = filmRef.current;
       const card = cardRef.current;
@@ -168,30 +147,23 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const header = headerRef.current;
       const transcript = transcriptRef.current;
       const composer = composerRef.current;
-      const trace = traceRef.current;
-      const pill = pillRef.current;
+      const shell = shellRef.current;
       const cardInner = cardInnerRef.current;
       const float = floatRef.current;
       const indicatorEl = indicatorRef.current;
-      if (!sky || !ground || !film || !card || !content || !sidebar || !main || !header || !transcript || !composer || !trace || !pill || !cardInner || !float || !indicatorEl) return;
+      if (!ground || !film || !card || !content || !sidebar || !main || !header || !transcript || !composer || !shell || !cardInner || !float || !indicatorEl) return;
 
       /* ── Reads first ───────────────────────────────────────────── */
       // Every layout read the frame needs, taken before its first style
       // write — so the browser lays out once per frame, not once per
       // read-after-write.
-      const traceH = trace.offsetHeight;
       const headerH = header.offsetHeight;
       const composerH = composer.offsetHeight; // the box plus its 16px floor
       const rowH = rowRefs.current.map((refs) => refs.inner?.offsetHeight ?? 0);
 
-      /* ── The sky and the ground ────────────────────────────────── */
-      const skyIn = ease(seg(vt, T.sky, 0.9));
-      const skyOut = ease(seg(vt, T.collapse + 0.15, 0.8));
-      sky.style.opacity = `${skyIn * (1 - skyOut)}`;
+      /* ── The window ────────────────────────────────────────────── */
       const winP = ease(seg(vt, T.iface, 0.6));
       ground.style.opacity = `${winP}`;
-
-      /* ── The window ────────────────────────────────────────────── */
       const side = ease(seg(vt, T.sidebar, 0.7));
       const cardX = lerp(CARD.x, CARD_WIDE.x, side);
       const cardW = lerp(CARD.w, CARD_WIDE.w, side);
@@ -246,51 +218,50 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         refs.inner.style.transform = `translateY(${8 * (1 - p)}px)`;
       });
 
-      /* ── The trace, the pill, the agent between them ───────────── */
-      // The pill's line sits on the stream's y; the drawer opens upward, so
-      // the trace is anchored by its bottom edge.
-      const traceIn = ease(seg(vt, T.trace, 0.3));
-      const traceOut = ease(seg(vt, T.collapse, 0.3));
-      trace.style.top = `${PILL.y + PILL.h - traceH}px`;
-      trace.style.opacity = `${traceIn * (1 - traceOut)}`;
-
-      // The pill takes over as the trace fades and becomes the agent's card:
-      // narrower, much taller, the band and the name arriving as it settles.
-      const shrink = ease(seg(vt, T.collapse + 0.1, 0.55));
+      /* ── The disc → the card → the face ────────────────────────── */
+      // The disc comes into frame at the right and swells as it eats the
+      // stream. Then the card grows out of it, centre stage — the shell
+      // from the disc's own circle to the card's rectangle, the band and
+      // the name arriving as it settles — while the disc crosses onto the
+      // band and becomes the face. At `indicator` the card goes and the
+      // face hands over.
+      const field = fieldAt(T, vt);
+      const agentP = seg(vt, T.agent, 0.6);
+      const discR = DISC_R * backOut(agentP) * (1 + 0.18 * field.eaten) + 1.6 * field.pulse;
+      const cardIn = ease(seg(vt, T.card, 0.8));
       const cardGone = ease(seg(vt, T.indicator, 0.4));
-      const pillW = lerp(PILL.w, AGENT_CARD.w, shrink);
-      const pillH = lerp(PILL.h, AGENT_CARD.h, shrink);
-      pill.style.left = `${AGENT_X - pillW / 2}px`;
-      pill.style.top = `${LINE_Y - pillH / 2}px`;
-      pill.style.width = `${pillW}px`;
-      pill.style.height = `${pillH}px`;
-      pill.style.borderRadius = `${lerp(14, AGENT_CARD.r, shrink)}px`;
-      pill.style.opacity = `${traceOut * (1 - cardGone)}`;
-      pill.style.transform = `scale(${1 - 0.04 * cardGone})`;
-      cardInner.style.opacity = `${clamp01((shrink - 0.45) / 0.55)}`;
+      const shellW = lerp(2 * discR, AGENT_CARD.w, cardIn);
+      const shellH = lerp(2 * discR, AGENT_CARD.h, cardIn);
+      const cx = lerp(AGENT_X, STAGE.w / 2, cardIn);
+      shell.style.left = `${cx - shellW / 2}px`;
+      shell.style.top = `${LINE_Y - shellH / 2}px`;
+      shell.style.width = `${shellW}px`;
+      shell.style.height = `${shellH}px`;
+      shell.style.borderRadius = `${lerp(discR, AGENT_CARD.r, cardIn)}px`;
+      shell.style.opacity = `${clamp01(cardIn / 0.25) * (1 - cardGone)}`;
+      shell.style.transform = `scale(${1 - 0.04 * cardGone})`;
+      cardInner.style.opacity = `${clamp01((cardIn - 0.5) / 0.5)}`;
 
-      // The agent rides the collapse from the seat to the card's band, then
-      // shrinks to the typing indicator's face and hands over.
       const toFace = ease(seg(vt, T.indicator, 0.4));
       const stageIn = ease(seg(vt, T.indicator + 0.15, 0.3));
-      const fr = lerp(lerp(SEAT.r, AGENT_CARD.faceR, shrink), 20, toFace);
-      const fx = lerp(SEAT.x, AGENT_X, shrink);
-      const fy = lerp(LINE_Y, AGENT_CARD_FACE_Y, shrink);
-      const lift = shrink * (1 - toFace);
-      float.style.left = `${fx - fr}px`;
+      const fr = lerp(lerp(discR, AGENT_CARD.faceR, cardIn), 20, toFace);
+      const fy = lerp(LINE_Y, AGENT_CARD_FACE_Y, cardIn);
+      const lift = cardIn * (1 - toFace);
+      float.style.left = `${cx - fr}px`;
       float.style.top = `${fy - fr}px`;
       float.style.width = `${2 * fr}px`;
       float.style.height = `${2 * fr}px`;
-      float.style.opacity = `${traceOut * (1 - stageIn)}`;
+      float.style.opacity = `${clamp01((cardIn - 0.2) / 0.4) * (1 - stageIn)}`;
       float.style.boxShadow = `0 ${3 * lift}px ${18 * lift}px rgba(0,0,0,${0.08 * lift}), 0 ${24 * lift}px ${36 * lift}px ${-18 * lift}px rgba(0,0,0,${0.08 * lift}), inset 0 0 0 1px rgba(16,16,16,${0.06 * lift})`;
 
       /* ── The typing indicator → the composer's line ────────────── */
-      // From centre stage it shrinks to product scale and lands where the
-      // composer's own indicator draws its dots, then hands over.
+      // The library's cycle plays where the face was; at `iface` it shrinks
+      // to product scale, lands where the composer's own indicator draws
+      // its dots, and hands over.
       const move = ease(seg(vt, T.iface + 0.3, 0.7));
       const paneLeft = cardX + cardW - PANE_W;
       const size = lerp(INDICATOR_BIG, INDICATOR_SMALL, move);
-      const ix = lerp(AGENT_X, paneLeft + 16, move);
+      const ix = lerp(STAGE.w / 2, paneLeft + 16, move);
       const iy = lerp(AGENT_CARD_FACE_Y, cardY + composerTop - 19, move);
       indicatorEl.style.left = `${ix - INDICATOR_BIG / 2}px`;
       indicatorEl.style.top = `${iy - INDICATOR_BIG / 2}px`;
@@ -315,17 +286,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         traceVtShown = coarse;
         setTraceVt(coarse);
       }
-      const ms = vt >= T.trace - 0.05 && vt < T.collapse + 0.4 ? Math.floor(((vt - T.trace) * TRACE_RATE) / 50) * 50 : null;
-      if (ms !== traceMsShown) {
-        traceMsShown = ms;
-        setTraceMs(ms);
-      }
-      // The indicator's frame, at 30 a second, only while it is on stage.
-      // Its clock starts once the face has taken over from the card.
-      const tick = vt >= T.indicator && vt < T.iface + 1.3 ? Math.floor((vt - T.indicator - 0.45) * 30) / 30 : null;
+      // The indicator's frame, at 30 a second, only while it is on stage —
+      // the library's own cycle, from its first dot.
+      const tick = vt >= T.indicator && vt < T.iface + 1.3 ? Math.floor((vt - T.indicator) * 30) / 30 : null;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
-        setIndicator(tick == null ? null : indicatorFrame(tick));
+        setIndicator(tick == null ? null : cycleFrame(INDICATOR, (tick * 1000) % INDICATOR_CYCLE).frame);
       }
       const typeP = seg(vt, T.ask, Math.max(0.3, T.send - T.ask - 0.25));
       const chars = Math.floor(typeP * ASK.length);
@@ -343,16 +309,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${a * b}`;
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
-      fadeIn(title1Ref.current, T.agent + 0.35, T.sky);
+      fadeIn(title1Ref.current, T.agent + 0.35, T.card);
       fadeIn(title2Ref.current, T.iface, T.chat + 0.9);
       fadeIn(captionRef.current, T.stream + 0.15, T.agent - 0.35, 4);
 
       /* ── The canvas: hairline, dots, disc ──────────────────────── */
-      // The disc lands on the line, swells as it takes the line in, pales
-      // as the sky comes, and drifts into the pill's seat.
-      const agentP = seg(vt, T.agent, 0.6);
-      const absorbed = absorbedAt(T, vt);
-      const toSeat = ease(seg(vt, T.sky + 0.2, 0.9));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, STAGE.w, STAGE.h);
       const hl = hairlineAt(T, vt);
@@ -365,21 +326,19 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         ctx.stroke();
       }
       ctx.fillStyle = DOT_INK;
-      for (const dot of dotsAt(T, vt)) {
+      for (const dot of field.marks) {
         ctx.globalAlpha = dot.a;
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
       }
-      const discA = agentP > 0 ? 1 - traceIn : 0;
+      // The disc rises with the face and gives way to it.
+      const discA = agentP > 0 ? 1 - clamp01((cardIn - 0.2) / 0.4) : 0;
       if (discA > 0) {
-        const r = lerp(DISC_R * backOut(agentP) * (1 + 0.16 * absorbed), SEAT.r, toSeat);
-        const x = lerp(AGENT_X, SEAT.x, toSeat);
-        const ink = DISC_INK.map((c, i) => Math.round(lerp(c, DISC_SKY[i], skyIn)));
         ctx.globalAlpha = discA;
-        ctx.fillStyle = `rgb(${ink[0]},${ink[1]},${ink[2]})`;
+        ctx.fillStyle = DISC_INK;
         ctx.beginPath();
-        ctx.arc(x, LINE_Y, r, 0, Math.PI * 2);
+        ctx.arc(cx, fy, fr, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -416,11 +375,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         role="presentation"
       >
         <div ref={filmRef} className="absolute inset-0" style={{ transformOrigin: "50% 50%" }}>
-          {/* The sky — Ando's sora render under a 10% wash — while the agent works. */}
-          <div ref={skyRef} data-cs="sky" className="absolute inset-0" style={{ opacity: 0 }}>
-            <img src="/context-stream/sora.jpg" alt="" className="absolute inset-0 size-full object-cover" />
-            <div className="absolute inset-0 bg-black/10" />
-          </div>
           {/* The ground goes grey when the window comes. */}
           <div ref={groundRef} className="absolute inset-0 bg-ando-bg-nav" style={{ opacity: 0 }} />
 
@@ -458,12 +412,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
             </div>
           </div>
 
-          {/* The trace — the library's, on the sky, its line on the stream's y. No data-cs: it transitions on its own. */}
-          <div ref={traceRef} data-trace className="absolute" style={{ left: PILL.x, top: PILL.y, width: PILL.w, opacity: 0 }}>
-            {traceMs == null ? null : <ContextTrace theme="light" vt={traceMs} open={traceMs >= TRACE_OPEN_MS} onToggle={noop} width={PILL.w} avatar={AGENT.avatar} />}
-          </div>
-          {/* What the trace collapses into: the agent's card (Ando-Brand 3968-2558). The face rides over it. */}
-          <div ref={pillRef} data-cs="pill" className="absolute overflow-hidden bg-white shadow-[0_0_0_0.5px_rgba(16,16,16,0.06),0_15px_60px_rgba(0,0,0,0.08)]" style={{ left: PILL.x, top: PILL.y, width: PILL.w, height: PILL.h, borderRadius: 14, opacity: 0, transformOrigin: "50% 50%" }}>
+          {/* The agent's card (Ando-Brand 3968-2558), grown out of the disc. The face rides over it. */}
+          <div ref={shellRef} data-cs="agent-card" className="absolute overflow-hidden bg-white shadow-[0_0_0_0.5px_rgba(16,16,16,0.06),0_15px_60px_rgba(0,0,0,0.08)]" style={{ left: STAGE.w / 2, top: LINE_Y, width: 0, height: 0, opacity: 0, transformOrigin: "50% 50%" }}>
             <div ref={cardInnerRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: AGENT_CARD.w, height: AGENT_CARD.h, opacity: 0 }}>
               <div className="absolute rounded-[9px]" style={{ left: AGENT_CARD.inset, right: AGENT_CARD.inset, top: AGENT_CARD.inset, height: AGENT_CARD.band, background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.04) 100%), #f5f5f4" }} />
               <div className="absolute left-1/2 flex w-[258px] -translate-x-1/2 flex-col items-center gap-[3px] text-center" style={{ top: 210 }}>
@@ -475,9 +425,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
           <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
-          {/* The agent, from the pill's seat to the card's band to the indicator's face. */}
-          <img ref={floatRef} src={AGENT.avatar} alt="" decoding="async" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 22, height: 22 }} />
-          {/* The typing indicator: the face, then three dots, then the composer's own line. */}
+          {/* The agent's face — what the disc becomes, on the card's band. */}
+          <img ref={floatRef} src={AGENT.avatar} alt="" decoding="async" className="absolute rounded-full object-cover" style={{ opacity: 0, width: 132, height: 132 }} />
+          {/* The typing indicator: the library's cycle, then the composer's own line. */}
           <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_BIG, height: INDICATOR_BIG, transformOrigin: "50% 50%" }}>
             {indicator ? <Stage frame={indicator} size={INDICATOR_BIG} avatarSrc={AGENT.avatar} /> : null}
           </div>

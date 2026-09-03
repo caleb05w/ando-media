@@ -11,17 +11,13 @@ export type Timing = {
   line: number;
   /** Things curve in from off-frame and join the line. Caption. */
   stream: number;
-  /** The disc lands on the line; first title. */
+  /** The camera pans right, fast — the line streaks left. */
+  pan: number;
+  /** The agent comes into frame at the right; the stream runs into it. First title. */
   agent: number;
-  /** The line is pulled into the disc — every dot, sucked in. */
-  absorb: number;
-  /** The ground becomes the sky; the disc drifts to the seat of a pill. */
-  sky: number;
-  /** The trace: "Starting agent session", the sources, the reading, the draft. */
-  trace: number;
-  /** The pill collapses into the agent's card; the sky goes. */
-  collapse: number;
-  /** The agent becomes the typing indicator. */
+  /** The disc becomes the agent's card: the face, the name. */
+  card: number;
+  /** The card hands its face to the typing indicator, which runs its cycle. */
   indicator: number;
   /** "so we built an interface around that": the window, the composer, the indicator finds its line. */
   iface: number;
@@ -44,17 +40,15 @@ export type Timing = {
   end: number;
 };
 
-export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "agent", "absorb", "sky", "trace", "collapse", "indicator", "iface", "chat", "sidebar", "typing", "sara", "ask", "send", "reply", "logo", "end"];
+export const ORDER: (keyof Timing)[] = ["gather", "line", "stream", "pan", "agent", "card", "indicator", "iface", "chat", "sidebar", "typing", "sara", "ask", "send", "reply", "logo", "end"];
 
 export const LABELS: Record<keyof Timing, string> = {
   gather: "congregate",
   line: "the line",
   stream: "context stream",
-  agent: "the agent",
-  absorb: "absorb",
-  sky: "the sky",
-  trace: "the trace",
-  collapse: "collapse",
+  pan: "the pan",
+  agent: "the agent eats",
+  card: "the card",
   indicator: "typing indicator",
   iface: "an interface",
   chat: "chat",
@@ -72,20 +66,18 @@ export const DEFAULT_TIMING: Timing = {
   gather: 1.6,
   line: 3.3,
   stream: 3.9,
-  agent: 6.6,
-  absorb: 8.4,
-  sky: 9.8,
-  trace: 11.2,
-  collapse: 18.4,
-  indicator: 19.6,
-  iface: 21.4,
-  chat: 22.8,
-  sidebar: 23.8,
-  typing: 24.5,
-  sara: 25.7,
-  ask: 26.4,
-  send: 28.4,
-  reply: 31.4,
-  logo: 34.3,
-  end: 36.9,
+  pan: 6.2,
+  agent: 7.0,
+  card: 9.6,
+  indicator: 11.9,
+  iface: 16.2,
+  chat: 17.6,
+  sidebar: 18.6,
+  typing: 19.3,
+  sara: 20.5,
+  ask: 21.2,
+  send: 23.2,
+  reply: 26.2,
+  logo: 29.1,
+  end: 31.7,
 };

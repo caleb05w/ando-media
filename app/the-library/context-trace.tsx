@@ -79,8 +79,6 @@ const T = {
   done: 12600,
   cycle: 16600,
 };
-/** The run's beats, for a film that drives this trace on its own clock. */
-export const TRACE_T = T;
 
 const SOURCES: Source[] = [
   {
@@ -431,23 +429,16 @@ export function CheckDisc() {
 
 /* -------------------------------- component -------------------------------- */
 
-export function ContextTrace({
+function ContextTrace({
   vt,
   open,
   onToggle,
   theme = "dark",
-  width = 360,
-  avatar = "/agent-working/agent-1.png",
 }: {
-  /** ms on the trace's own clock — see T above for the beats */
   vt: number;
   open: boolean;
   onToggle: () => void;
   theme?: "dark" | "light";
-  /** the card's width; /the-library's canvas gives it 360 */
-  width?: number | string;
-  /** the face in the seat — the library's storyboard agent unless told otherwise */
-  avatar?: string;
 }) {
   const done = vt >= T.done;
   const arrived = SOURCES.filter((s) => vt >= s.arrive);
@@ -478,8 +469,7 @@ export function ContextTrace({
 
   return (
     <div
-      className={`ct-${theme} rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
-      style={{ width }}
+      className={`ct-${theme} w-[360px] rounded-[14px] border border-[color:var(--ct-border)] bg-[color:var(--ct-bg)]`}
     >
       {/* The rail rides ABOVE the line: sources queue overhead and drain
           downward into the agent as they're read. */}
@@ -555,7 +545,7 @@ export function ContextTrace({
           ) : (
             <img
               key={seat === "avatar-back" ? "back" : "front"}
-              src={avatar}
+              src="/agent-working/agent-1.png"
               alt=""
               className={`size-[22px] rounded-full object-cover ${
                 seat === "avatar-out"

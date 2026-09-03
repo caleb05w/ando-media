@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "bash scripts/vercel-ignore.sh"
+  "ignoreCommand": "bash scripts/vercel-ignore.sh",
+  "installCommand": "CENTRAL_LICENSE_KEY=\"${CENTRAL_LICENSE_KEY:-placeholder}\" npm install"
 }

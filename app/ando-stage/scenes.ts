@@ -384,13 +384,12 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "sara", text: "and the golden ticket as the close", ms: 430 },
     { kind: "transcript", who: "caleb", text: "ship it", ms: 1500 },
     // Shot 4 — white. The middle line.
-    // Sara pinged Tadao in the thread while the transcript was up; the
-    // cursor sets off for Thread as the card's white is still fading, and
-    // opens onto her line already there.
+    // The cursor sets off for Thread as the card's white is still fading;
+    // once the thread is open, Sara pings Tadao in it.
     { kind: "type", text: "Jam it out with your human (and agent) teammates", faces: ["caleb", "sara", "tadao"], hold: 2.6, ms: 2800 },
-    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 0, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
     { kind: "cursor", to: "thread-tab", glyph: "pointer", press: true, ms: 950 },
-    { kind: "tab", tab: "thread", ms: 350 },
+    { kind: "tab", tab: "thread", ms: 250 },
+    { kind: "say", id: "j7", who: "sara", time: "11:12 AM", thread: true, ms: 400, body: [[{ text: "@Tadao", mention: true, agent: true }, { text: " can you make sure to follow up w/ us" }]] },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Reading the call transcript…", icon: "transcript", ms: 1200 },
     { kind: "trace", run: "t1", on: "j7", who: "tadao", label: "Drafting the recap…", icon: "write", ms: 600 },
     { kind: "trace-done", run: "t1", tool: "Post Message", ms: 200 },

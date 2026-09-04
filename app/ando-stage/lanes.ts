@@ -24,6 +24,7 @@ function label(scene: Scene, beat: Beat): string {
     case "jam-start": return `${scene.cast[beat.participants[0]].name.split(" ")[0]} starts jam`;
     case "jam-join": return "you join";
     case "jam-answer": return "you pick up";
+    case "join": return `${scene.cast[beat.who].name} joins`;
     case "dm-unread": return `${scene.cast[beat.who].name} DMs you`;
     case "surface": return beat.to.kind === "channel" ? `open #${beat.to.name}` : `open ${scene.cast[beat.to.who].name}`;
     case "jam-end": return "jam ends";

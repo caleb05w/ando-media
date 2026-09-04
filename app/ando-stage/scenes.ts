@@ -57,7 +57,7 @@ export type Beat =
    *  otherwise it glides from where it was. */
   | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
   /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
-  | { kind: "type"; text: string; /** More lines after `text`: each arrives word by word once the one before has held (`lineHold` seconds), which then lifts and blurs away above it. `hold` is the last line's. */ lines?: string[]; lineHold?: number; hold: number; /** An avatar stack above the first line: each face pops in as the word at index `on` arrives. */ faces?: Array<{ who: string; on: number }>; ms: number }
+  | { kind: "type"; text: string; /** Seconds before the card that the UI starts receding (page.tsx CARD_LEAD when unset). */ lead?: number; /** More lines after `text`: each arrives word by word once the one before has held (`lineHold` seconds), which then lifts and blurs away above it. `hold` is the last line's. */ lines?: string[]; lineHold?: number; hold: number; /** An avatar stack above the first line: each face pops in as the word at index `on` arrives. */ faces?: Array<{ who: string; on: number }>; ms: number }
   /** The agent reading the jam: the library's context trace on white, run
    *  from its start for `hold` seconds, then a fade back to the room. */
   | { kind: "context"; hold: number; ms: number }
@@ -71,6 +71,8 @@ export type Beat =
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; /** the indicator sits over the Jam thread's composer, not the room's */ thread?: true; ms: number }
   | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; /** Lands in a DM (see the `surface` beat), not the channel. */ room?: "dm"; /** Types out character by character from the moment it lands (an agent writing), instead of arriving whole. */ typed?: true; ms: number }
+  /** Someone joins the channel: the product's system row lands and the header's member count ticks up. */
+  | { kind: "join"; id: string; who: string; time: string; ms: number }
   /** A DM goes unread in the sidebar. */
   | { kind: "dm-unread"; who: string; ms: number }
   /** The room switches to another conversation. */

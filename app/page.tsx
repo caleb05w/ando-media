@@ -25,6 +25,13 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
+    href: "/ando-grok",
+    week: "2026-08-31",
+    title: "Ando, Grok cut",
+    tag: "Motion",
+    brief: "The Ando window, still — a storyboard starts here.",
+  },
+  {
     href: "/context-stream",
     week: "2026-08-31",
     title: "Agent context",

@@ -278,7 +278,8 @@ export function ConversationHeader({ scene, jamControl }: { scene: Scene; jamCon
         {surface.kind === "channel" ? (
           <span className="flex items-center gap-1.5 justify-center px-2 py-1 border border-ando-border-default rounded-md">
             <Icon name="IconTeam" className="kanso-text-label-14 text-ando-fg-secondary" />
-            <span className="text-sm leading-4 text-ando-fg-primary">{surface.members}</span>
+            {/* The count re-lands when it changes (a join): the row entrance, keyed on the number. */}
+            <span key={surface.members} className="st-land text-sm leading-4 text-ando-fg-primary tabular-nums">{surface.members}</span>
           </span>
         ) : null}
       </div>

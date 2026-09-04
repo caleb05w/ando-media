@@ -71,11 +71,13 @@ function isCloser(scene: Scene, key: string): boolean {
   return scene.beats[index + 1]?.kind === "logo";
 }
 /** The stage-clock second of the next type card still ahead of `vt` (null when none). */
-function nextTypeCardAt(scene: Scene, T: Timing, vt: number): number | null {
+/** The stage-clock second of the next type card still ahead of `vt`, and how far ahead of it the UI starts receding (null when none). */
+function nextTypeCardAt(scene: Scene, T: Timing, vt: number): { t: number; lead: number } | null {
   for (let index = 0; index < scene.beats.length; index += 1) {
-    if (scene.beats[index].kind !== "type") continue;
+    const beat = scene.beats[index];
+    if (beat.kind !== "type") continue;
     const t = T[beatKey(index)];
-    if (t > vt) return t;
+    if (t > vt) return { t, lead: beat.lead ?? CARD_LEAD };
   }
   return null;
 }
@@ -85,6 +87,8 @@ const TYPE_CPS = 110;
 
 type Row =
   | { kind: "mark"; key: string; label: string; tone?: "attention"; beat?: string }
+  /** The product's system row: someone joined the channel. */
+  | { kind: "join"; key: string; who: Actor; time: string; beat?: string; /** Lands where a typing indicator was. */ replacesTyping?: boolean }
   | {
       kind: "message";
       key: string;
@@ -133,6 +137,8 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
   const thread: Row[] = [];
   const dm: Row[] = [];
   let surface: Surface = scene.surface;
+  /** People who joined the channel so far: the header's count grows by this. */
+  let joined = 0;
   let unreadDms: string[] = [];
   let sidebar = false;
   const messages = new Map<string, MessageRow>();
@@ -251,6 +257,10 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
       case "sidebar":
         sidebar = true;
         break;
+      case "join":
+        rows.push({ kind: "join", key: beat.id, who: scene.cast[beat.who], time: beat.time, beat: beatKey(index), replacesTyping: index > 0 && scene.beats[index - 1].kind === "typing" });
+        joined += 1;
+        break;
       case "dm-unread":
         if (!unreadDms.includes(beat.who)) unreadDms = [...unreadDms, beat.who];
         sidebar = true;
@@ -286,7 +296,8 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
 
   // You never see your own indicator — your lines type in the composer instead.
   const last = cursor > 0 ? scene.beats[cursor - 1] : null;
-  return { rows, thread, dm, surface, unreadDms, sidebar, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, typingInThread: last?.kind === "typing" && last.thread === true, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
+  const shown: Surface = surface.kind === "channel" && joined > 0 ? { ...surface, members: surface.members + joined } : surface;
+  return { rows, thread, dm, surface: shown, unreadDms, sidebar, typing: last?.kind === "typing" && last.who !== ME ? scene.cast[last.who] : null, typingInThread: last?.kind === "typing" && last.thread === true, speaking: last?.kind === "speak" ? speakingNow : null, scriptedJam, ringing, jamPhase, tab, transcript };
 }
 
 function formatFileSize(bytes: number): string {
@@ -560,15 +571,43 @@ function MarkRow({ label, tone, beat }: { label: string; tone?: "attention"; bea
   );
 }
 
+/** system-message/index.tsx, MEMBER_JOINED: the arrow tile, "@who joined the
+ *  channel", the time. The row lands like any other row; nothing inside it moves. */
+function JoinRow({ row, clearance = 36 }: { row: Extract<Row, { kind: "join" }>; clearance?: number }) {
+  return (
+    <Landing anchor="top" from={row.replacesTyping ? clearance : 0} data-beat={row.beat} data-row-id={row.key}>
+      <div className="flex flex-col gap-2 pb-2">
+        <div className="flex items-center gap-3 py-1 -ml-4 pl-4 text-ando-fg-secondary hover:bg-ando-bg-fill-subtle rounded-r-md">
+          <div className="relative flex size-8 shrink-0 items-center justify-center rounded bg-ando-bg-fill-muted">
+            <Icon name="IconArrowRight" size={20} stroke="2" className="shrink-0 text-ando-fg-success" />
+          </div>
+          <div className="min-w-0">
+            <span className="kanso-text-label-14 inline">
+              <span className="ando-inline-chip rounded-xs bg-ando-bg-brand/10 text-ando-fg-brand">@{row.who.name}</span>
+              {" joined the channel"}
+            </span>
+            <span className="kanso-text-label-12 text-ando-fg-tertiary inline ml-1.5">{row.time}</span>
+          </div>
+        </div>
+      </div>
+    </Landing>
+  );
+}
+
 /* --------------------------------- page --------------------------------- */
 
 export default function AndoStage() {
+  return <StagePage scenes={SCENES} notesUrl="/ando-stage/api/notes" savesKey="ando-stage-composer-saves" />;
+}
+
+/** The stage on any script: a route brings its scenes and its own notes file. */
+export function StagePage({ scenes, notesUrl, savesKey }: { scenes: Scene[]; notesUrl: string; savesKey: string }) {
   const [sceneIndex, setSceneIndex] = useState(0);
-  const scene = SCENES[sceneIndex];
+  const scene = scenes[sceneIndex];
   const lanes = useMemo(() => lanesFor(scene), [scene]);
   const total = useMemo(() => totalFor(scene), [scene]);
   const timing = useMemo(() => defaultTiming(scene), [scene]);
-  const cycleScene = useCallback(() => setSceneIndex((index) => (index + 1) % SCENES.length), []);
+  const cycleScene = useCallback(() => setSceneIndex((index) => (index + 1) % scenes.length), [scenes.length]);
 
   if (scene.beats.length === 0) {
     // Nothing to direct: the room alone, live.
@@ -579,8 +618,8 @@ export default function AndoStage() {
       key={scene.id}
       defaultTiming={timing}
       lanes={lanes}
-      notesUrl="/ando-stage/api/notes"
-      savesKey={`ando-stage-composer-saves:${scene.id}:${scene.beats.length}`}
+      notesUrl={notesUrl}
+      savesKey={`${savesKey}:${scene.id}:${scene.beats.length}`}
       scope={scene.id}
       span={Math.ceil(total(timing))}
       title={`Timeline · ${scene.name}`}
@@ -898,14 +937,16 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (win) {
         // The window rises 20px into place, no scale, on a quartic ease-out.
         const p = 1 - Math.pow(1 - seg(vt, 0.15, 0.6), 4);
-        // ...and in the CARD_LEAD before a type card cuts in, the whole UI
-        // recedes: it blurs, dims and eases down a touch, so the card lands
-        // on something already letting go. It stays receded under the card
-        // and comes back as the card fades out, so the white dissolves onto
-        // a UI sharpening into place (never a snap under a one-frame gap).
+        // ...and in the lead before a type card cuts in, the whole UI
+        // recedes: a soft blur and a step back to 0.95 — no dimming, so the
+        // room keeps talking at full strength while it lets go. It stays
+        // receded under the card and comes back as the card fades out, so the
+        // white dissolves onto a UI sharpening into place (never a snap
+        // under a one-frame gap).
         const next = nextTypeCardAt(scene, T, vt);
         const cardExit = tc ? (isCloser(scene, tc.key) ? 0 : easeInOut(seg(vt - tc.t, tc.hold, TYPE_EXIT))) : 0;
-        const recede = tc ? 1 - cardExit : next == null ? 0 : easeInOut(seg(vt, next - CARD_LEAD, CARD_LEAD));
+        // A card can bring its own lead (scenes.ts `lead`); CARD_LEAD otherwise.
+        const recede = tc ? 1 - cardExit : next == null ? 0 : easeInOut(seg(vt, next.t - next.lead, next.lead));
         win.style.opacity = `${Math.min(1, p * 1.6)}`;
         win.style.transform = `translateY(${20 * (1 - p)}px) scale(${1 - 0.04 * recede})`;
         win.style.filter = recede > 0 ? `blur(${8 * recede}px)` : "none";
@@ -913,7 +954,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         // card (its ground arriving, not a cut), whole under the card, thinning
         // with the card's exit as the UI sharpens back. The closer's stays.
         const wash = washRef.current;
-        if (wash) wash.style.opacity = `${tc ? 1 - cardExit : next == null ? 0 : ease(seg(vt, next - WASH_LEAD, WASH_LEAD))}`;
+        if (wash) wash.style.opacity = `${tc ? 1 - cardExit : next == null ? 0 : ease(seg(vt, next.t - WASH_LEAD, WASH_LEAD))}`;
       }
 
       // The camera. Every anchor is read from live layout and brought back
@@ -1059,7 +1100,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           {/* The typing indicator's clearance eases in and out on the landing curve, so the transcript never jumps when someone stops typing and their line lands. */}
           <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing && !typingInThread ? 44 : 8, transition: typing && !typingInThread ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }}>
             <div aria-hidden className="mt-auto shrink-0" />
-            {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
+            {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : row.kind === "join" ? <JoinRow key={row.key} row={row} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
           <Composer scene={room} typing={typingInThread ? null : typing} onSend={send} scripted={draftInThread ? null : scriptedDraft} />
         </main>
@@ -1088,7 +1129,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 typing={typingInThread ? typing : null}
                 onSend={sendThread}
                 threadCount={thread.length}
-                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" clearance={40} />)}
+                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : row.kind === "join" ? <JoinRow key={row.key} row={row} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" clearance={40} />)}
               />
             </JamStage>
           </>

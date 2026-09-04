@@ -11,9 +11,9 @@ import { VARIANTS, type Variant } from "../agent-typing-experience/variants";
 import { INDICATOR } from "./stream";
 import type { Timing } from "./timing";
 
-export const FACES = { grok: "/agents/grok.svg", claude: "/agents/claude.png", codex: "/agents/codex.png" } as const;
+export const FACES = { grok: "/avatars/sara-grok.png", claude: "/agents/claude.png", codex: "/agents/codex.png" } as const;
 /** The faces that are a mark, not a portrait: no disc under them once they
- *  have landed. Grok's eyes are cutouts, so it counts. */
+ *  have landed. */
 export const BARE: ReadonlySet<string> = new Set([FACES.grok, FACES.claude, FACES.codex]);
 const variant = (key: string): Variant => VARIANTS.find((v) => v.key === key) ?? INDICATOR;
 /** The becomings, in order: who the agent becomes. The first is the morph

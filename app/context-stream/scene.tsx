@@ -88,7 +88,11 @@ function sampleMark(img: HTMLImageElement): MarkDot[] {
     for (let x = step / 2; x < size; x += step) {
       const i = (Math.floor(y) * size + Math.floor(x)) * 4;
       if (data[i + 3] < 120) continue;
-      pts.push({ x: (x / size - 0.5) * MARK_PX, y: (y / size - 0.5) * MARK_PX, r: data[i], g: data[i + 1], b: data[i + 2] });
+      // Only what shows: the Stage clips the image to the disc.
+      const dx = x / size - 0.5;
+      const dy = y / size - 0.5;
+      if (dx * dx + dy * dy > 0.25) continue;
+      pts.push({ x: dx * MARK_PX, y: dy * MARK_PX, r: data[i], g: data[i + 1], b: data[i + 2] });
     }
   }
   if (pts.length === 0) return [];

@@ -124,18 +124,16 @@
   animation: st-speak-ring 2.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* The type card's face stack, talking: the same voice pattern as the call's
- * ring, outside the 3px ground that separates the overlapping faces. Each
- * face runs at its own offset (animation-delay), so they never speak in
- * unison. */
+/* The type card's face stack, talking — the humans only; agents listen.
+ * One person speaks at a time: a phrase for the first ~45% of the cycle,
+ * quiet after, and the second speaker runs half a cycle behind (its
+ * animation-delay), so the ring trades hands with a breath between and
+ * at most a moment of both. Outside the 3px ground that separates the
+ * overlapping faces. */
 @keyframes st-face-ring {
-  0%, 14%   { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
-  18%, 24%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.15); }
-  28%, 50%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
-  55%, 60%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.2); }
-  64%, 82%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
-  87%, 93%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.1); }
-  100%      { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
+  0%        { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.1); }
+  5%, 44%   { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
+  50%, 100% { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.1); }
 }
 .st-face-talking {
   animation: st-face-ring 4.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;

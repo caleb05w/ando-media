@@ -1089,7 +1089,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 typing={typingInThread ? typing : null}
                 onSend={sendThread}
                 threadCount={thread.length}
-                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : row.kind === "join" ? <JoinRow key={row.key} row={row} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" clearance={40} />)}
+                thread={thread.map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : row.kind === "join" ? <JoinRow key={row.key} row={row} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} anchor="top" clearance={30} />)}
               />
             </JamStage>
           </>

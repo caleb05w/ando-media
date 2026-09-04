@@ -459,7 +459,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
           </div>
         ) : (
         /* The typing indicator's clearance eases in and out on the landing curve (as the room's does), so the last row is never under it. */
-        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" style={{ paddingBottom: typing ? 40 : 0, transition: typing ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }} data-jam-thread>
+        <div ref={threadRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-3" style={{ paddingBottom: typing ? 30 : 0, transition: typing ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }} data-jam-thread>
           {/* Bottom-anchored like the room: a reply lands at the composer and pushes the join event up. */}
           <div aria-hidden className="mt-auto shrink-0" />
           {/* system-message/index.tsx: join event */}

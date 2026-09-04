@@ -71,15 +71,15 @@ export type Beat =
   | { kind: "title"; eyebrow?: string; sub?: string; headline: string; hold: number; ms: number }
   | { kind: "typing"; who: string; /** the indicator sits over the Jam thread's composer, not the room's */ thread?: true; ms: number }
   | { kind: "say"; id: string; who: string; time: string; body: Segment[][]; /** Lands in the Jam panel's thread, not the room. */ thread?: true; /** Lands in a DM (see the `surface` beat), not the channel. */ room?: "dm"; /** Types out character by character from the moment it lands (an agent writing), instead of arriving whole. */ typed?: true; ms: number }
-  /** Someone joins the channel: the product's system row lands and the header's member count ticks up. */
-  | { kind: "join"; id: string; who: string; time: string; ms: number }
+  /** People join the channel — one system row for all of them (Ando-Brand 4003-6655) — and the header's member count ticks up by as many. */
+  | { kind: "join"; id: string; who: string[]; time: string; ms: number }
   /** A DM goes unread in the sidebar. */
   | { kind: "dm-unread"; who: string; ms: number }
   /** The room switches to another conversation. */
   | { kind: "surface"; to: Surface; ms: number }
   | { kind: "card"; id: string; who: string; time: string; card: LaunchCard; ms: number }
-  /** A file lands. Optional body posts as the message text above it. */
-  | { kind: "attach"; id: string; who: string; time: string; body?: Segment[][]; attachment: Attachment; ms: number }
+  /** A file lands — or several, side by side. Optional body posts as the message text above them. */
+  | { kind: "attach"; id: string; who: string; time: string; body?: Segment[][]; attachment: Attachment | Attachment[]; ms: number }
   | { kind: "react"; on: string; emoji: string; count: number; ms: number }
   | { kind: "agent"; run: string; on: string; who: string; task: string; ms: number }
   | { kind: "agent-done"; run: string; id: string; time: string; body: Segment[][]; ms: number };
@@ -544,7 +544,8 @@ export function scriptedDraftAt(scene: Scene, T: Timing, vt: number): string | n
   const prevEnd = next > 0 ? T[beatKey(next - 1)] : 0;
   const room = start - prevEnd - 0.15;
   const hold = Math.min(SEND_HOLD, Math.max(0, room - 0.3));
-  const window = Math.max(0.25, Math.min(room - hold, 0.013 * keyed + 0.15));
+  // ~28 characters a second at full stretch: a real typist, not a paste.
+  const window = Math.max(0.25, Math.min(room - hold, 0.035 * keyed + 0.15));
   const from = start - hold - window;
   if (vt < from) return null;
   const total = steps.reduce((sum, step) => sum + step.w, 0);

@@ -183,3 +183,28 @@
   animation: st-ring 1.5s cubic-bezier(0.2, 0, 0, 1) infinite;
 }
 
+/* People joining the channel: the row lands like any row, then each face
+ * pops into its seat — small, an overshoot, settle — one after another on
+ * a short stagger, the way the reaction pill lands. The first delay is the
+ * row's own landing, so the faces arrive into a row that is already there. */
+@keyframes st-join-pop {
+  0%   { opacity: 0; transform: scale(0.3); }
+  65%  { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.st-join-pop {
+  animation: st-join-pop 360ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(220ms + var(--i, 0) * 140ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-join-pop { animation-duration: 0.01s; animation-delay: 0s; }
+}
+
+/* The clean view (⌘H on the stage): a capture-ready frame. The Studio's pill
+ * and the Agentation toolbar step out; the film keeps playing. */
+.stage-clean [data-studio-pill],
+.stage-clean [data-agentation-toolbar] {
+  display: none !important;
+}

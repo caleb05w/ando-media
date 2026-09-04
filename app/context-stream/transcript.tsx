@@ -60,6 +60,7 @@ const t = (text: string): Segment => ({ text });
 
 /** The agents in the room: the two that spoke first in the film, and the
  *  one still typing. They chime in on their own — nobody tags them. */
+/** In the room it is Sara's own Grok: her picture of it, not the mark. */
 export const GROK: Actor = { name: "Grok", avatar: "/avatars/sara-grok.png", agent: true };
 export const CLAUDE: Actor = { name: "Claude", avatar: "/agents/claude.png", agent: true };
 export const ROWS: RowDef[] = [

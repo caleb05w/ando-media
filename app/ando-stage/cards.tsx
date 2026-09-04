@@ -162,13 +162,15 @@ export const WORD_CADENCE = 0.15;
 /** How long a word takes to land. */
 export const WORD_LAND = 0.42;
 
-export type TypeCardOn = { key: string; /** Each line's words. */ lines: string[][]; /** When each line starts, from the card's own zero. */ starts: number[]; /** When each line begins to leave. */ ends: number[]; t: number; /** The whole card's hold: the last line's end. */ hold: number; faces: Array<{ actor: Actor; on: number }> };
+export type TypeCardOn = { key: string; /** Each line's words. */ lines: string[][]; /** When each line starts, from the card's own zero. */ starts: number[]; /** When each line begins to leave. */ ends: number[]; t: number; /** The whole card's hold: the last line's end. */ hold: number; faces: Array<{ actor: Actor; on: number; line: number }> };
 /** How long a line takes to lift and blur away once its hold is up. */
 export const LINE_EXIT = 0.5;
 /** Seconds for a line's words to finish arriving. */
 export const lineArrive = (words: number) => (words - 1) * WORD_CADENCE + WORD_LAND;
 /** A face pops in with the word it is keyed to, over this long. */
 export const FACE_LAND = 0.55;
+/** Each face past the first widens the stack by this (56px face, 14px overlap). */
+const FACE_STEP = 42;
 
 export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | null {
   for (let index = 0; index < scene.beats.length; index += 1) {
@@ -187,7 +189,7 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
     });
     const hold = at;
     if (vt < t || vt > t + hold + TYPE_EXIT) continue;
-    return { key: beatKey(index), lines, starts, ends, t, hold, faces: (beat.faces ?? []).map((face) => ({ actor: scene.cast[face.who], on: face.on })) };
+    return { key: beatKey(index), lines, starts, ends, t, hold, faces: (beat.faces ?? []).map((face) => ({ actor: scene.cast[face.who], on: face.on, line: face.line ?? 0 })) };
   }
   return null;
 }
@@ -201,15 +203,22 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
 export function driveTypeCard(tc: TypeCardOn, local: number, closer: boolean) {
   const lines = Array.from(document.querySelectorAll<HTMLElement>("[data-type-line]"));
   if (lines.length === 0) return;
-  // Each face pops in with the word (of the first line) it is keyed to.
+  // Each face pops in with the word (of its line) it is keyed to. The
+  // stack is laid out at its full width; the faces still to come sit at
+  // its right end unseen, and the stack slides so the ones that are here
+  // read centred — so a late run (the agents) grows it out from the middle.
   const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
-  const seen = new Map<number, number>();
+  const seen = new Map<string, number>();
+  let here = 0;
   faces.forEach((face) => {
     const on = Number(face.dataset.on ?? 0);
+    const line = Number(face.dataset.line ?? 0);
     // Faces keyed to one word arrive in a run, 70ms apart.
-    const nth = seen.get(on) ?? 0;
-    seen.set(on, nth + 1);
-    const p = seg(local, on * WORD_CADENCE + nth * 0.07, FACE_LAND);
+    const key = `${line}:${on}`;
+    const nth = seen.get(key) ?? 0;
+    seen.set(key, nth + 1);
+    const p = seg(local, (tc.starts[line] ?? 0) + on * WORD_CADENCE + nth * 0.07, FACE_LAND);
+    here += ease(p);
     face.style.opacity = `${Math.min(1, p * 3)}`;
     face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
   });
@@ -249,7 +258,9 @@ export function driveTypeCard(tc: TypeCardOn, local: number, closer: boolean) {
   // it) and leaves with the card.
   const stack = document.querySelector<HTMLElement>("[data-type-faces]");
   if (stack) {
-    stack.style.transform = `translateY(${-28 * exit}px)`;
+    // Each face past the first adds FACE_STEP to the width; centre the faces that are here.
+    const centre = (faces.length - here) * FACE_STEP / 2;
+    stack.style.transform = `translate(${centre}px, ${-28 * exit}px)`;
     stack.style.opacity = `${1 - exit}`;
     stack.style.filter = exit > 0 ? `blur(${8 * exit}px)` : "none";
   }
@@ -268,6 +279,7 @@ export function TypeCard({ card }: { card: TypeCardOn }) {
               key={face.actor.name}
               data-face
               data-on={face.on}
+              data-line={face.line}
               src={face.actor.avatar}
               alt=""
               className={`${face.actor.agent ? "" : "st-face-talking "}size-14 rounded-full will-change-transform ${face.actor.avatar.startsWith("/agents/") ? "object-contain p-1" : "object-cover"}`}

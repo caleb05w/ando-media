@@ -57,7 +57,7 @@ export type Beat =
    *  otherwise it glides from where it was. */
   | { kind: "camera"; at: CameraAnchor; scale: number; push?: number; cut?: boolean; ms: number }
   /** A type card: cut to white, the line arrives word by word, held `hold` seconds. */
-  | { kind: "type"; text: string; /** Seconds before the card that the UI starts receding (page.tsx CARD_LEAD when unset). */ lead?: number; /** More lines after `text`: each arrives word by word once the one before has held (`lineHold` seconds), which then lifts and blurs away above it. `hold` is the last line's. */ lines?: string[]; lineHold?: number; hold: number; /** An avatar stack above the first line: each face pops in as the word at index `on` arrives. */ faces?: Array<{ who: string; on: number }>; ms: number }
+  | { kind: "type"; text: string; /** Seconds before the card that the UI starts receding (page.tsx CARD_LEAD when unset). */ lead?: number; /** More lines after `text`: each arrives word by word once the one before has held (`lineHold` seconds), which then lifts and blurs away above it. `hold` is the last line's. */ lines?: string[]; lineHold?: number; hold: number; /** An avatar stack above the lines: each face pops in as the word at index `on` of line `line` (the first when unset) arrives; the stack re-centres as it grows. */ faces?: Array<{ who: string; on: number; line?: number }>; ms: number }
   /** The agent reading the jam: the library's context trace on white, run
    *  from its start for `hold` seconds, then a fade back to the room. */
   | { kind: "context"; hold: number; ms: number }
@@ -418,8 +418,9 @@ const JAMS_CUT: Scene = {
     {
       kind: "type",
       text: "Jam it out together",
-      // Jam(0) it(1) out(2) together(3): you, Sara, then the agents in a run on "together". The stack stays for all three lines.
-      faces: [{ who: "caleb", on: 1 }, { who: "sara", on: 2 }, { who: "tadao", on: 3 }, { who: "grok", on: 3 }, { who: "claude", on: 3 }, { who: "codex", on: 3 }],
+      // Jam(0) it(1) out(2) together(3): you and Sara, talking. The agents join the
+      // stack in a run on "agents" of the third line (Your(0) agents(1) follow(2) along(3)).
+      faces: [{ who: "caleb", on: 1 }, { who: "sara", on: 2 }, { who: "tadao", on: 1, line: 2 }, { who: "grok", on: 1, line: 2 }, { who: "claude", on: 1, line: 2 }, { who: "codex", on: 1, line: 2 }],
       lines: ["Calls that are live transcribed", "Your agents follow along"],
       lineHold: 0.8,
       hold: 2.1,

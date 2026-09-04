@@ -47,6 +47,15 @@ const CURSOR_GLYPHS = {
   text: { src: "/cursors/cursor-ibeam.svg", w: 13, h: 22, dx: -6.5, dy: -10 },
 } as const;
 
+/** The closing lockup: when each half starts condensing (seconds after the
+ *  logo beat), how long the fade takes, and how soft it starts. */
+const LOGO_MARK_IN = 0.6;
+const LOGO_LETTERS_IN = 0.9;
+const LOGO_FADE = 1.1;
+const LOGO_BLUR = 16;
+/** How far each half comes in from the left (px). */
+const LOGO_TRAVEL = 56;
+
 /** Room the Studio pill needs at the foot of the window. */
 const STUDIO_CLEARANCE = 72;
 /** image-sizing.ts */
@@ -80,8 +89,8 @@ const TYPE_CPS = 110;
 
 type Row =
   | { kind: "mark"; key: string; label: string; tone?: "attention"; beat?: string }
-  /** The product's system row: someone joined the channel. */
-  | { kind: "join"; key: string; who: Actor; time: string; beat?: string; /** Lands where a typing indicator was. */ replacesTyping?: boolean }
+  /** The product's system row: these people joined the channel. */
+  | { kind: "join"; key: string; who: Actor[]; time: string; beat?: string; /** Lands where a typing indicator was. */ replacesTyping?: boolean }
   | {
       kind: "message";
       key: string;
@@ -90,6 +99,8 @@ type Row =
       body?: Segment[][];
       card?: LaunchCard;
       attachment?: Attachment;
+      /** Several files in one message: a wrapping row of previews. */
+      attachments?: Attachment[];
       jam?: JamCall;
       /** Agent runs under this message: a finished one that moved onto the
        *  agent's reply, and/or a live one started from it. */
@@ -251,8 +262,8 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
         sidebar = true;
         break;
       case "join":
-        rows.push({ kind: "join", key: beat.id, who: scene.cast[beat.who], time: beat.time, beat: beatKey(index), replacesTyping: index > 0 && scene.beats[index - 1].kind === "typing" });
-        joined += 1;
+        rows.push({ kind: "join", key: beat.id, who: beat.who.map((handle) => scene.cast[handle]), time: beat.time, beat: beatKey(index), replacesTyping: index > 0 && scene.beats[index - 1].kind === "typing" });
+        joined += beat.who.length;
         break;
       case "dm-unread":
         if (!unreadDms.includes(beat.who)) unreadDms = [...unreadDms, beat.who];
@@ -266,7 +277,7 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
         push({ ...base(scene.cast[beat.who], beat.time), key: beat.id, card: beat.card, beat: beatKey(index) }, beat.id);
         break;
       case "attach":
-        push({ ...base(scene.cast[beat.who], beat.time), key: beat.id, body: beat.body, attachment: beat.attachment, beat: beatKey(index) }, beat.id);
+        push({ ...base(scene.cast[beat.who], beat.time), key: beat.id, body: beat.body, ...(Array.isArray(beat.attachment) ? { attachments: beat.attachment } : { attachment: beat.attachment }), beat: beatKey(index) }, beat.id);
         break;
       case "react":
         messages.get(beat.on)?.reactions.push({ emoji: beat.emoji, count: beat.count });
@@ -299,10 +310,13 @@ function formatFileSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-function fitImage(width: number, height: number) {
+/** Previews in a multi-file row share one height, so they sit as a strip. */
+const GALLERY_HEIGHT = 128;
+
+function fitImage(width: number, height: number, maxHeight = MAX_IMAGE_HEIGHT) {
   let w = width, h = height;
   if (w > MAX_IMAGE_WIDTH) { h = h * (MAX_IMAGE_WIDTH / w); w = MAX_IMAGE_WIDTH; }
-  if (h > MAX_IMAGE_HEIGHT) { w = w * (MAX_IMAGE_HEIGHT / h); h = MAX_IMAGE_HEIGHT; }
+  if (h > maxHeight) { w = w * (maxHeight / h); h = maxHeight; }
   return { width: Math.round(w), height: Math.round(h) };
 }
 
@@ -336,8 +350,8 @@ function Body({ body, caret = false }: { body: Segment[][]; /** the line is stil
 
 /** image-attachment-presentation.tsx / video-attachment.tsx on the
  *  file-preview primitive: filename · size label, then the framed media. */
-function AttachmentView({ attachment }: { attachment: Attachment }) {
-  const fit = fitImage(attachment.width, attachment.height);
+function AttachmentView({ attachment, maxHeight }: { attachment: Attachment; /** A shorter frame than a lone attachment gets (a gallery row). */ maxHeight?: number }) {
+  const fit = fitImage(attachment.width, attachment.height, maxHeight);
   const caption = `${attachment.filename} · ${formatFileSize(attachment.bytes)}`;
   return (
     <div className="ando-file-preview" style={{ ["--ando-file-preview-width" as string]: `${fit.width}px` }}>
@@ -535,6 +549,7 @@ function MessageRowView({ row, jamActions, anchor = "top", clearance = 36 }: { r
               {body ? <Body body={body} caret={typing} /> : null}
               {row.card ? <LaunchPost card={row.card} /> : null}
               {row.attachment ? <div className="pt-1.5"><AttachmentView attachment={row.attachment} /></div> : null}
+              {row.attachments ? <div className="flex flex-wrap gap-2 pt-1.5">{row.attachments.map((attachment) => <AttachmentView key={attachment.filename} attachment={attachment} maxHeight={GALLERY_HEIGHT} />)}</div> : null}
               {row.jam ? (row.jam.endedAt == null ? <ActiveJamCallCard call={row.jam} muted={jamActions.muted} elapsed={jamActions.elapsed} onToggleMute={jamActions.toggleMute} onEnd={jamActions.end} onJoin={jamActions.join} /> : <EndedJamCallCard call={row.jam} />) : null}
               {row.reactions.length > 0 ? <ReactionRow reactions={row.reactions} /> : null}
               {row.traces.map((trace) => jamActions.tracePhases[trace.run] ? (trace.leaving ? <Leaving key={trace.run} gap={8}><TraceLine agent={trace.who} participants={jamActions.traceParticipants} phases={jamActions.tracePhases[trace.run]} vt={jamActions.traceVt} onReply={trace.onReply} /></Leaving> : <Landing key={trace.run} gap={8}><TraceLine agent={trace.who} participants={jamActions.traceParticipants} phases={jamActions.tracePhases[trace.run]} vt={jamActions.traceVt} onReply={trace.onReply} /></Landing>) : null)}
@@ -564,24 +579,25 @@ function MarkRow({ label, tone, beat }: { label: string; tone?: "attention"; bea
   );
 }
 
-/** system-message/index.tsx, MEMBER_JOINED: the arrow tile, "@who joined the
- *  channel", the time. The row lands like any other row; nothing inside it moves. */
+/** The join row (Ando-Brand 4003-6655): a 48px line with the newcomers'
+ *  faces at 16px on a 12px pitch, "A & B joined the channel" in secondary,
+ *  the time in tertiary. No tile, no pills. The row lands like any other;
+ *  then the faces pop in one after another (stage.css st-join-pop). */
 function JoinRow({ row, clearance = 36 }: { row: Extract<Row, { kind: "join" }>; clearance?: number }) {
+  const names = row.who.map((actor) => actor.name);
+  const line = names.length <= 1 ? names[0] : `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
   return (
     <Landing anchor="top" from={row.replacesTyping ? clearance : 0} data-beat={row.beat} data-row-id={row.key}>
-      <div className="flex flex-col gap-2 pb-2">
-        <div className="flex items-center gap-3 py-1 -ml-4 pl-4 text-ando-fg-secondary hover:bg-ando-bg-fill-subtle rounded-r-md">
-          <div className="relative flex size-8 shrink-0 items-center justify-center rounded bg-ando-bg-fill-muted">
-            <Icon name="IconArrowRight" size={20} stroke="2" className="shrink-0 text-ando-fg-success" />
-          </div>
-          <div className="min-w-0">
-            <span className="kanso-text-label-14 inline">
-              <span className="ando-inline-chip rounded-xs bg-ando-bg-brand/10 text-ando-fg-brand">@{row.who.name}</span>
-              {" joined the channel"}
+      <div className="flex h-12 items-center gap-2.5 text-ando-fg-secondary">
+        <span className="flex shrink-0 items-center">
+          {row.who.map((actor, i) => (
+            <span key={actor.name} className="st-join-pop relative flex size-4 shrink-0 items-center justify-center rounded-full" style={{ marginLeft: i === 0 ? 0 : -4, zIndex: row.who.length - i, boxShadow: i === 0 ? undefined : "0 0 0 1.5px var(--color-ando-bg-main)", ["--i" as string]: i }}>
+              <Avatar actor={actor} size={16} />
             </span>
-            <span className="kanso-text-label-12 text-ando-fg-tertiary inline ml-1.5">{row.time}</span>
-          </div>
-        </div>
+          ))}
+        </span>
+        <span className="kanso-text-label-14 min-w-0 truncate">{line} joined the channel</span>
+        <span className="kanso-text-label-12 shrink-0 text-ando-fg-tertiary">{row.time}</span>
       </div>
     </Landing>
   );
@@ -908,7 +924,10 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (ccKey !== contextKeyRef.current) { contextKeyRef.current = ccKey; setContextCard(cc); }
       contextLocalRef.current = cc ? vt - cc.t : 0;
 
-      // The logo: cut in, whole, and hold. No motion.
+      // The logo: a beat of white, then the lockup condenses out of it like
+      // a cloud, coming in from the left — the mark first, the wordmark a
+      // beat behind it — each from a soft blur and a touch small, easing to
+      // sharp, still and seated. Then hold.
       const logoT = logoAt(scene, T, vt);
       const on = logoT != null;
       if (on !== logoOnRef.current) { logoOnRef.current = on; setLogoOn(on); }
@@ -916,10 +935,19 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
         const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
         if (mark && letters) {
-          mark.style.opacity = "1";
-          mark.style.transform = `translate(${MARK_OFFSET.x}px, ${MARK_OFFSET.y}px)`;
-          letters.style.opacity = "1";
-          letters.style.transform = `translate(${LETTERS_OFFSET.x}px, ${LETTERS_OFFSET.y}px)`;
+          const local = vt - logoT;
+          const pm = easeInOut(seg(local, LOGO_MARK_IN, LOGO_FADE));
+          const pl = easeInOut(seg(local, LOGO_LETTERS_IN, LOGO_FADE));
+          // The travel eases out on its own, longer curve, so each half is
+          // still settling into its seat as it sharpens.
+          const dm = ease(seg(local, LOGO_MARK_IN, LOGO_FADE + 0.3));
+          const dl = ease(seg(local, LOGO_LETTERS_IN, LOGO_FADE + 0.3));
+          mark.style.opacity = `${pm}`;
+          mark.style.filter = pm < 1 ? `blur(${LOGO_BLUR * (1 - pm)}px)` : "none";
+          mark.style.transform = `translate(${MARK_OFFSET.x - LOGO_TRAVEL * (1 - dm)}px, ${MARK_OFFSET.y}px) scale(${0.94 + 0.06 * pm})`;
+          letters.style.opacity = `${pl}`;
+          letters.style.filter = pl < 1 ? `blur(${LOGO_BLUR * (1 - pl)}px)` : "none";
+          letters.style.transform = `translate(${LETTERS_OFFSET.x - LOGO_TRAVEL * (1 - dl)}px, ${LETTERS_OFFSET.y}px) scale(${0.94 + 0.06 * pl})`;
         }
       }
 
@@ -1045,9 +1073,21 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   }, [cursor, sent.length, typing, followBottom]);
 
   // The Studio owns space, scrub and speed. The stage keeps two keys: `h`
-  // hides the script control for a clean frame, `s` swaps scene.
+  // hides the script control for a clean frame, `s` swaps scene. ⌘H is the
+  // clean view proper: the script control, the Studio's pill and the
+  // Agentation toolbar all go (stage.css .stage-clean), for a capture.
+  const [clean, setClean] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle("stage-clean", clean);
+    return () => document.documentElement.classList.remove("stage-clean");
+  }, [clean]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && (event.key === "h" || event.key === "H")) {
+        event.preventDefault();
+        setClean((current) => !current);
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("[data-stage-editor], input, textarea, [contenteditable]")) return;
@@ -1082,7 +1122,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
           <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
           {/* The typing indicator's clearance eases in and out on the landing curve, so the transcript never jumps when someone stops typing and their line lands. */}
-          <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4" style={{ paddingBottom: typing && !typingInThread ? 44 : 8, transition: typing && !typingInThread ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }}>
+          <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6" style={{ paddingBottom: typing && !typingInThread ? 44 : 8, transition: typing && !typingInThread ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }}>
             <div aria-hidden className="mt-auto shrink-0" />
             {(surface.kind === "dm" ? dm : rows).map((row) => row.kind === "mark" ? <MarkRow key={row.key} label={row.label} tone={row.tone} beat={row.beat} /> : row.kind === "join" ? <JoinRow key={row.key} row={row} /> : <MessageRowView key={row.key} row={row} jamActions={jamActions} />)}
           </div>
@@ -1141,7 +1181,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
           <img ref={cursorGlyphRef} src={CURSOR_GLYPHS.arrow.src} alt="" width={CURSOR_GLYPHS.arrow.w} height={CURSOR_GLYPHS.arrow.h} className="max-w-none drop-shadow-sm" style={{ margin: `${CURSOR_GLYPHS.arrow.dy}px 0 0 ${CURSOR_GLYPHS.arrow.dx}px` }} />
         </div>
       ) : null}
-      <ScriptControl cast={scene.cast} onAppend={appendScript} onClear={clearConversation} hidden={chromeHidden} sceneName={scene.name} onCycleScene={onCycleScene} />
+      <ScriptControl cast={scene.cast} onAppend={appendScript} onClear={clearConversation} hidden={chromeHidden || clean} sceneName={scene.name} onCycleScene={onCycleScene} />
 
     </div>
   );

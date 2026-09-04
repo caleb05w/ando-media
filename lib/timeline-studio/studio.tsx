@@ -785,7 +785,7 @@ export function Studio<T extends Record<string, number>>({
     <>
       {children({ timing, hooks, run, replay })}
 
-      <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2">
+      <div data-studio-pill className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2">
         {/* the comment stack — floats above the sheet so notes never
             crowd or reflow the timeline */}
         {open && (draft || shownNotes.length > 0) ? (

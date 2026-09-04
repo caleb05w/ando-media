@@ -17,14 +17,14 @@ function label(scene: Scene, beat: Beat): string {
     case "typing": return `${scene.cast[beat.who].name.split(" ")[0]} typing`;
     case "say": return `${scene.cast[beat.who].name.split(" ")[0]}${beat.thread ? " · thread" : beat.room === "dm" ? " · DM" : ""}`;
     case "card": return `${scene.cast[beat.who].name.split(" ")[0]} card`;
-    case "attach": return `${scene.cast[beat.who].name.split(" ")[0]} file`;
+    case "attach": return `${scene.cast[beat.who].name.split(" ")[0]} ${Array.isArray(beat.attachment) ? `${beat.attachment.length} files` : "file"}`;
     case "react": return beat.emoji;
     case "agent": return `${scene.cast[beat.who].name} run`;
     case "agent-done": return "run done";
     case "jam-start": return `${scene.cast[beat.participants[0]].name.split(" ")[0]} starts jam`;
     case "jam-join": return "you join";
     case "jam-answer": return "you pick up";
-    case "join": return `${scene.cast[beat.who].name} joins`;
+    case "join": return `${beat.who.map((handle) => scene.cast[handle].name).join(" & ")} join`;
     case "dm-unread": return `${scene.cast[beat.who].name} DMs you`;
     case "surface": return beat.to.kind === "channel" ? `open #${beat.to.name}` : `open ${scene.cast[beat.to.who].name}`;
     case "jam-end": return "jam ends";

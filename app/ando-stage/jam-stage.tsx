@@ -15,7 +15,7 @@
 // scrub backwards runs every move in reverse. A live (unscripted) jam is
 // docked from the start and keeps the product's own slide-in.
 
-import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { animate } from "motion";
 import { JAM_MOVE } from "./jam";
 
@@ -164,6 +164,16 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
     ? { left: (size.w - PANEL_W) / 2, top: (size.h - panelH) / 2, width: PANEL_W, height: panelH }
     : { left: size.w - PANEL_W, top: 0, width: PANEL_W, height: size.h };
   const ready = size.w > 0 && stageH > 0;
+  // The first placement is a seat, not a move: the box lands where it
+  // belongs on the frame the row is measured, and only from the next frame
+  // do its moves transition — a docked (live) panel would otherwise travel
+  // in from the unmeasured guess at the row's far left.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (!ready || settled) return;
+    const raf = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(raf);
+  }, [ready, settled]);
   useLayoutEffect(() => {
     latest.current = { rect, scale };
   });
@@ -193,7 +203,7 @@ export function JamStage({ phase, row, children }: { phase: JamPhase; row: RefOb
           borderRadius: floating ? 12 : 0,
           boxShadow: floating ? "0 16px 32px rgba(26,24,23,0.22), 0 0 0 1px rgba(26,24,23,0.08)" : "none",
           opacity: ready ? 1 : 0,
-          transition: ready ? MOVE : "none",
+          transition: ready && settled ? MOVE : "none",
         }}
       >
         {/* The panel's own width is the column's; it fades in as the card becomes it. */}

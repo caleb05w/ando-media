@@ -4,7 +4,7 @@
 // composer picks up. The dots become the first face by one of /the-library's
 // v2 typing indicators' morphs (never Orbit v2, which is kept for the real
 // typing indicator at the end); face to face is a change in the typing
-// indicator's own language, tuned in /agent-morph — the mark comes apart
+// indicator's own language — the mark comes apart
 // into the typing dots by its own arrival played backwards, the dots type
 // for one wave, and the next mark gathers out of them by its own arrival,
 // the dots turning its colour on the way (swap.ts).

@@ -139,14 +139,14 @@ function rowIsActive(row: SidebarRow, surface: Surface) {
 }
 
 /** sidebar-conversation/styles.css — the 32px row. */
-function ConversationRow({ row, scene, unreadDms = [] }: { row: SidebarRow; scene: Scene; unreadDms?: string[] }) {
+function ConversationRow({ row, scene, unreadDms = [], onSelect }: { row: SidebarRow; scene: Scene; unreadDms?: string[]; /** live: clicking the row opens that conversation */ onSelect?: (row: SidebarRow) => void }) {
   const active = rowIsActive(row, scene.surface);
   const unread = !active && (row.kind === "channel" ? row.unread === true : unreadDms.includes(row.who));
   const muted = row.kind === "channel" && row.muted === true;
   return (
     <li className="ando-sidebar-conversation-row">
       <div className="ando-sidebar-conversation-primary">
-        <span className="ando-sidebar-conversation-button" data-active={active ? "true" : "false"} data-unread={unread ? "true" : "false"} data-sidebar-dm={row.kind === "dm" ? row.who : undefined} style={muted ? { opacity: 0.55 } : undefined}>
+        <span className={`ando-sidebar-conversation-button${onSelect ? " cursor-pointer" : ""}`} role={onSelect ? "button" : undefined} tabIndex={onSelect ? 0 : undefined} onClick={onSelect ? () => onSelect(row) : undefined} onKeyDown={onSelect ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(row); } } : undefined} data-active={active ? "true" : "false"} data-unread={unread ? "true" : "false"} data-sidebar-dm={row.kind === "dm" ? row.who : undefined} style={muted ? { opacity: 0.55 } : undefined}>
           <span className="ando-sidebar-conversation-main">
             {row.kind === "channel" ? (
               <span className="ando-sidebar-conversation-icon">
@@ -188,7 +188,7 @@ function FolderHeader({ label, collapsed = false }: { label: string; collapsed?:
 }
 
 /** global-sidebar-shell + sidebar-panel-header: the 354px panel. */
-export function Sidebar({ scene, unreadDms = [], sections = SIDEBAR, loose = SIDEBAR_LOOSE }: { scene: Scene; /** DM handles with something new in them. */ unreadDms?: string[]; /** the folders — the stage's own unless a page brings its own */ sections?: SidebarSection[]; /** the unfoldered rows under the rule; none hides the rule */ loose?: SidebarRow[] }) {
+export function Sidebar({ scene, unreadDms = [], sections = SIDEBAR, loose = SIDEBAR_LOOSE, onSelect }: { scene: Scene; /** DM handles with something new in them. */ unreadDms?: string[]; /** the folders — the stage's own unless a page brings its own */ sections?: SidebarSection[]; /** the unfoldered rows under the rule; none hides the rule */ loose?: SidebarRow[]; /** live: a row opens its conversation */ onSelect?: (row: SidebarRow) => void }) {
   return (
     <div className="relative flex h-full shrink-0 flex-col bg-ando-bg-main" style={{ width: 354 }}>
       {/* SidebarPanelHeaderPrimitive: surface header, padding 0 12px 0 10px */}
@@ -217,7 +217,7 @@ export function Sidebar({ scene, unreadDms = [], sections = SIDEBAR, loose = SID
               <FolderHeader label={section.label} collapsed={section.collapsed === true} />
               {section.collapsed ? null : <ul className="ando-sidebar-conversation-list mt-1">
                 {section.rows.map((row) => (
-                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
+                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} onSelect={onSelect} />
                 ))}
                 {section.addRow ? (
                   <li className="ando-sidebar-conversation-row">
@@ -237,7 +237,7 @@ export function Sidebar({ scene, unreadDms = [], sections = SIDEBAR, loose = SID
               <div className="mx-2 h-px bg-ando-border-default" />
               <ul className="ando-sidebar-conversation-list">
                 {loose.map((row) => (
-                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
+                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} onSelect={onSelect} />
                 ))}
               </ul>
             </>

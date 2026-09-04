@@ -6,6 +6,7 @@
 // mark's bounce, the camera's pose) straight to the DOM; see page.tsx.
 
 import { useEffect, useState, type RefObject } from "react";
+import { LOCKUP_VIEWBOX, OUTER_CLOSED_PATH, WORDMARK_PATHS, doorPathAtProgress, doorProgressAt } from "./logo-door";
 import { LOGO_H, LOGO_PARTS } from "../context-stream/logo";
 import { ContextTrace } from "../the-library/context-trace";
 import { beatKey, type Actor, type CameraAnchor, type Scene, type Timing } from "./scenes";
@@ -387,6 +388,34 @@ export function seatLogo(local: number) {
 export const MARK_OFFSET = { x: (FIG.mark.x + FIG.mark.w / 2 - FIG.w / 2) * K, y: (FIG.mark.h / 2 - FIG.h / 2) * K };
 export const LETTERS_OFFSET = { x: (FIG.letters.x + FIG.letters.w / 2 - FIG.w / 2) * K, y: (FIG.letters.y + FIG.letters.h / 2 - FIG.h / 2) * K };
 void LOGO_H;
+
+/** The other ending — the door. The lockup fades in whole, plainly, and as
+ *  it comes the mark's door swings open from a rounded rectangle into the
+ *  symbol (logo-door.ts: the brand's own geometry and clock), then rests. */
+export const DOOR_LOGO = { fade: 0.9, /** the door starts opening this long after the fade begins */ doorAt: 0.5 } as const;
+let doorShown = -1;
+export function driveDoorLogo(local: number) {
+  const lockup = document.querySelector<HTMLElement>("[data-door-logo]");
+  const door = document.querySelector<SVGPathElement>("[data-door]");
+  if (!lockup || !door) return;
+  lockup.style.opacity = `${easeInOut(seg(local, 0, DOOR_LOGO.fade))}`;
+  const p = doorProgressAt(local - DOOR_LOGO.doorAt);
+  if (p !== doorShown) {
+    doorShown = p;
+    door.setAttribute("d", doorPathAtProgress(p));
+  }
+}
+export function DoorLogoCard() {
+  const [, , w, h] = LOCKUP_VIEWBOX.split(" ").map(Number);
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-white" aria-hidden data-logo-card>
+      <svg data-door-logo viewBox={LOCKUP_VIEWBOX} width={LOCKUP_W} height={(h / w) * LOCKUP_W} fill="#1a1817" style={{ opacity: 0 }}>
+        <path data-door d={OUTER_CLOSED_PATH} />
+        {WORDMARK_PATHS.map((d, i) => <path d={d} key={i} />)}
+      </svg>
+    </div>
+  );
+}
 
 /** White; the mark (data-logo-mark) and the wordmark (data-logo-letters),
  *  each centred, moved per frame by the driver. */

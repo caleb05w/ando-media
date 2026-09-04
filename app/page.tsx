@@ -25,30 +25,30 @@ type Entry = {
 
 const PROJECTS: Entry[] = [
   {
-    href: "/agent-morph",
+    href: "/ando-stage-template",
     week: "2026-08-31",
-    title: "Agent morph",
-    tag: "Motion",
-    brief: "Grok becomes Claude becomes Codex — the dot morph, alone.",
+    title: "Template: Ando-stage",
+    tag: "Template",
+    brief: "The Ando window, live — type, start a Jam, join it.",
   },
   {
     href: "/ando-grok",
     week: "2026-08-31",
-    title: "Ando, Grok cut",
+    title: "Video: Grokbots in Ando",
     tag: "Motion",
     brief: "The Ando window, still — a storyboard starts here.",
   },
   {
     href: "/context-stream",
     week: "2026-08-31",
-    title: "Agent context",
+    title: "Video: Agent Context",
     tag: "Motion",
     brief: "Dots become a stream, the stream becomes the app.",
   },
   {
     href: "/ando-stage",
     week: "2026-08-31",
-    title: "Jams launch",
+    title: "Video: Jams launch",
     tag: "Prototype",
     brief: "Scripted launch conversations in the real Ando window.",
   },
@@ -258,8 +258,9 @@ const SLIDES: Entry[] = [
 ];
 
 /** The films — the latest cuts, on their own shelf. Each is a project too;
- *  this is the short list, newest first, for someone who came to watch. */
-const VIDEO_HREFS = ["/ando-grok", "/context-stream", "/ando-stage", "/affiliate-announcement"] as const;
+ *  this is the short list, newest first, for someone who came to watch.
+ *  The page still opens on Projects. */
+const VIDEO_HREFS = ["/ando-stage-template", "/ando-grok", "/context-stream", "/ando-stage", "/affiliate-announcement"] as const;
 const VIDEOS: Entry[] = VIDEO_HREFS.map((href) => PROJECTS.find((p) => p.href === href)).filter((p): p is Entry => Boolean(p));
 
 const TABS = [
@@ -318,7 +319,7 @@ function EntryCard({ entry }: { entry: Entry }) {
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>("videos");
+  const [tab, setTab] = useState<Tab>("projects");
 
   // Weeks come from git — each route's first-commit date, collapsed to the
   // Monday of that week. Newest first, so the current week reads first and

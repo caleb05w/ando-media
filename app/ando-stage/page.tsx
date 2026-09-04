@@ -49,6 +49,8 @@ const CURSOR_GLYPHS = {
 
 /** Room the Studio pill needs at the foot of the window. */
 const STUDIO_CLEARANCE = 72;
+/** Live: a channel you open from the sidebar shows this many members. */
+const LIVE_MEMBERS = 9;
 /** image-sizing.ts */
 const MAX_IMAGE_WIDTH = 360;
 const MAX_IMAGE_HEIGHT = 300;
@@ -123,7 +125,9 @@ type MessageRow = Extract<Row, { kind: "message" }>;
 /** A message you sent from the composer. `at` is the cursor it landed at, so
  *  it keeps its place in the transcript as the scene plays on around it —
  *  and scrubs away with everything after that beat. */
-type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string; /** sent from the Jam panel's thread composer */ thread?: true };
+type Sent = { id: string; body: string; time: string; at: number; jam?: JamCall; /** cast handle; you when absent */ who?: string; /** sent from the Jam panel's thread composer */ thread?: true; /** live: the conversation it was sent in (surfaceKey) — it shows only there */ surface?: string };
+/** A conversation, as a key: the live stage keeps each one's messages apart. */
+const surfaceKey = (surface: Surface) => (surface.kind === "channel" ? `channel:${surface.name}` : `dm:${surface.who}`);
 
 type StageState = { rows: Row[]; /** the Jam panel's thread */ thread: Row[]; /** the DM the script opens */ dm: Row[]; /** what the room shows */ surface: Surface; /** DM handles gone unread */ unreadDms: string[]; /** the sidebar is in the window (it arrives with the first DM) */ sidebar: boolean; typing: Actor | null; /** the typing indicator belongs over the Jam thread's composer */ typingInThread: boolean; /** talking, before the transcript has caught up */ speaking: Actor | null; scriptedJam: JamCall | null; /** the scripted Jam is ringing in the header, not yet in the transcript */ ringing: boolean; /** where a scripted Jam panel sits — see jam-stage.tsx */ jamPhase: JamPhase; tab: "thread" | "transcript"; transcript: TranscriptSegment[] };
 
@@ -156,13 +160,15 @@ function stageAt(scene: Scene, cursor: number, sent: Sent[], now: number, T: Tim
   const landSent = (at: number) => {
     for (const message of sent) {
       if (message.at !== at) continue;
+      if (message.surface != null && message.surface !== surfaceKey(scene.surface)) continue;
       const who = (message.who && scene.cast[message.who]) || me;
       if (message.jam) push({ ...base(who, message.time), key: message.id, jam: message.jam }, message.id);
-      else push({ ...base(who, message.time), key: message.id, body: message.body.split("\n").map((line) => [{ text: line }]) }, message.id, message.thread ? thread : rows);
+      // A line lands where it was sent: the thread, the open DM, or the room.
+      else push({ ...base(who, message.time), key: message.id, body: message.body.split("\n").map((line) => [{ text: line }]) }, message.id, message.thread ? thread : scene.surface.kind === "dm" ? dm : rows);
     }
   };
 
-  if (scene.beats.length === 0 && sent.length > 0) rows.push({ kind: "mark", key: "mark-today", label: "TODAY" });
+  if (scene.beats.length === 0 && sent.some((message) => message.surface == null || message.surface === surfaceKey(scene.surface))) (scene.surface.kind === "dm" ? dm : rows).push({ kind: "mark", key: "mark-today", label: "TODAY" });
   landSent(0);
   scene.beats.slice(0, cursor).forEach((beat, index) => {
     switch (beat.kind) {
@@ -695,9 +701,12 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   const [jamId, setJamId] = useState<string | null>(null);
   const [jamPanelOpen, setJamPanelOpen] = useState<boolean | null>(null);
   const [jamMuted, setJamMuted] = useState(false);
+  // Live (no studio): the conversation you clicked in the sidebar; the scene's own until you do.
+  const [liveSurface, setLiveSurface] = useState<Surface | null>(null);
+  const shownScene = useMemo<Scene>(() => (liveSurface && !hooks ? { ...scene, surface: liveSurface } : scene), [scene, liveSurface, hooks]);
 
   const total = scene.beats.length;
-  const { rows, thread, dm, surface, unreadDms, sidebar, typing, typingInThread, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(scene, cursor, sent, mounted, timing), [scene, cursor, sent, mounted, timing]);
+  const { rows, thread, dm, surface, unreadDms, sidebar, typing, typingInThread, speaking: talking, scriptedJam, ringing, jamPhase, tab: scriptedTab, transcript } = useMemo(() => stageAt(shownScene, cursor, sent, mounted, timing), [shownScene, cursor, sent, mounted, timing]);
   const rowRef = useRef<HTMLDivElement>(null);
   // The Jam panel's column: measured so its thread section can be a set
   // height in every phase (px to px animates; px to auto would jump).
@@ -733,8 +742,10 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
     const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
     const at = Math.min(cursor, total);
     sentJustNow.current = true;
-    setSent((current) => [...current, ...entries.map((entry) => ({ ...entry, time, at }))]);
-  }, [cursor, total]);
+    // Live, a line belongs to the conversation it was sent in.
+    const where = hooks ? undefined : surfaceKey(shownScene.surface);
+    setSent((current) => [...current, ...entries.map((entry) => ({ ...entry, time, at, surface: where }))]);
+  }, [cursor, total, hooks, shownScene.surface]);
   const send = useCallback((text: string) => land([{ id: `sent-${Date.now()}`, body: text }]), [land]);
   const sendThread = useCallback((text: string) => land([{ id: `thread-${Date.now()}`, body: text, thread: true }]), [land]);
 
@@ -812,8 +823,8 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
   }, [scene]);
   const jamActions: JamActions = { muted: jamMuted, toggleMute: () => setJamMuted((current) => !current), end: endJam, join: () => setJamPanelOpen(true), elapsed: scriptedJam ? (jamElapsed ?? 0) : undefined, tracePhases, traceParticipants, traceVt, typeVt };
   // The room as shown: the scene with whatever surface the script has opened.
-  const room = useMemo<Scene>(() => ({ ...scene, surface }), [scene, surface]);
-  const jamTarget = scene.surface.kind === "channel" ? `#${scene.surface.name}` : scene.cast[scene.surface.who].name;
+  const room = useMemo<Scene>(() => ({ ...shownScene, surface }), [shownScene, surface]);
+  const jamTarget = shownScene.surface.kind === "channel" ? `#${shownScene.surface.name}` : scene.cast[shownScene.surface.who].name;
 
   // The driver: one rAF loop, one virtual clock, the cursor derived from it
   // every frame in both directions. Timing lives in a ref so a drag re-times
@@ -1046,17 +1057,17 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         <img src="/ando-stage/sky.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
       {/* The camera: the whole room on one transform (cards.tsx). */}
       <div ref={cameraRef} className="absolute inset-0 will-change-transform" style={{ transformOrigin: "0 0" }}>
-      {/* The window. It arrives as the film opens (the driver writes its entrance). */}
-      <div ref={windowRef} data-stage-window className="absolute overflow-hidden rounded-xl bg-ando-bg-main" style={{ left: "10.4%", top: "8.4%", width: "79.2%", height: "83.2%", boxShadow: "0 24px 64px rgba(15,17,19,0.22), 0 0 0 1px rgba(15,17,19,0.06)", opacity: 0 }}>
+      {/* The window. It arrives as the film opens (the driver writes its entrance); live, it is simply there. */}
+      <div ref={windowRef} data-stage-window className="absolute overflow-hidden rounded-xl bg-ando-bg-main" style={{ left: "10.4%", top: "8.4%", width: "79.2%", height: "83.2%", boxShadow: "0 24px 64px rgba(15,17,19,0.22), 0 0 0 1px rgba(15,17,19,0.06)", opacity: hooks ? 0 : 1 }}>
       {/* No top bar and no rail: the sidebar, the room and the panel are the whole window. */}
       <div ref={rowRef} className="relative flex h-full min-h-0">
-        {/* The sidebar stays out of the window until the first DM lands, then slides in with the unread row. */}
-        <div className="shrink-0 overflow-hidden" style={{ width: sidebar ? 354 : 0, transition: "width 700ms cubic-bezier(0.2, 0, 0, 1)" }}>
-          <Sidebar scene={room} unreadDms={unreadDms} />
+        {/* The sidebar stays out of the window until the first DM lands, then slides in with the unread row. Live, it is in from the start. */}
+        <div className="shrink-0 overflow-hidden" style={{ width: sidebar || !hooks ? 354 : 0, transition: hooks ? "width 700ms cubic-bezier(0.2, 0, 0, 1)" : "none" }}>
+          <Sidebar scene={room} unreadDms={unreadDms} onSelect={hooks ? undefined : (row) => setLiveSurface(row.kind === "channel" ? { kind: "channel", name: row.name, private: row.private, members: scene.surface.kind === "channel" && scene.surface.name === row.name ? scene.surface.members : LIVE_MEMBERS } : { kind: "dm", who: row.who })} />
         </div>
         {/* layout.tsx: main content card, 1px hairline from the panel */}
         <main data-stage-main className="relative flex min-w-0 flex-1 flex-col overflow-clip bg-ando-bg-main" style={{ boxShadow: "-1px 0 0 var(--color-ando-border-default)" }}>
-          <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} />} />
+          <ConversationHeader scene={room} jamControl={<JamHeaderControl active={jamCall != null} ringing={ringing} participants={jamCall?.participants ?? [scene.cast[ME]]} onClick={() => (jamCall == null ? startJam() : setJamPanelOpen((open) => !open))} calm={!hooks} />} />
           {/* The typing indicator's clearance eases in and out on the landing curve, so the transcript never jumps when someone stops typing and their line lands. */}
           <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6" style={{ paddingBottom: typing && !typingInThread ? 44 : 8, transition: typing && !typingInThread ? "padding-bottom 300ms cubic-bezier(0.3, 0.8, 0.3, 1)" : "none" }}>
             <div aria-hidden className="mt-auto shrink-0" />
@@ -1067,7 +1078,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         {jamCall != null && jamCall.endedAt == null && panelOpen ? (
           <>
             {/* The panel's column opens in the layout as it docks. */}
-            <div aria-hidden className="shrink-0" style={{ width: jamPhase === "docked" ? "var(--ando-desktop-side-panel-width)" : 0, transition: `width ${JAM_MOVE}` }} />
+            <div aria-hidden className="shrink-0" style={{ width: jamPhase === "docked" ? "var(--ando-desktop-side-panel-width)" : 0, transition: hooks ? `width ${JAM_MOVE}` : "none" }} />
             <JamStage phase={jamPhase} row={rowRef}>
               <JamPanel
                 call={jamCall}
@@ -1082,7 +1093,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
                 onEnd={scriptedJam ? () => setJamPanelOpen(false) : endJam}
                 onCollapse={() => setJamPanelOpen(false)}
                 docked={jamPhase === "docked"}
-                slideIn={scriptedJam == null}
+                // Live, the panel comes in from the window's right edge, the whole way, calmly.
+                slideIn={scriptedJam == null ? (hooks ? true : "full") : false}
+                calm={!hooks}
                 lowerHeight={scriptedJam ? lowerHeightFor(jamPhase, rowH, jamStageH) : null}
                 composer={jamPhase === "docked"}
                 scripted={draftInThread ? scriptedDraft : null}

@@ -93,6 +93,17 @@
   animation: st-panel-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
+/* Live (the template): the panel comes in from the window's right edge, the
+   whole way, on one ease-out — no fade, no bounce. */
+@keyframes st-panel-in-full {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.st-panel-in-full {
+  animation: st-panel-in-full 700ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
 /* The live-call glyph: five bars breathing like a level meter. Each bar
  * scales about its middle on its own phase, so the shape never repeats
  * cleanly — it reads as a voice, not a metronome. */

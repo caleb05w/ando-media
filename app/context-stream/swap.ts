@@ -1,6 +1,5 @@
 // A change of face — Grok to Claude, Claude to Codex — in the typing
-// indicator's own language, as tuned in /agent-morph (app/agent-morph/
-// scene.tsx). The marks are never broken up:
+// indicator's own language. The marks are never broken up:
 //
 //   leave    the mark's own arrival plays backwards — the face spins out,
 //            the disc shrinks to the resting dot, the side dots fly back

@@ -22,7 +22,7 @@ import { readInks, swapLook } from "./swap";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
-import { LogoCard, TypeCard, driveTypeCard, easeInOut, glide, lineArrive, seatLogo, type TypeCardOn } from "../ando-stage/cards";
+import { DoorLogoCard, TypeCard, driveDoorLogo, driveTypeCard, easeInOut, glide, lineArrive, type TypeCardOn } from "../ando-stage/cards";
 import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, birthWaveMs, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, CODEX, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
@@ -183,8 +183,8 @@ const CLOSER_LINE = "One interface. All your teammates";
 const CLOSER_ROLL_TO = "agents";
 /** How long the landed line is read before the last word rolls. */
 const CLOSER_ROLL_AFTER = 0.7;
-/** The closer's exit: a quick fade before the logo cuts in over it. */
-const CLOSER_OUT = 0.3;
+/** The closer's exit: a slow, even fade into the logo's — one crossfade. */
+const CLOSER_OUT = 0.6;
 const WASH_LEAD = 0.4;
 const closerCard = (T: Timing): TypeCardOn => {
   const words = CLOSER_LINE.split(" ");
@@ -429,10 +429,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         // lift and blur in the last CLOSER_OUT before the logo cuts in.
         const typeCard = document.querySelector<HTMLElement>("[data-type-card]");
         if (typeCard) {
-          const out = ease(seg(vt, T.logo - CLOSER_OUT, CLOSER_OUT));
+          const out = easeInOut(seg(vt, T.logo - CLOSER_OUT, CLOSER_OUT));
           typeCard.style.opacity = `${1 - out}`;
-          typeCard.style.transform = `translateY(${-8 * out}px)`;
-          typeCard.style.filter = out > 0 ? `blur(${4 * out}px)` : "";
+          typeCard.style.transform = `translateY(${-6 * out}px)`;
+          typeCard.style.filter = out > 0 ? `blur(${3 * out}px)` : "";
         }
         // The wheel: the announcement's pass — the crest of small faces
         // drifts up to speed as the camera pushes in, then the ring lets go:
@@ -471,7 +471,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           }
         }
       }
-      if (vt >= T.logo) seatLogo(vt - T.logo);
+      if (vt >= T.logo) driveDoorLogo(vt - T.logo);
 
       /* ── The sidebar ───────────────────────────────────────────── */
       sidebar.style.transform = `translateX(${-SIDEBAR_W * (1 - side)}px)`;
@@ -887,7 +887,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           <TypeCard card={closerCard(timing)} />
         </>
       ) : null}
-      {logoOn ? <LogoCard /> : null}
+      {logoOn ? <DoorLogoCard /> : null}
     </div>
   );
 }

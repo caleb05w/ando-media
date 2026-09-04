@@ -84,5 +84,5 @@ export const DEFAULT_TIMING: Timing = {
   closer: 27.6,
   logo: 30.5,
   // The lockup has seated at logo + 2.3; a beat on it.
-  end: 33.0,
+  end: 33.4,
 };

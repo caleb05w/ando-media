@@ -117,14 +117,18 @@ function clockTime(ms: number): string {
 /** JamHeaderButtonGroup. Idle: two secondary xs pills with a hairline gap.
  *  Active: one split control in action-success, participants beside the
  *  headphones, the caret sharing the fill. */
-export function JamHeaderControl({ active, ringing = false, participants, onClick }: { active: boolean; /** A Jam is calling: the headphones ring like a phone until you pick up. */ ringing?: boolean; participants: Actor[]; onClick: () => void }) {
+/** The calm register (the live template): every spring becomes one ease-out, and nothing overshoots. */
+const CALM_EASE = [0.2, 0, 0, 1] as const;
+const calmTween = (duration: number, delay = 0) => ({ type: "tween" as const, duration, ease: CALM_EASE, delay });
+
+export function JamHeaderControl({ active, ringing = false, participants, onClick, calm = false }: { active: boolean; /** A Jam is calling: the headphones ring like a phone until you pick up. */ ringing?: boolean; participants: Actor[]; onClick: () => void; /** no springs, no bounce — the live template */ calm?: boolean }) {
   // Idle → calling is a morph, not a swap: the green floods out from the
   // headphones, the pill grows to seat the faces as they spring in, the
   // seam opens, and the whole pill gives one small bounce. Motion's layout
   // animation carries the width; the flood is a clip-path reveal on a green
   // layer under the icon; everything else rides a spring.
-  const FLOOD = { type: "spring", stiffness: 260, damping: 30 } as const;
-  const SEAT = { type: "spring", stiffness: 520, damping: 30 } as const;
+  const FLOOD = calm ? calmTween(0.3) : ({ type: "spring", stiffness: 260, damping: 30 } as const);
+  const SEAT = calm ? calmTween(0.3) : ({ type: "spring", stiffness: 520, damping: 30 } as const);
   const ink = active ? "text-ando-fg-white" : "text-ando-fg-secondary";
   return (
     <motion.span
@@ -133,7 +137,7 @@ export function JamHeaderControl({ active, ringing = false, participants, onClic
       className={`ando-button-group relative select-none shrink-0 ${active ? "" : "gap-px"}`}
       data-orientation="horizontal"
       aria-label="Jam controls"
-      animate={{ scale: active ? [1, 1.06, 1] : 1 }}
+      animate={{ scale: active && !calm ? [1, 1.06, 1] : 1 }}
       style={{ transformOrigin: "20% 50%" }}
     >
       <motion.button
@@ -289,7 +293,7 @@ function chaseBottom(list: HTMLDivElement | null, ms = 380) {
 /** Curve and length of every move the panel makes between its phases. */
 export const JAM_MOVE = "700ms cubic-bezier(0.2, 0, 0, 1)";
 
-export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true, thread = null, threadCount = 0, scripted = null, typing = null, onSend }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage. */ slideIn?: boolean; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean; /** Rows in the Jam's thread, after the join event. */ thread?: ReactNode; threadCount?: number; /** A line the script is typing into the thread composer. */ scripted?: string | null; /** whoever is typing into the thread — the indicator rides over the composer */ typing?: Actor | null; /** Your own line, sent from the thread composer. */ onSend?: (text: string) => void }) {
+export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaking, onTab, onToggleMute, onEnd, onCollapse, docked = true, slideIn = true, lowerHeight = null, composer = true, thread = null, threadCount = 0, scripted = null, typing = null, onSend, calm = false }: { call: JamCall; target: string; muted: boolean; elapsed?: number; tab: "thread" | "transcript"; transcript: TranscriptSegment[]; /** whoever is mid-sentence right now */ speaking: Actor | null; onTab: (tab: "thread" | "transcript") => void; onToggleMute: () => void; onEnd: () => void; onCollapse: () => void; /** In its column (hairline on the left) rather than floating over the room. */ docked?: boolean; /** Arrive with the product's slide — a live jam; a scripted one is carried by its stage; "full" slides in from the window's right edge (the template). */ slideIn?: boolean | "full"; /** The thread/transcript section's height in px, animated; null lets it fill. */ lowerHeight?: number | null; /** The thread composer at the panel's foot — only once it is docked. */ composer?: boolean; /** Rows in the Jam's thread, after the join event. */ thread?: ReactNode; threadCount?: number; /** A line the script is typing into the thread composer. */ scripted?: string | null; /** whoever is typing into the thread — the indicator rides over the composer */ typing?: Actor | null; /** Your own line, sent from the thread composer. */ onSend?: (text: string) => void; /** no springs, no bounce — the live template */ calm?: boolean }) {
   const duration = useCallDuration(call.startedAt, elapsed);
   // transcripts-list.tsx TranscriptAutoFollow: the list stays pinned to the
   // newest segment as they land (and when the tab opens onto a backlog).
@@ -350,7 +354,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
     if (el) setPill({ x: el.offsetLeft, w: el.offsetWidth });
   }, [tab]);
   return (
-    <div className={`${slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
+    <div className={`${slideIn === "full" ? "st-panel-in-full " : slideIn ? "st-panel-in " : ""}flex flex-col h-full shrink-0 bg-ando-bg-elevated ${docked ? "border-l border-ando-border-default" : ""}`} style={{ width: "var(--ando-desktop-side-panel-width)" }} data-agent-surface="jam-panel">
       {/* Docked stage */}
       <div className="flex flex-col relative select-none bg-ando-bg-dark shrink-0" data-jam-stage>
         <motion.div className="ando-surface-header" data-variant="overlay" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.2, ease: [0.2, 0, 0, 1] }}>
@@ -385,7 +389,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                     data-agent-speaking={speaking === actor ? "true" : "false"}
                     initial={you ? { flexBasis: "0%", flexGrow: 0, opacity: 0, scale: 0.5 } : { flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
                     animate={{ flexBasis: "0%", flexGrow: 1, opacity: 1, scale: 1 }}
-                    transition={you ? { flexGrow: { type: "spring", stiffness: 260, damping: 16, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 300, damping: 15, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { duration: 0 }}
+                    transition={you ? (calm ? { flexGrow: calmTween(0.45, YOU_JOIN), scale: calmTween(0.35, YOU_JOIN + 0.05), opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } } : { flexGrow: { type: "spring", stiffness: 260, damping: 16, delay: YOU_JOIN }, scale: { type: "spring", stiffness: 300, damping: 15, delay: YOU_JOIN + 0.05 }, opacity: { duration: 0.2, delay: YOU_JOIN + 0.05 } }) : { duration: 0 }}
                     style={{ transformOrigin: "50% 50%" }}
                   >
                     {/* The ring landing on someone gives their avatar a little pop. */}
@@ -410,7 +414,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
                 <button key="react" type="button" aria-label="React" className="flex items-center justify-center size-9 rounded-md bg-ando-action-secondary-on-dark text-ando-fg-white shadow-md transition-colors hover:bg-ando-action-secondary-on-dark-hover cursor-pointer"><Icon name="IconEmojiSmile" fill="filled" /></button>,
                 <button key="end" type="button" onClick={onEnd} aria-label="End call" className="flex items-center justify-center size-9 rounded-md bg-ando-action-danger-on-dark hover:bg-ando-action-danger-on-dark-hover text-ando-fg-white cursor-pointer transition-colors"><Icon name="IconCall" fill="filled" className="rotate-[135deg]" /></button>,
               ].map((control, i) => (
-                <motion.div key={i} initial={{ opacity: 0, scale: 0.4, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ opacity: { duration: 0.16, delay: TOOLS_IN + i * 0.07 }, scale: { type: "spring", stiffness: 520, damping: 20, delay: TOOLS_IN + i * 0.07 }, y: { type: "spring", stiffness: 520, damping: 24, delay: TOOLS_IN + i * 0.07 } }}>
+                <motion.div key={i} initial={{ opacity: 0, scale: 0.4, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={calm ? { opacity: { duration: 0.16, delay: TOOLS_IN + i * 0.07 }, scale: calmTween(0.3, TOOLS_IN + i * 0.07), y: calmTween(0.3, TOOLS_IN + i * 0.07) } : { opacity: { duration: 0.16, delay: TOOLS_IN + i * 0.07 }, scale: { type: "spring", stiffness: 520, damping: 20, delay: TOOLS_IN + i * 0.07 }, y: { type: "spring", stiffness: 520, damping: 24, delay: TOOLS_IN + i * 0.07 } }}>
                   {control}
                 </motion.div>
               ))}
@@ -424,7 +428,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
       <div className={`flex flex-col justify-end bg-ando-bg-main border-t border-ando-border-default ${lowerHeight == null ? "flex-1 min-h-0" : "shrink-0 overflow-hidden"}`} style={lowerHeight == null ? undefined : { height: lowerHeight, transition: `height ${JAM_MOVE}` }} data-jam-lower>
         <div className="ando-surface-header">
           <div ref={tabsRef} className="ando-tabs__list relative flex items-center space-x-0 gap-3 border-b-0">
-            {pill ? <motion.span aria-hidden className="absolute top-0 h-7 rounded-md bg-ando-bg-fill-muted" initial={false} animate={{ x: pill.x, width: pill.w }} transition={{ type: "spring", stiffness: 520, damping: 34 }} /> : null}
+            {pill ? <motion.span aria-hidden className="absolute top-0 h-7 rounded-md bg-ando-bg-fill-muted" initial={false} animate={{ x: pill.x, width: pill.w }} transition={calm ? calmTween(0.28) : { type: "spring", stiffness: 520, damping: 34 }} /> : null}
             <button type="button" onClick={() => onTab("thread")} data-jam-tab="thread" className={tabClass(tab === "thread", "text-ando-fg-primary")} data-state={tab === "thread" ? "active" : "inactive"}>
               <span className="kanso-text-label-12-md relative inline-flex items-center gap-1.5"><Icon name="IconThread" fill={tab === "thread" ? "filled" : "outlined"} />Thread</span>
             </button>

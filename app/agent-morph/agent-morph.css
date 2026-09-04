@@ -1,0 +1,14 @@
+/* /agent-morph — the playground's few rules. Everything that moves is
+ * written per frame by scene.tsx; nothing here transitions, so a scrub
+ * lands exactly where the clock says. */
+
+.am-stage {
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Driver-owned elements never ease on their own. */
+.am-stage [data-am],
+.am-stage [data-am] * {
+  transition: none !important;
+}

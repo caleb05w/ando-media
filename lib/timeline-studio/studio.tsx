@@ -269,6 +269,20 @@ export function Studio<T extends Record<string, number>>({
   } | null>(null);
   const [hover, setHover] = useState<{ f: number; t: number } | null>(null);
   const [saves, setSaves] = useState<SavedTake<T>[]>([]);
+  // `h`: the chrome steps out of the frame — the pill here, and the
+  // agentation toolbar (mounted by the layout) by its root.
+  const [chromeHidden, setChromeHidden] = useState(false);
+  useEffect(() => {
+    if (!chromeHidden) return;
+    const root = document.querySelector<HTMLElement>("[data-agentation-root]");
+    if (!root) return;
+    // The toolbar sets its own inline display; put it back as it was.
+    const was = root.style.display;
+    root.style.display = "none";
+    return () => {
+      root.style.display = was;
+    };
+  }, [chromeHidden]);
   const [takesOpen, setTakesOpen] = useState(false);
   const [takeName, setTakeName] = useState("");
   // The clock at the moment the modal opened — what a save will stamp.
@@ -588,9 +602,10 @@ export function Studio<T extends Record<string, number>>({
     console.log("[studio state]", text);
   };
 
-  // Keys — space pauses (the analysis gesture), `n` drops a note, ⌘Z
-  // walks back a grab, Esc closes the takes modal. None fire from inside
-  // an input.
+  // Keys — space pauses (the analysis gesture), `n` drops a note, `h`
+  // hides the chrome (the pill and the agentation toolbar — a clean frame
+  // for a look or a recording; `h` again brings it back), ⌘Z walks back a
+  // grab, Esc closes the takes modal. None fire from inside an input.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
@@ -608,6 +623,11 @@ export function Studio<T extends Record<string, number>>({
       if (e.key === "n" || e.key === "N") {
         e.preventDefault();
         dropNote();
+        return;
+      }
+      if (e.key === "h" || e.key === "H") {
+        e.preventDefault();
+        setChromeHidden((on) => !on);
         return;
       }
       if (e.code !== "Space" || e.target !== document.body) return;
@@ -786,7 +806,9 @@ export function Studio<T extends Record<string, number>>({
     <>
       {children({ timing, hooks, run, replay })}
 
-      <div data-studio-pill className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2">
+      {/* z-90: above every film layer — washes, type cards, logo cards sit
+          at 70–81 — so the scrubber stays readable through the endings. */}
+      <div data-studio-pill hidden={chromeHidden} className="fixed bottom-4 left-1/2 z-[90] flex -translate-x-1/2 flex-col items-center gap-2">
         {/* the comment stack — floats above the sheet so notes never
             crowd or reflow the timeline */}
         {open && (draft || shownNotes.length > 0) ? (
@@ -1222,7 +1244,7 @@ export function Studio<T extends Record<string, number>>({
           back. Esc or the scrim closes it. */}
       {takesOpen ? (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(22,25,29,0.18)]"
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-[rgba(22,25,29,0.18)]"
           onPointerDown={(e) => {
             if (e.target === e.currentTarget) setTakesOpen(false);
           }}

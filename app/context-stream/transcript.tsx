@@ -19,23 +19,17 @@ import type { Timing } from "./timing";
 export const AGENT: Actor = { name: "Tadao", avatar: AVATAR, agent: true };
 /** The agent the pull-back lands on: the last face the film's agent wore, typing in the composer. */
 export const CODEX: Actor = { name: "Codex", avatar: "/agents/codex.png", agent: true };
-/** A pile disc, on the library's pattern: a small mark on a coloured disc. */
-function HashDisc() {
-  return (
-    <span className="flex size-full items-center justify-center bg-ando-bg-fill-muted">
-      <svg width="10" height="10" viewBox="0 0 14 14" aria-hidden>
-        <path d="M5.4 2.5l-1.2 9M9.8 2.5l-1.2 9M2.6 5.3h9.2M2.2 8.7h9.2" fill="none" stroke="#58524e" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    </span>
-  );
+/** What the agents touch, as the product shows them — not badges. The
+ *  channel pill is the chat's own mention chip at the trace line's size. */
+function ChannelPill({ name }: { name: string }) {
+  return <span className="kanso-text-label-12-md inline-flex h-4 items-center rounded-xs bg-ando-bg-brand/10 px-[3px] leading-4 text-ando-fg-brand">#{name}</span>;
 }
-function TicketDisc() {
+/** A person named mid-sentence: their face, then their name. */
+function Person({ actor, after = "" }: { actor: Actor; after?: string }) {
   return (
-    <span className="flex size-full items-center justify-center bg-[#5E6AD2]">
-      <svg width="10" height="10" viewBox="0 0 14 14" aria-hidden>
-        <rect x="2.2" y="2.2" width="9.6" height="9.6" rx="2" fill="none" stroke="#fff" strokeWidth="1.5" />
-        <path d="M4.6 7.2l1.7 1.7 3.2-3.6" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <span className="inline-flex items-center gap-[6px]">
+      <Avatar actor={actor} size={16} />
+      <span>{actor.name.split(" ")[0]}{after}</span>
     </span>
   );
 }
@@ -136,19 +130,21 @@ export const runStart = (T: Timing) => T.chat + CHAT_LEAD + CHAT_STAGGER + 0.5;
 
 /** The value-prop run, beneath the agent after "Everything becomes context":
  *  the library's context-trace copy on the product's trace line, one task
- *  at a time — each by a different agent, see agents.ts — the sources
- *  piled inline where they are read. Never done — it folds back into the
+ *  at a time — each by a different agent, see agents.ts — the things it
+ *  touches named inline, mid-sentence, as the product would show them. Never done — it folds back into the
  *  agent while still drafting. */
 export function valuePhasesFor(T: Timing): TracePhases {
   return {
     start: T.trace + 0.3,
     // A job per agent — different jobs, not one job handed around: Grok,
+    // reading channel after channel and Codex someone's jam, someone's
+    // thread, someone's channel, in a slot;
     // Claude, Codex — each line rolls in as its agent's face lands. The
     // reply is drafted where the question is: in the chat.
     steps: [
-      { t: taskAt(T, 0), label: "Reading the channels…", icon: "read", pile: [<HashDisc key="a" />, <HashDisc key="b" />, <HashDisc key="c" />] },
-      { t: taskAt(T, 1), label: "Creating tickets…", icon: "write", pile: [<TicketDisc key="a" />, <TicketDisc key="b" />, <TicketDisc key="c" />] },
-      { t: taskAt(T, 2), label: "Catching up on the jams…", icon: "transcript" },
+      { t: taskAt(T, 0), label: "Reading", icon: "read", pile: [<ChannelPill key="a" name="launch" />, <ChannelPill key="b" name="general" />, <ChannelPill key="c" name="design" />], roll: 0.8 },
+      { t: taskAt(T, 1), label: "Sending follow ups to", icon: "write", pile: [<Person key="a" actor={CAST.oli} after="," />, <Person key="b" actor={CAST.aj} after="," />, <Person key="c" actor={CAST.alex} />] },
+      { t: taskAt(T, 2), label: "Catching up on", icon: "transcript", pile: [<Person key="a" actor={CAST.sara} after="'s jam" />, <Person key="b" actor={CAST.oli} after="'s thread" />, <Person key="c" actor={CAST.aj} after="'s channel" />], roll: 0.8 },
     ],
     done: T.collapse + 10,
   };

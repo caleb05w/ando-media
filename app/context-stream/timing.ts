@@ -19,7 +19,7 @@ export type Timing = {
   collapse: number;
   /** The last face spins back into the typing dots: the library's animation, reversed. */
   indicator: number;
-  /** "So we built a place for them.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
+  /** "So we built an interface around them.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
   iface: number;
   /** Header and the messages it is answering arrive. */
   chat: number;
@@ -61,25 +61,28 @@ export const DEFAULT_TIMING: Timing = {
   agent: 4.0,
   // Two waves of typing dots (the library's own lead-in), then the morph
   // into Grok. The jobs run on the agents' clock from here (agents.ts): a
-  // job is read for 1.3s, then the dot morph to the next face (0.85s), and
-  // the next job rolls in as the face lands. Codex's job has been read at
-  // 11.38.
+  // job is read for 1.3s, then the change of face — the mark comes apart
+  // into the typing dots, one wave of typing, the next mark gathers
+  // (2.3s to Claude, 2.45s to Codex) — and the next job rolls in as the
+  // face lands. Codex reads jam after jam in its slot, longer than the
+  // others (Caleb: the window builds at 17.3), and has been read at 15.85.
   trace: 5.8,
-  collapse: 11.4,
-  indicator: 11.75,
+  collapse: 15.9,
+  indicator: 16.25,
   // The face has spun out into the dots at indicator + 1.05: no hold, the
   // pull-back starts on that frame, the dots on the composer's clock.
-  iface: 12.8,
+  iface: 17.3,
   // Sara types before her line lands at chat + 0.4; the room needs the
   // dots to have landed (iface + 1.2) before her indicator takes the strip.
-  chat: 14.8,
-  sidebar: 17.2,
-  reply: 18.8,
+  chat: 19.3,
+  sidebar: 21.7,
+  reply: 23.3,
   // Three more lines land on the reply clock (to reply + 3.3) while the
   // window recedes for the closer over its last 2.4s.
-  // The closer's five words have arrived at closer + 1.02; it holds for the logo.
-  closer: 23.1,
-  logo: 25.2,
+  // The closer's five words have arrived at closer + 1.02; the last rolls to
+  // "agents" at + 1.72 (scene.tsx CLOSER_ROLL_AFTER) and is read for the logo.
+  closer: 27.6,
+  logo: 30.5,
   // The lockup has seated at logo + 2.3; a beat on it.
-  end: 27.7,
+  end: 33.0,
 };

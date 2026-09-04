@@ -17,11 +17,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
 import { TYPE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
-import { BARE, CHAIN, FACES, FIRST_MORPH, becomingAt, faceAt } from "./agents";
+import { BARE, CHAIN, FACES, FACE_SCALE, FIRST_MORPH, becomingAt, faceAt } from "./agents";
+import { readInks, swapLook } from "./swap";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
-import { LogoCard, TypeCard, driveTypeCard, easeInOut, seatLogo, type TypeCardOn } from "../ando-stage/cards";
+import { LogoCard, TypeCard, driveTypeCard, easeInOut, glide, lineArrive, seatLogo, type TypeCardOn } from "../ando-stage/cards";
 import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, birthWaveMs, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, CODEX, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
@@ -65,40 +66,6 @@ const SLOT_TOP = LINE_Y + AGENT_R + TRACE_GAP;
 /** The narration above the agent, and the stream: one line at a time. */
 const TITLE_TOP = LINE_Y - AGENT_R - 62;
 type AgentLook = { frame: Frame; face: string };
-/** A mark as dots: its pixels, sampled at the size it shows on the agent,
- *  in the mark's own colours — for the morph between agents. Ordered round
- *  the circle, so a dot's partner in the next mark is its neighbour in the
- *  round and the travel reads as one turning re-shape. */
-type MarkDot = { x: number; y: number; r: number; g: number; b: number };
-const MORPH_DOTS = 240;
-/** The face image's size on the agent: the disc's diameter (Stage draws it edge to edge). */
-const MARK_PX = 2 * AGENT_R;
-function sampleMark(img: HTMLImageElement): MarkDot[] {
-  const size = 120;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const g = canvas.getContext("2d");
-  if (!g) return [];
-  g.drawImage(img, 0, 0, size, size);
-  const data = g.getImageData(0, 0, size, size).data;
-  const pts: MarkDot[] = [];
-  const step = 3;
-  for (let y = step / 2; y < size; y += step) {
-    for (let x = step / 2; x < size; x += step) {
-      const i = (Math.floor(y) * size + Math.floor(x)) * 4;
-      if (data[i + 3] < 120) continue;
-      // Only what shows: the Stage clips the image to the disc.
-      const dx = x / size - 0.5;
-      const dy = y / size - 0.5;
-      if (dx * dx + dy * dy > 0.25) continue;
-      pts.push({ x: dx * MARK_PX, y: dy * MARK_PX, r: data[i], g: data[i + 1], b: data[i + 2] });
-    }
-  }
-  if (pts.length === 0) return [];
-  pts.sort((a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x));
-  return Array.from({ length: MORPH_DOTS }, (_, i) => pts[Math.floor((i * pts.length) / MORPH_DOTS)]);
-}
 /** A bare face has no disc: the disc fades out as the face fades in, and
  *  back as it goes — the library's frame, with its disc's ink made to
  *  follow the face. Its satellites go with the disc: the library parks
@@ -108,26 +75,121 @@ function bare(look: AgentLook): AgentLook {
   const a = Math.max(0, 1 - look.frame.avatarO);
   const fill = look.frame.blob.fill.replace(/^rgb\((.*)\)$/, `rgba($1, ${a})`);
   const sats = look.frame.sats.map((dot) => ({ ...dot, o: dot.o * a }));
-  return { ...look, frame: { ...look.frame, sats, blob: { ...look.frame.blob, fill } } };
+  const key = (Object.keys(FACES) as Array<keyof typeof FACES>).find((k) => FACES[k] === look.face);
+  const faceScale = (look.frame.faceScale ?? 1) * ((key && FACE_SCALE[key]) ?? 1);
+  return { ...look, frame: { ...look.frame, sats, faceScale, blob: { ...look.frame.blob, fill } } };
 }
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
-const ZOOM_OUT = 1.2;
+const ZOOM_OUT = 1.7;
+/** Smootherstep: the pull-back's easing — flat at both ends, so the window builds without a lurch. */
+/** The build's one curve — the camera's pull-back, the ground and card
+ *  fading up, the composer's slide, the header, the sidebar: everything the
+ *  interface is made of moves in and out on it, so no two parts fight. */
+const build = (x: number) => { const q = clamp01(x); return q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2; };
 /** How long someone's typing indicator shows before their line lands, and
  *  how long your own line takes to type itself into the composer. */
 const PRE_TYPE = 0.7;
 /** How long before the closer the window starts to recede (the stage's CARD_LEAD grammar). */
 const CLOSER_LEAD = 2.4;
 const SELF_TYPE = 0.8;
+/** The wheel over the closer — the affiliate announcement's crest
+ *  (affiliate-announcement/world-wheel.tsx: the Brand dot wheel, Figma
+ *  3446-2571), on its numbers: 28 dots on a ring whose diameter is
+ *  RING/DOT face-widths, the crest dot's centre DOT_CY of that down from
+ *  the ring's top; faces upright while it turns; the spin drifts up to
+ *  speed and freewheels as the camera pushes in, then the ring lets go —
+ *  the gaps widen, every dot dissolves — its whole life scaled to the
+ *  closer's hold. Everyone rides: the people, the agents, Tadao. */
+const WHEEL = {
+  dots: 28, face: 64, ring: 288.23, dot: 11.52, crestCy: 5.875,
+  // the zoom — small dots ≈ face/7.7; the push starts with the spin
+  max: 7.7, zoomFrom: 0.05,
+  // the spin
+  spinUpTo: 0.3, start: 0.04, peak: 0.24, floor: 0.02, friction: 3,
+  // the departure — the ring starts letting go at 0.55 of the sweep; gaps
+  // widen by 0.35; the spin drains only to a 0.35 cruise, never to zero
+  departFrom: 0.55, spreadK: 0.35, tailFlow: 0.35, easePow: 2.2,
+  // the announcement's own life is sweep 3 + exit 0.37; here it is scaled
+  // to the closer's hold, so the ring is gone as the logo cuts in
+  sweepShare: 3 / 3.37,
+  bandAnchor: 220,
+} as const;
+const WHEEL_SECTOR = 360 / WHEEL.dots;
+/** The wheel over the closer — off for now (Caleb, 2026-09-04); the code stays for when it comes back. */
+const WHEEL_ON = false;
+/** How far above the closer's line the crest sits (px, viewport). */
+const WHEEL_CREST_ABOVE = 220;
+// A message lands in one quick rise — the product's own send feel, not a slow reveal.
+const ROW_IN = 0.3;
+/** The ring: the people in the room, the agents, Tadao. Laid out the wheel's
+ *  way — a fixed stride through the roster per dot, coprime with its length,
+ *  so a face's twin is a full roster away, never beside it. (Scout wears
+ *  Tadao's bubble, so only Tadao rides.) */
+const WHEEL_ROSTER = [CAST.sara.avatar, CAST.caleb.avatar, CAST.oli.avatar, CAST.aj.avatar, CAST.alex.avatar, AGENT.avatar, FACES.grok, FACES.claude, FACES.codex];
+const WHEEL_STRIDE = 4;
+const wheelFace = (i: number) => WHEEL_ROSTER[(i * WHEEL_STRIDE) % WHEEL_ROSTER.length];
+/** The marks that are not discs of their own ride on one. */
+const WHEEL_DISC = new Set<string>([FACES.claude, FACES.codex]);
+const wheelEase = (p: number) => 1 - (1 - p) ** WHEEL.easePow;
+const smoothstep = (e0: number, e1: number, x: number) => {
+  const t = clamp01((x - e0) / (e1 - e0));
+  return t * t * (3 - 2 * t);
+};
+const foldDeg = (deg: number) => {
+  const d = ((deg % 360) + 360) % 360;
+  return d > 180 ? d - 360 : d;
+};
+/** rev/s at `h` of the ring's life — the announcement's speedAt. */
+function wheelSpeed(h: number) {
+  if (h < WHEEL.spinUpTo) {
+    const u = h / WHEEL.spinUpTo;
+    return WHEEL.start + (WHEEL.peak - WHEEL.start) * u * u;
+  }
+  const u = (h - WHEEL.spinUpTo) / (1 - WHEEL.spinUpTo);
+  return WHEEL.floor + (WHEEL.peak - WHEEL.floor) * Math.exp(-WHEEL.friction * u);
+}
+/** The announcement's vAt: the shared zoom, 1/max → 1 over the ring's life. */
+const wheelZoom = (h: number) => (1 + (WHEEL.max - 1) * smoothstep(WHEEL.zoomFrom, 1, h)) / WHEEL.max;
+/** Degrees turned at `h` of the ring's life (E seconds long): the momentum
+ *  integral, easing down to the cruise just before the sweep ends and
+ *  flowing on through the fade — the announcement's angle table. */
+function wheelAngle(h: number, E: number, sweep: number) {
+  const steps = 64;
+  const stopFrom = Math.max(0, (sweep - 0.1) / E);
+  const end = clamp01(h);
+  const dh = end / steps;
+  let deg = 0;
+  for (let i = 0; i < steps; i += 1) {
+    const x = (i + 0.5) * dh;
+    const stopper = 1 - (1 - WHEEL.tailFlow) * smoothstep(stopFrom, 1, x);
+    deg += wheelSpeed(x) * stopper * dh * E * 360;
+  }
+  return deg;
+}
+/** The ring's whole life over the closer: sweep + exit = the hold. */
+function wheelLife(T: Timing) {
+  const E = T.logo - T.closer;
+  const sweep = E * WHEEL.sweepShare;
+  const departAt = sweep * WHEEL.departFrom;
+  return { E, sweep, departAt, tau: (sweep - departAt) / (E - departAt) };
+}
 /** The closer: the stage's type card, one line, the white washing up under
- *  it over WASH_LEAD (the stage's own), held for the logo to cut in over. */
-const CLOSER_LINE = "One interface, all your agents";
+ *  it over WASH_LEAD (the stage's own), held for the logo to cut in over.
+ *  Once the line has landed, its last word rolls in the slot — teammates
+ *  becomes agents — the reel the trace line under the agent rolls on. */
+const CLOSER_LINE = "One interface. All your teammates";
+const CLOSER_ROLL_TO = "agents";
+/** How long the landed line is read before the last word rolls. */
+const CLOSER_ROLL_AFTER = 0.7;
+/** The closer's exit: a quick fade before the logo cuts in over it. */
+const CLOSER_OUT = 0.3;
 const WASH_LEAD = 0.4;
 const closerCard = (T: Timing): TypeCardOn => {
   const words = CLOSER_LINE.split(" ");
   const hold = Math.max(0.5, T.logo - T.closer);
-  return { key: "closer", lines: [words], starts: [0], ends: [hold], t: T.closer, hold, faces: [] };
+  return { key: "closer", lines: [words], starts: [0], ends: [hold], t: T.closer, hold, faces: [], roll: { line: 0, word: words.length - 1, to: CLOSER_ROLL_TO, at: lineArrive(words.length) + CLOSER_ROLL_AFTER } };
 };
 /** The agent at rest — the library's Orbit v2 with the face landed: the
  *  frame its animation ends on. */
@@ -137,6 +199,9 @@ const FACE_AT = TYPE_MS + INDICATOR.morphMs;
 const noop = () => {};
 
 /** A hard pop: overshoots to 1.18 and settles. */
+/** The trace line's slot: an item is up in SLOT_IN, the one before is gone in SLOT_OUT. */
+const SLOT_IN = 0.45;
+const SLOT_OUT = 0.32;
 const pop = (p: number) => {
   const s = 2.4;
   const q = clamp01(p) - 1;
@@ -161,43 +226,45 @@ function agentAt(vt: number, T: Timing): AgentLook {
   const k = swapIndex(vt, T);
   if (k == null) return { frame: AGENT_FRAME, face: faceLanded(vt, T) };
   if (k === 0) return { frame: FIRST_MORPH.morph((vt - becomingAt(T, 0)) * 1000), face: FACES[CHAIN[0].face] };
-  // A crossfade: the new face, at rest, growing in — the element's scale
-  // and opacity do the fade; the old face is the partner element.
-  return { frame: AGENT_FRAME, face: FACES[CHAIN[k].face] };
-}
-/** The face on its way out during a crossfade, if one is. */
-function faceLeaving(vt: number, T: Timing): AgentLook | null {
-  const k = swapIndex(vt, T);
-  if (k == null || k === 0) return null;
-  return { frame: AGENT_FRAME, face: FACES[CHAIN[k - 1].face] };
-}
-/** How far through a crossfade `vt` is, 0 outside one. */
-function swapProgress(vt: number, T: Timing): number {
-  const k = swapIndex(vt, T);
-  if (k == null || k === 0) return 0;
-  return ease(seg(vt, becomingAt(T, k), faceAt(T, k) - becomingAt(T, k)));
+  // A change of face, in the typing indicator's own language (swap.ts):
+  // the mark comes apart into the dots, they type, the next mark gathers.
+  return swapLook((vt - becomingAt(T, k)) * 1000, CHAIN[k - 1].face, CHAIN[k].face);
 }
 /** The composer's own indicator (ando-stage/typing.tsx): each dot on a
  *  0.9s cycle from rest, the first 30ms after mount, each next 190ms
  *  behind the one before (delayChildren 0.03 + stagger 0.05 + its own
  *  0.14). */
 const PRODUCT_DOT_DELAY = { first: 30, step: 190 };
-/** Once the face has spun out into the dots, the dots run on the
- *  composer's clock — the product's own model, from rest at `iface`, which
- *  is when the composer's indicator mounts under them — so the two are one
- *  and the handover is invisible. The reversed morph leaves the side dots
- *  150ms into their cycle; they slip into the product's phasing over the
- *  first 0.3s. */
+/** When the composer's indicator mounts under the agent's dots: the end of
+ *  the pull-back, a breath before the agent's dots fade. Not before — the
+ *  room is not typing yet. */
+const handoverAt = (T: Timing) => T.iface + ZOOM_OUT - 0.05;
+/** Once the face has spun out into the dots, the dots keep the library's
+ *  wave through the pull-back, settle to rest in the last 0.3s before the
+ *  handover — the composer's indicator starts from rest — and from the
+ *  handover run on the composer's own clock, so the two are one and the
+ *  fade between them is invisible. */
 function handoverWave(vt: number, T: Timing): Frame {
-  const ms = (vt - T.iface) * 1000;
-  const slip = smooth(clamp01(ms / 300));
+  const ms = (vt - handoverAt(T)) * 1000;
+  const settle = smooth(clamp01((ms + 300) / 300));
   // typingFrame puts dot i at phase (ms + 150·(1 − i)); ask it for the phase we want.
-  const at = (i: number) => {
-    const library = ms + 150 * (1 - i);
-    const product = Math.max(0, ms - PRODUCT_DOT_DELAY.first - PRODUCT_DOT_DELAY.step * i);
-    return typingFrame(lerp(library, product, slip) - 150 * (1 - i), 1);
+  const at = (i: number, phase: number) => {
+    const f = typingFrame(phase - 150 * (1 - i), 1);
+    return i === 1 ? f.blob : f.sats[i === 0 ? 0 : 1];
   };
-  return { sats: [at(0).sats[0], at(2).sats[1]], blob: at(1).blob, avatarO: 0 };
+  const dot = (i: number) => {
+    if (ms >= 0) return at(i, Math.max(0, ms - PRODUCT_DOT_DELAY.first - PRODUCT_DOT_DELAY.step * i));
+    const wave = at(i, (vt - T.iface) * 1000 + 150 * (1 - i));
+    const rest = at(i, 0);
+    const ink = (fill: string) => fill.match(/\d+/g)?.map(Number) ?? [88, 82, 78];
+    const a = ink(wave.fill);
+    const b = ink(rest.fill);
+    return { ...wave, y: lerp(wave.y, rest.y, settle), r: lerp(wave.r, rest.r, settle), fill: `rgb(${Math.round(lerp(a[0], b[0], settle))}, ${Math.round(lerp(a[1], b[1], settle))}, ${Math.round(lerp(a[2], b[2], settle))})` };
+  };
+  const d0 = dot(0);
+  const d1 = dot(1);
+  const d2 = dot(2);
+  return { sats: [{ ...d0, o: 1 }, { ...d2, o: 1 }], blob: d1, avatarO: 0 };
 }
 /** Which becoming `vt` is in, if any. */
 function swapIndex(vt: number, T: Timing): number | null {
@@ -242,10 +309,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const [scripted, setScripted] = useState<string | null>(null);
   const [traceVt, setTraceVt] = useState(0);
   const [indicator, setIndicator] = useState<AgentLook | null>(null);
-  const [leaving, setLeaving] = useState<AgentLook | null>(null);
   const [valueOn, setValueOn] = useState(false);
   const [logoOn, setLogoOn] = useState(false);
   const [closerOn, setCloserOn] = useState(false);
+  const wheelBandRef = useRef<HTMLDivElement>(null);
+  const wheelRingRef = useRef<HTMLDivElement>(null);
+  const wheelDotRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const wheelDiscRefs = useRef<Array<HTMLDivElement | null>>([]);
   const washRef = useRef<HTMLDivElement>(null);
 
   const groundRef = useRef<HTMLDivElement>(null);
@@ -261,15 +331,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
-  const leavingRef = useRef<HTMLDivElement>(null);
-  /** Each face's dots, sampled once its image has loaded. */
-  const marksRef = useRef<Map<string, MarkDot[]>>(new Map());
+  // Each mark's ink, read off its image once — the colour its dots turn
+  // as it gathers (swap.ts).
   useEffect(() => {
-    for (const src of Object.values(FACES)) {
-      const img = new Image();
-      img.onload = () => marksRef.current.set(src, sampleMark(img));
-      img.src = src;
-    }
+    readInks();
   }, []);
   const traceRef = useRef<HTMLDivElement>(null);
   const valueLineRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -297,7 +362,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let closerShown = false;
     let traceVtShown = 0;
     let indicatorShown: number | null = null;
-    let leavingShown: string | null = null;
     let valueShown = false;
 
     const paint = (T: Timing) => {
@@ -325,10 +389,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const rowH = rowRefs.current.map((refs) => refs.inner?.offsetHeight ?? 0);
 
       /* ── The window ────────────────────────────────────────────── */
-      const winP = ease(seg(vt, T.iface + 0.1, 0.7));
+      // The white card and the grey ground fade in from nothing over the
+      // whole pull-back on the build's curve; the composer — what the dots
+      // land on — comes in on the same curve, early and quick.
+      const winP = build(seg(vt, T.iface, ZOOM_OUT));
       ground.style.opacity = `${winP}`;
       if (pageGroundRef.current) pageGroundRef.current.style.opacity = `${winP}`;
-      const side = ease(seg(vt, T.sidebar, 0.35));
+      const side = build(seg(vt, T.sidebar, 0.6));
       const cardX = lerp(CARD.x, CARD_WIDE.x, side);
       const cardW = lerp(CARD.w, CARD_WIDE.w, side);
       const cardY = CARD.y;
@@ -343,7 +410,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.top = `${cardY}px`;
         el.style.width = `${cardW}px`;
         el.style.height = `${cardH}px`;
-        el.style.opacity = `${winP}`;
+        el.style.opacity = el === card ? `${winP}` : "1";
         el.style.transform = recede > 0 ? `scale(${1 - 0.04 * recede})` : "";
         el.style.filter = recede > 0 ? `blur(${8 * recede}px)` : "";
       }
@@ -356,7 +423,54 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // lockup cuts in over it and condenses (ando-stage/cards.tsx).
       const wash = washRef.current;
       if (wash) wash.style.opacity = `${ease(seg(vt, T.closer - WASH_LEAD, WASH_LEAD))}`;
-      if (vt >= T.closer && vt < T.logo) driveTypeCard(closerCard(T), vt - T.closer, true);
+      if (vt >= T.closer && vt < T.logo) {
+        driveTypeCard(closerCard(T), vt - T.closer, true);
+        // The line goes quickly, not abruptly: a short fade with a touch of
+        // lift and blur in the last CLOSER_OUT before the logo cuts in.
+        const typeCard = document.querySelector<HTMLElement>("[data-type-card]");
+        if (typeCard) {
+          const out = ease(seg(vt, T.logo - CLOSER_OUT, CLOSER_OUT));
+          typeCard.style.opacity = `${1 - out}`;
+          typeCard.style.transform = `translateY(${-8 * out}px)`;
+          typeCard.style.filter = out > 0 ? `blur(${4 * out}px)` : "";
+        }
+        // The wheel: the announcement's pass — the crest of small faces
+        // drifts up to speed as the camera pushes in, then the ring lets go:
+        // the gaps widen and every dot dissolves on its own clock, the far
+        // side first, the crest last, all gone as the logo cuts in.
+        const local = vt - T.closer;
+        const band = wheelBandRef.current;
+        const ring = wheelRingRef.current;
+        if (band && ring) {
+          const { E, sweep, departAt, tau } = wheelLife(T);
+          const h = clamp01(local / E);
+          band.style.opacity = `${ease(seg(local, 0, 0.25))}`;
+          band.style.visibility = local >= E ? "hidden" : "visible";
+          const D = WHEEL.face * (WHEEL.ring / WHEEL.dot);
+          const baseR = D / 2;
+          const a = wheelAngle(h, E, sweep);
+          const vz = wheelZoom(h);
+          ring.style.transform = `translateY(${baseR * vz}px) rotate(${a}deg) scale(${vz})`;
+          const dp = clamp01((local - departAt) / (E - departAt));
+          const spread = 1 + WHEEL.spreadK * wheelEase(dp);
+          // The departure is measured from the crest as the sweep ends.
+          const aSwap = wheelAngle(sweep / E, E, sweep);
+          const crestDot = ((WHEEL.dots - Math.round(aSwap / WHEEL_SECTOR)) % WHEEL.dots + WHEEL.dots) % WHEEL.dots;
+          const thM = foldDeg(a + crestDot * WHEEL_SECTOR);
+          for (let i = 0; i < WHEEL.dots; i += 1) {
+            const dot = wheelDotRefs.current[i];
+            const disc = wheelDiscRefs.current[i];
+            if (!dot || !disc) continue;
+            const ang = ((((i * WHEEL_SECTOR + aSwap) % 360) + 360) % 360);
+            const remote = Math.min(ang, 360 - ang) / 180;
+            const thNew = thM + foldDeg(foldDeg(a + i * WHEEL_SECTOR) - thM) * spread;
+            const pe = wheelEase(clamp01((dp - tau * (1 - remote)) / (1 - tau)));
+            dot.style.transform = `rotate(${thNew - a}deg) translateY(${-(baseR - (WHEEL.crestCy / WHEEL.ring) * D)}px)`;
+            dot.style.opacity = `${1 - pe}`;
+            disc.style.transform = `rotate(${-thNew}deg)`;
+          }
+        }
+      }
       if (vt >= T.logo) seatLogo(vt - T.logo);
 
       /* ── The sidebar ───────────────────────────────────────────── */
@@ -365,15 +479,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       main.style.boxShadow = side > 0 ? "-1px 0 0 var(--color-ando-border-default)" : "none";
 
       /* ── The header and the composer's slide ───────────────────── */
-      const chatP = ease(seg(vt, T.chat, 0.5));
+      const chatP = build(seg(vt, T.chat, 0.8));
       header.style.transform = `translateY(${-headerH * (1 - chatP)}px)`;
       header.style.opacity = `${chatP}`;
 
       const bottomTop = cardH - composerH;
       // The composer is in place well before the pull-back lands the dots on it.
-      const slide = ease(seg(vt, T.iface + 0.05, 0.5));
+      const slide = build(seg(vt, T.iface + 0.05, 0.7));
       const composerTop = lerp(cardH + 12, bottomTop, slide);
       composer.style.top = `${composerTop}px`;
+      composer.style.opacity = `${slide}`;
       transcript.style.top = `${headerH}px`;
       // The typing slot only takes room while someone is typing (the product's own rule).
       transcript.style.bottom = `${composerH + (typingShown ? STRIP_H : 8)}px`;
@@ -393,7 +508,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         } else {
           at = T.reply + (row.after ?? 0);
         }
-        const p = ease(seg(vt, at, 0.45));
+        const p = ease(seg(vt, at, ROW_IN));
         refs.wrap.style.height = `${rowH[i] * p}px`;
         refs.inner.style.opacity = `${p}`;
         refs.inner.style.transform = `translateY(${14 * (1 - p)}px)`;
@@ -434,19 +549,42 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         line.style.opacity = `${roll * (1 - gone)}`;
         line.style.transform = `translate(-50%, ${lerp(24, 0, roll) - 18 * gone}px) rotateX(${lerp(-42, 0, roll) + 42 * gone}deg)`;
         nod += Math.sin(Math.PI * seg(vt, step.t, 0.4));
-        (valueItemRefs.current[i] ?? []).forEach((item, j) => {
-          if (!item) return;
-          const p = pop(seg(vt, step.t + 0.3 + j * 0.09, 0.3));
-          item.style.opacity = `${clamp01(p * 2)}`;
-          item.style.transform = `scale(${p})`;
-        });
+        const items = valueItemRefs.current[i] ?? [];
+        if (step.roll) {
+          // The slot: the items roll through one spot, each up out of the
+          // seat below as the one before tips away above, the slot's width
+          // going with them so the line stays centred — the reel's own.
+          const t0 = step.t + 0.3;
+          const every = step.roll;
+          const widths = items.map((item) => item?.offsetWidth ?? 0);
+          // The item on its way in, and how far: the slot's width glides
+          // from the one before it to it on the same curve as the roll.
+          const c = Math.max(0, Math.min(items.length - 1, Math.floor((vt - t0) / every)));
+          const arriving = glide(seg(vt, t0 + c * every, SLOT_IN));
+          const slot = line.querySelector<HTMLElement>("[data-slot]");
+          if (slot) slot.style.width = `${lerp(widths[c - 1] ?? widths[c], widths[c], c === 0 ? 1 : arriving)}px`;
+          items.forEach((item, j) => {
+            if (!item) return;
+            const up = glide(seg(vt, t0 + j * every, SLOT_IN));
+            const away = j + 1 < items.length ? glide(seg(vt, t0 + (j + 1) * every, SLOT_OUT)) : 0;
+            item.style.opacity = `${up * (1 - away)}`;
+            item.style.transform = `translateY(${lerp(12, 0, up) - 10 * away}px) rotateX(${lerp(-42, 0, up) + 42 * away}deg)`;
+          });
+        } else {
+          items.forEach((item, j) => {
+            if (!item) return;
+            const p = pop(seg(vt, step.t + 0.3 + j * 0.09, 0.3));
+            item.style.opacity = `${clamp01(p * 2)}`;
+            item.style.transform = `scale(${p})`;
+          });
+        }
       });
       // The agent forms out of the particles: the seeds have already made
       // its three balls (stream.ts birthBalls), so it arrives at full size —
       // the real balls fading in exactly over the clusters.
       const appear = 1;
       const zoomed = vt >= T.iface;
-      const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
+      const zp = build(seg(vt, T.iface, ZOOM_OUT));
       // Where the composer's own indicator draws its middle dot: the strip
       // sits 3px above the box, its dots 4px in from the 16px inset on a
       // 6px pitch — the middle one 28px in, 19.4px up from the box.
@@ -465,33 +603,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const full = field.fullAt == null ? 0 : Math.sin(Math.PI * seg(vt, field.fullAt + 0.05, 0.5));
       // Between beats the agent breathes, barely.
       const breathe = vt >= T.agent && vt < T.iface ? 0.012 * Math.sin(vt * Math.PI) : 0;
-      // Face to face: the mark dissolves into its dots, which travel round
-      // and re-form as the next mark (drawn on the canvas below). The old
-      // face fades as its dots arrive, the new one fades in as they settle.
-      // Without the samples (images still loading) it is a crossfade.
-      const swap = swapProgress(vt, T);
-      const swapK = swapIndex(vt, T);
-      const morph = swap > 0 && swapK != null && swapK > 0 ? { from: marksRef.current.get(FACES[CHAIN[swapK - 1].face]), to: marksRef.current.get(FACES[CHAIN[swapK].face]), p: swap } : null;
-      const morphing = morph?.from != null && morph.to != null;
-      const faceIn = morphing ? clamp01((swap - 0.78) / 0.22) : swap;
-      const faceOut = morphing ? 1 - clamp01(swap / 0.22) : 1 - swap;
-      const swapIn = zoomed || morphing ? 1 : lerp(0.8, 1, swap);
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * swapIn * (1 + 0.05 * Math.min(1, nod)) * (1 + 0.1 * full) * (1 + breathe);
+      // Face to face: the mark comes apart into the typing dots and the next
+      // mark gathers out of them — all in the agent's own frames (swap.ts).
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * (1 + 0.05 * Math.min(1, nod)) * (1 + 0.1 * full) * (1 + breathe);
       const sx = zoomed ? 1 : 1 + 0.07 * gulp;
       const sy = zoomed ? 1 : 1 - 0.05 * gulp;
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `translate(${zoomed ? 0 : 3 * gulp}px, 0) scale(${(size / INDICATOR_PX) * sx}, ${(size / INDICATOR_PX) * sy})`;
       // In over the seeds as they go (stream.ts: the clusters hand over in a tenth of a second).
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.08, 0.1)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25))) * (swap > 0 ? faceIn : 1)}`;
-      const leavingEl = leavingRef.current;
-      if (leavingEl) {
-        const out = swap > 0 ? faceOut : 0;
-        leavingEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
-        leavingEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
-        leavingEl.style.transform = `scale(${(morphing ? 1 : lerp(0.8, 1, out)) * (1 + breathe)})`;
-        leavingEl.style.opacity = `${out}`;
-      }
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.08, 0.1)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -508,9 +629,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // strip that only changes when the set does.
       const typers: Actor[] = [];
       let scriptedNow: string | null = null;
-      // The composer's indicator is there from `iface`: it and the agent's
-      // dots run the same clock under the pull-back, and hand over unseen.
-      if (vt >= T.iface && vt < T.closer) {
+      // The composer's indicator mounts at the handover, from rest, on the
+      // same clock as the agent's dots — they hand over unseen.
+      if (vt >= handoverAt(T) && vt < T.closer) {
         let chatI = 0;
         for (const row of ROWS) {
           const land = row.lands === "chat" ? T.chat + CHAT_LEAD + chatI * CHAT_STAGGER : T.reply + (row.after ?? 0);
@@ -558,21 +679,14 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // The agent's frame: at rest until `indicator` (one frame, no churn),
       // then the library's animation, reversed, at 60 a second — the film's
       // own rate; 30 read as choppy beside it.
-      // The birth's wave and the first morph are runs of ticks; a face at
-      // rest, or crossfading in, is one tick per face.
+      // The birth's wave and every becoming are runs of ticks; a face at
+      // rest is one tick per face.
       const chainTick = () => {
         if (vt < becomingAt(T, 0)) return 900 + Math.floor((vt - T.agent + 1) * 60) / 1000;
         const k = swapIndex(vt, T);
         if (k == null) return -1 - CHAIN.findIndex((step) => FACES[step.face] === faceLanded(vt, T)) - 1;
-        if (k > 0) return 1000 + k * 10;
-        return 1000 + Math.floor((vt - becomingAt(T, 0)) * 60) / 1000;
+        return 1000 + k * 10 + Math.floor((vt - becomingAt(T, k)) * 60) / 1000;
       };
-      const leavingNow = vt < T.indicator ? faceLeaving(vt, T) : null;
-      const leavingKey = leavingNow?.face ?? null;
-      if (leavingKey !== leavingShown) {
-        leavingShown = leavingKey;
-        setLeaving(leavingNow ? bare(leavingNow) : null);
-      }
       const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? chainTick() : Math.floor((vt - T.indicator) * 60) / 60;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
@@ -587,7 +701,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${a * b}`;
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
-      fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
+      // "Context is everywhere." stays up through the cloud and the gathering
+      // stream, and is gone before the line has formed (Caleb: not at 3.3).
+      fadeIn(title0Ref.current, 0.3, T.line - 0.25);
       // The narration, one line at a time in one spot above the agent: a
       // sentence across the film — context is everywhere, to harness it we
       // built agents, so we built a place for them.
@@ -615,28 +731,6 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
-      }
-      if (morphing && morph) {
-        // The dots are the old mark by 0.22, travel between 0.15 and 0.85 on
-        // an ease both ways — swelling a touch mid-flight, colour crossing
-        // over on the way — and are the new mark by 0.78, when it fades in.
-        const move = smooth(clamp01((swap - 0.15) / 0.7));
-        const alpha = clamp01(swap / 0.22) * clamp01((1 - swap) / 0.22);
-        const swell = Math.sin(Math.PI * move);
-        const from = morph.from as MarkDot[];
-        const to = morph.to as MarkDot[];
-        for (let i = 0; i < from.length; i += 1) {
-          const a = from[i];
-          const b = to[i];
-          // A little lift off the straight line, so the round turns rather than collapses.
-          const mx = lerp(a.x, b.x, move) - (a.y - b.y) * 0.35 * swell;
-          const my = lerp(a.y, b.y, move) + (a.x - b.x) * 0.35 * swell;
-          ctx.fillStyle = `rgb(${Math.round(lerp(a.r, b.r, move))}, ${Math.round(lerp(a.g, b.g, move))}, ${Math.round(lerp(a.b, b.b, move))})`;
-          ctx.globalAlpha = alpha;
-          ctx.beginPath();
-          ctx.arc(at.x + mx, at.y + my, 1.7 + 1.1 * swell, 0, Math.PI * 2);
-          ctx.fill();
-        }
       }
       ctx.globalAlpha = 1;
     };
@@ -721,15 +815,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
               {valueOn ? <ValueLine agent={AGENT} participants={READ_FROM} steps={valuePhases.steps} lineRefs={valueLineRefs} itemRefs={valueItemRefs} /> : null}
             </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, at INDICATOR_PX — then the composer's own line. */}
-            {/* The face on its way out during a crossfade, under the one coming in. */}
-            <div ref={leavingRef} className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }} aria-hidden>
-              {leaving ? <Stage frame={leaving.frame} size={INDICATOR_PX} avatarSrc={leaving.face} /> : null}
-            </div>
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
               {indicator ? <Stage frame={indicator.frame} size={INDICATOR_PX} avatarSrc={indicator.face} /> : null}
             </div>
 
-            <div ref={title0Ref} data-cs="title-0" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: STAGE.h / 2 - 20, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
+            <div ref={title0Ref} data-cs="title-0" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
               Context is everywhere.
             </div>
             <div ref={titleBRef} data-cs="title-b" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
@@ -739,14 +829,64 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
           {/* Outside the camera, so the pull-back leaves it still. */}
           <div ref={title2Ref} data-cs="title-2" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: CARD.y - 62, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-            So we built a place for them.
+            So we built an interface around them.
           </div>
         </div>
 
       </div>
       {/* The white the closer sits on: up over the room in the last WASH_LEAD before it. */}
       <div ref={washRef} className="pointer-events-none fixed inset-0 z-[70] bg-white" style={{ opacity: 0 }} aria-hidden data-wash />
-      {closerOn ? <TypeCard card={closerCard(timing)} /> : null}
+      {closerOn ? (
+        <>
+          {/* The wheel's band: the announcement's — nothing is sliced by its box, content dissolves into deep soft ramps (world-wheel.css .ww-band). */}
+          {WHEEL_ON ? (
+          <div
+            ref={wheelBandRef}
+            className="pointer-events-none fixed left-1/2 z-[75]"
+            aria-hidden
+            style={{
+              top: `calc(50% - ${WHEEL_CREST_ABOVE + 220}px)`,
+              width: 1240,
+              height: 400,
+              transform: "translateX(-50%)",
+              opacity: 0,
+              overflow: "hidden",
+              maskImage: "linear-gradient(to right, transparent, #000 140px, #000 calc(100% - 140px), transparent), linear-gradient(to bottom, transparent, #000 150px, #000 calc(100% - 60px), transparent)",
+              maskComposite: "intersect",
+              WebkitMaskImage: "linear-gradient(to right, transparent, #000 140px, #000 calc(100% - 140px), transparent), linear-gradient(to bottom, transparent, #000 150px, #000 calc(100% - 60px), transparent)",
+              WebkitMaskComposite: "source-in",
+            }}
+          >
+            {(() => {
+              const D = WHEEL.face * (WHEEL.ring / WHEEL.dot);
+              const R = D / 2;
+              const dotDrift = (WHEEL.crestCy / WHEEL.ring) * D;
+              // The ring's untransformed centre sits on the crest line; the
+              // driver pushes it down by radius × zoom so the top dot stays
+              // pinned at the crest while the wheel grows beneath the band.
+              const crest = WHEEL.bandAnchor - dotDrift;
+              return (
+                <div ref={wheelRingRef} style={{ position: "absolute", left: "50%", top: crest - R, width: D, height: D, marginLeft: -R, willChange: "transform" }}>
+                  {Array.from({ length: WHEEL.dots }, (_, i) => {
+                    const src = wheelFace(i);
+                    const onDisc = WHEEL_DISC.has(src);
+                    return (
+                      <div key={i} ref={(el) => { wheelDotRefs.current[i] = el; }} style={{ position: "absolute", left: "50%", top: "50%", width: WHEEL.face, height: WHEEL.face, marginLeft: -WHEEL.face / 2, marginTop: -WHEEL.face / 2, transform: `rotate(${i * WHEEL_SECTOR}deg) translateY(${-(R - dotDrift)}px)` }}>
+                        <div ref={(el) => { wheelDiscRefs.current[i] = el; }} className="size-full overflow-hidden rounded-full" style={{ transform: `rotate(${-i * WHEEL_SECTOR}deg)`, background: onDisc ? "#EFEDE8" : undefined }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={src} alt="" className={onDisc ? "block size-full object-contain p-[18%]" : "block size-full object-cover"} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+          ) : null}
+          <TypeCard card={closerCard(timing)} />
+        </>
+      ) : null}
       {logoOn ? <LogoCard /> : null}
     </div>
   );

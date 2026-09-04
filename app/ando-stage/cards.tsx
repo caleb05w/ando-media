@@ -13,6 +13,8 @@ import { beatKey, type Actor, type CameraAnchor, type Scene, type Timing } from 
 export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
 export const ease = (p: number) => 1 - Math.pow(1 - clamp01(p), 2.2);
 export const easeInOut = (p: number) => { const q = clamp01(p); return q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2; };
+/** A slot's roll — the word's rise and the line's re-centring on one cubic in-out, so they read as one motion, no lurch at either end. */
+export const glide = (p: number) => { const q = clamp01(p); return q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2; };
 export const backOut = (p: number) => { const s = 1.5; const q = clamp01(p) - 1; return q * q * ((s + 1) * q + s) + 1; };
 export const seg = (vt: number, from: number, dur: number) => clamp01((vt - from) / Math.max(0.001, dur));
 
@@ -162,7 +164,10 @@ export const WORD_CADENCE = 0.15;
 /** How long a word takes to land. */
 export const WORD_LAND = 0.42;
 
-export type TypeCardOn = { key: string; /** Each line's words. */ lines: string[][]; /** When each line starts, from the card's own zero. */ starts: number[]; /** When each line begins to leave. */ ends: number[]; t: number; /** The whole card's hold: the last line's end. */ hold: number; faces: Array<{ actor: Actor; on: number; line: number }> };
+export type TypeCardOn = { key: string; /** Each line's words. */ lines: string[][]; /** When each line starts, from the card's own zero. */ starts: number[]; /** When each line begins to leave. */ ends: number[]; t: number; /** The whole card's hold: the last line's end. */ hold: number; faces: Array<{ actor: Actor; on: number; line: number }>; /** A word that rolls to another in its slot at `at`: the old tips away above, the new rolls up into its place, the slot's width going with it. */ roll?: { line: number; word: number; to: string; at: number } };
+/** The slot's roll: the new word is up in ROLL_IN, the old is gone in ROLL_OUT — the trace reel's own. */
+export const ROLL_IN = 0.55;
+export const ROLL_OUT = 0.4;
 /** How long a line takes to lift and blur away once its hold is up. */
 export const LINE_EXIT = 0.5;
 /** Seconds for a line's words to finish arriving. */
@@ -236,6 +241,23 @@ export function driveTypeCard(tc: TypeCardOn, local: number, closer: boolean) {
       word.style.transform = `translateY(${(1 - p) * 16}px) scale(${1.03 - 0.03 * p})`;
       word.style.filter = `blur(${(1 - p) * 8}px)`;
     });
+    // A word in a slot rolls to its other: the old tips up and away, the
+    // new rolls up into the seat, and the slot's width goes with it so the
+    // line stays centred through the roll.
+    const slot = line.querySelector<HTMLElement>("[data-slot]");
+    if (slot && tc.roll && tc.roll.line === li) {
+      const from = slot.querySelector<HTMLElement>("[data-roll=from]");
+      const to = slot.querySelector<HTMLElement>("[data-roll=to]");
+      if (from && to) {
+        const roll = glide(seg(local, tc.roll.at, ROLL_IN));
+        const gone = glide(seg(local, tc.roll.at, ROLL_OUT));
+        slot.style.width = `${from.offsetWidth + (to.offsetWidth - from.offsetWidth) * roll}px`;
+        from.style.opacity = `${1 - gone}`;
+        from.style.transform = `translateY(${-18 * gone}px) rotateX(${42 * gone}deg)`;
+        to.style.opacity = `${roll}`;
+        to.style.transform = `translateY(${24 * (1 - roll)}px) rotateX(${-42 * (1 - roll)}deg)`;
+      }
+    }
     // The whole line settles up into its seat with its first word.
     const settle = ease(seg(local, start, WORD_LAND + 0.2));
     // A line that has had its hold lifts and blurs away above the next; the
@@ -292,9 +314,17 @@ export function TypeCard({ card }: { card: TypeCardOn }) {
       <div className="relative flex items-center justify-center" style={{ height: 60 }}>
         {card.lines.map((words, li) => (
           <div key={li} className="absolute flex whitespace-nowrap will-change-transform" data-type-line data-line={li} style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.02em", fontWeight: 500, fontFamily: "var(--font-geist-sans), Geist, ui-sans-serif, system-ui, sans-serif" }}>
-            {words.map((word, i) => (
-              <span key={i} data-word className="inline-block will-change-transform" style={{ marginRight: i < words.length - 1 ? "0.26em" : 0, opacity: 0 }}>{word}</span>
-            ))}
+            {words.map((word, i) =>
+              card.roll && card.roll.line === li && card.roll.word === i ? (
+                /* The slot: both words sit on one spot; the driver rolls them and sizes the slot. */
+                <span key={i} data-word data-slot className="relative inline-block will-change-transform" style={{ marginRight: i < words.length - 1 ? "0.26em" : 0, opacity: 0, height: "1.1em", perspective: 420 }}>
+                  <span data-roll="from" className="absolute left-0 top-0 inline-block whitespace-nowrap will-change-transform" style={{ transformOrigin: "50% 50%" }}>{word}</span>
+                  <span data-roll="to" className="absolute left-0 top-0 inline-block whitespace-nowrap will-change-transform" style={{ opacity: 0, transformOrigin: "50% 50%" }}>{card.roll.to}</span>
+                </span>
+              ) : (
+                <span key={i} data-word className="inline-block will-change-transform" style={{ marginRight: i < words.length - 1 ? "0.26em" : 0, opacity: 0 }}>{word}</span>
+              ),
+            )}
           </div>
         ))}
       </div>

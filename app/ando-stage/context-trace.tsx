@@ -17,7 +17,7 @@ export type TracePhases = {
   /** One per beat: the label the line shimmers, an icon kind, and optionally
    *  what is being read — the pile shown inline (a "transcript" step with no
    *  pile shows the participants). */
-  steps: Array<{ t: number; label: string; icon: "read" | "write" | "transcript" | null; pile?: React.ReactNode[] }>;
+  steps: Array<{ t: number; label: string; icon: "read" | "write" | "transcript" | null; pile?: React.ReactNode[]; /** words after the pile, when the pile sits mid-sentence */ tail?: string; /** the pile takes one slot and rolls through its items, one every `roll` seconds */ roll?: number }>;
   done: number;
 };
 

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Stepper, weekLabel, weekRange } from "./stepper";
 
-// / — directory of every page in the app, split across two shelves behind a
-// floating switcher: Projects (prototypes and experiments) and Slides (dated
-// decks). Each card carries a live thumbnail of its route — the page itself
+// / — directory of every page in the app, split across three shelves behind a
+// floating switcher: Videos (the latest films), Projects (prototypes and
+// experiments) and Slides (dated decks). Each card carries a live thumbnail of its route — the page itself
 // rendered in a scaled-down iframe — so a visitor can tell projects apart
 // without reading. Titles stay under five words, briefs under twelve.
 
@@ -24,6 +24,13 @@ type Entry = {
 };
 
 const PROJECTS: Entry[] = [
+  {
+    href: "/agent-morph",
+    week: "2026-08-31",
+    title: "Agent morph",
+    tag: "Motion",
+    brief: "Grok becomes Claude becomes Codex — the dot morph, alone.",
+  },
   {
     href: "/ando-grok",
     week: "2026-08-31",
@@ -250,7 +257,13 @@ const SLIDES: Entry[] = [
   },
 ];
 
+/** The films — the latest cuts, on their own shelf. Each is a project too;
+ *  this is the short list, newest first, for someone who came to watch. */
+const VIDEO_HREFS = ["/ando-grok", "/context-stream", "/ando-stage", "/affiliate-announcement"] as const;
+const VIDEOS: Entry[] = VIDEO_HREFS.map((href) => PROJECTS.find((p) => p.href === href)).filter((p): p is Entry => Boolean(p));
+
 const TABS = [
+  ["videos", "Videos"],
   ["projects", "Projects"],
   ["slides", "Slides"],
 ] as const;
@@ -305,7 +318,7 @@ function EntryCard({ entry }: { entry: Entry }) {
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>("projects");
+  const [tab, setTab] = useState<Tab>("videos");
 
   // Weeks come from git — each route's first-commit date, collapsed to the
   // Monday of that week. Newest first, so the current week reads first and
@@ -333,11 +346,13 @@ export default function Home() {
   );
 
   const entries =
-    tab === "slides"
-      ? SLIDES
-      : week === "all"
-        ? PROJECTS
-        : PROJECTS.filter((p) => p.week === week);
+    tab === "videos"
+      ? VIDEOS
+      : tab === "slides"
+        ? SLIDES
+        : week === "all"
+          ? PROJECTS
+          : PROJECTS.filter((p) => p.week === week);
 
   return (
     <div className="flex flex-1 justify-center bg-white">

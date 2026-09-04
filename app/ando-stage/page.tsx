@@ -986,7 +986,7 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
             const x = from.x + (to.x - from.x) * e;
             const y = from.y + (to.y - from.y) * e - arc;
             pointerPos.current = { x, y };
-            pointer.style.opacity = "1";
+            pointer.style.opacity = `${pose.shown}`;
             pointer.style.transform = `translate(${x}px, ${y}px) scale(${cameraPose.current.s * (1 - 0.15 * pose.press)})`;
             const glyph = cursorGlyphRef.current;
             const c = CURSOR_GLYPHS[pose.glyph];

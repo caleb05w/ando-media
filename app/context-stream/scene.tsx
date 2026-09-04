@@ -65,6 +65,36 @@ const SLOT_TOP = LINE_Y + AGENT_R + TRACE_GAP;
 /** The narration above the agent, and the stream: one line at a time. */
 const TITLE_TOP = LINE_Y - AGENT_R - 62;
 type AgentLook = { frame: Frame; face: string };
+/** A mark as dots: its pixels, sampled at the size it shows on the agent,
+ *  in the mark's own colours — for the morph between agents. Ordered round
+ *  the circle, so a dot's partner in the next mark is its neighbour in the
+ *  round and the travel reads as one turning re-shape. */
+type MarkDot = { x: number; y: number; r: number; g: number; b: number };
+const MORPH_DOTS = 240;
+/** The face image's size on the agent: the disc's diameter (Stage draws it edge to edge). */
+const MARK_PX = 2 * AGENT_R;
+function sampleMark(img: HTMLImageElement): MarkDot[] {
+  const size = 120;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const g = canvas.getContext("2d");
+  if (!g) return [];
+  g.drawImage(img, 0, 0, size, size);
+  const data = g.getImageData(0, 0, size, size).data;
+  const pts: MarkDot[] = [];
+  const step = 3;
+  for (let y = step / 2; y < size; y += step) {
+    for (let x = step / 2; x < size; x += step) {
+      const i = (Math.floor(y) * size + Math.floor(x)) * 4;
+      if (data[i + 3] < 120) continue;
+      pts.push({ x: (x / size - 0.5) * MARK_PX, y: (y / size - 0.5) * MARK_PX, r: data[i], g: data[i + 1], b: data[i + 2] });
+    }
+  }
+  if (pts.length === 0) return [];
+  pts.sort((a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x));
+  return Array.from({ length: MORPH_DOTS }, (_, i) => pts[Math.floor((i * pts.length) / MORPH_DOTS)]);
+}
 /** A bare face has no disc: the disc fades out as the face fades in, and
  *  back as it goes — the library's frame, with its disc's ink made to
  *  follow the face. Its satellites go with the disc: the library parks
@@ -205,6 +235,15 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const composerRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const leavingRef = useRef<HTMLDivElement>(null);
+  /** Each face's dots, sampled once its image has loaded. */
+  const marksRef = useRef<Map<string, MarkDot[]>>(new Map());
+  useEffect(() => {
+    for (const src of Object.values(FACES)) {
+      const img = new Image();
+      img.onload = () => marksRef.current.set(src, sampleMark(img));
+      img.src = src;
+    }
+  }, []);
   const traceRef = useRef<HTMLDivElement>(null);
   const valueLineRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const valueItemRefs = useRef<Array<Array<HTMLSpanElement | null>>>([]);
@@ -392,11 +431,17 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const full = field.fullAt == null ? 0 : Math.sin(Math.PI * seg(vt, field.fullAt + 0.05, 0.5));
       // Between beats the agent breathes, barely.
       const breathe = vt >= T.agent && vt < T.iface ? 0.012 * Math.sin(vt * Math.PI) : 0;
-      // A face-to-face crossfade: the new face grows in from 0.8 as the old
-      // one, on the partner element, shrinks to 0.8 and fades — no typing
-      // indicator between agents.
+      // Face to face: the mark dissolves into its dots, which travel round
+      // and re-form as the next mark (drawn on the canvas below). The old
+      // face fades as its dots arrive, the new one fades in as they settle.
+      // Without the samples (images still loading) it is a crossfade.
       const swap = swapProgress(vt, T);
-      const swapIn = zoomed ? 1 : lerp(0.8, 1, swap);
+      const swapK = swapIndex(vt, T);
+      const morph = swap > 0 && swapK != null && swapK > 0 ? { from: marksRef.current.get(FACES[CHAIN[swapK - 1].face]), to: marksRef.current.get(FACES[CHAIN[swapK].face]), p: swap } : null;
+      const morphing = morph?.from != null && morph.to != null;
+      const faceIn = morphing ? clamp01((swap - 0.78) / 0.22) : swap;
+      const faceOut = morphing ? 1 - clamp01(swap / 0.22) : 1 - swap;
+      const swapIn = zoomed || morphing ? 1 : lerp(0.8, 1, swap);
       const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * swapIn * (1 + 0.05 * Math.min(1, nod)) * (1 + 0.1 * full) * (1 + breathe);
       const sx = zoomed ? 1 : 1 + 0.07 * gulp;
       const sy = zoomed ? 1 : 1 - 0.05 * gulp;
@@ -404,13 +449,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `translate(${zoomed ? 0 : 3 * gulp}px, 0) scale(${(size / INDICATOR_PX) * sx}, ${(size / INDICATOR_PX) * sy})`;
       // In over the seeds as they go (stream.ts: the clusters hand over in a tenth of a second).
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.08, 0.1)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25))) * (swap > 0 ? swap : 1)}`;
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.08, 0.1)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25))) * (swap > 0 ? faceIn : 1)}`;
       const leavingEl = leavingRef.current;
       if (leavingEl) {
-        const out = swap > 0 ? 1 - swap : 0;
+        const out = swap > 0 ? faceOut : 0;
         leavingEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
         leavingEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
-        leavingEl.style.transform = `scale(${lerp(0.8, 1, out) * (1 + breathe)})`;
+        leavingEl.style.transform = `scale(${(morphing ? 1 : lerp(0.8, 1, out)) * (1 + breathe)})`;
         leavingEl.style.opacity = `${out}`;
       }
 
@@ -534,6 +579,28 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
         ctx.fill();
+      }
+      if (morphing && morph) {
+        // The dots are the old mark by 0.22, travel between 0.15 and 0.85 on
+        // an ease both ways — swelling a touch mid-flight, colour crossing
+        // over on the way — and are the new mark by 0.78, when it fades in.
+        const move = smooth(clamp01((swap - 0.15) / 0.7));
+        const alpha = clamp01(swap / 0.22) * clamp01((1 - swap) / 0.22);
+        const swell = Math.sin(Math.PI * move);
+        const from = morph.from as MarkDot[];
+        const to = morph.to as MarkDot[];
+        for (let i = 0; i < from.length; i += 1) {
+          const a = from[i];
+          const b = to[i];
+          // A little lift off the straight line, so the round turns rather than collapses.
+          const mx = lerp(a.x, b.x, move) - (a.y - b.y) * 0.35 * swell;
+          const my = lerp(a.y, b.y, move) + (a.x - b.x) * 0.35 * swell;
+          ctx.fillStyle = `rgb(${Math.round(lerp(a.r, b.r, move))}, ${Math.round(lerp(a.g, b.g, move))}, ${Math.round(lerp(a.b, b.b, move))})`;
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.arc(at.x + mx, at.y + my, 1.7 + 1.1 * swell, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       ctx.globalAlpha = 1;
     };

@@ -42,7 +42,7 @@ export type Beat =
   | { kind: "jam-dock"; ms: number }
   /** Your pointer travels to a control (and presses it). Pure in the clock:
    *  the glide runs over the beat's first 0.9s, both directions. */
-  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; /** Seconds the hand takes to reach the target (0.9 when unset). */ glide?: number; /** The camera pulls in around the target as the cursor sets off for it — `true` for the default 1.6×, or a scale (cards.tsx autoPoseAt). */ zoom?: true | number; ms: number }
+  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; /** Seconds the hand takes to reach the target (0.9 when unset). */ glide?: number; /** The hand leaves after this press (fades out) and only comes back for the next cursor beat. */ hide?: true; /** The camera pulls in around the target as the cursor sets off for it — `true` for the default 1.6×, or a scale (cards.tsx autoPoseAt). */ zoom?: true | number; ms: number }
   /** The Jam panel switches tab. */
   | { kind: "tab"; tab: "thread" | "transcript"; ms: number }
   /** Someone is talking — the ring on their tile — with nothing transcribed yet. */
@@ -374,7 +374,8 @@ const JAMS_CUT: Scene = {
     // The press IS the join — but first, the card, so a viewer who has
     // never seen Ando knows what they are watching.
     { kind: "jam-start", id: "jam1", time: "11:07 AM", participants: ["sara"], ring: true, ms: 800 },
-    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, ms: 900 },
+    // The hand leaves once the jam is joined and is back for the Thread press.
+    { kind: "cursor", to: "jam-button", glyph: "pointer", press: true, hide: true, ms: 900 },
     // Shot 2 — cut to the sky: the call arrives, the ring trades between
     // you as the first lines are spoken, the transcript unfolds with them
     // already in it and keeps pouring. The agent can keep up; nobody else can.
@@ -566,20 +567,23 @@ export function scriptedDraftAt(scene: Scene, T: Timing, vt: number): string | n
 
 /** The pointer at `vt`: which target it is gliding to, how far along, and
  *  whether it is pressing. Null before the first cursor beat. */
-export function pointerAt(scene: Scene, T: Timing, vt: number): { from: CursorTarget | null; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; progress: number; press: number; at: number } | null {
+export function pointerAt(scene: Scene, T: Timing, vt: number): { from: CursorTarget | null; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; progress: number; press: number; at: number; /** 0–1: the hand's presence — it fades out after a `hide` press and back in at the start of the beat after. */ shown: number } | null {
   let prev: CursorTarget | null = null;
-  let current: { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number; glide?: number } | null = null;
+  let prevHid = false;
+  let current: { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number; glide?: number; hide: boolean } | null = null;
   scene.beats.forEach((beat, index) => {
     if (beat.kind !== "cursor" || T[beatKey(index)] > vt) return;
-    if (current) prev = current.to;
-    current = { to: beat.to, glyph: beat.glyph, press: beat.press === true, at: T[beatKey(index)], glide: beat.glide };
+    if (current) { prev = current.to; prevHid = current.hide; }
+    current = { to: beat.to, glyph: beat.glyph, press: beat.press === true, at: T[beatKey(index)], glide: beat.glide, hide: beat.hide === true };
   });
   if (!current) return null;
-  const c = current as { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number; glide?: number };
+  const c = current as { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number; glide?: number; hide: boolean };
   const glide = c.glide ?? 0.9;
   const progress = Math.min(1, Math.max(0, (vt - c.at) / glide));
   const pressT = c.press ? Math.min(1, Math.max(0, (vt - c.at - glide) / 0.16)) : 0;
-  return { from: prev, to: c.to, glyph: c.glyph, progress, press: c.press ? Math.sin(Math.PI * pressT) : 0, at: c.at };
+  const fadeIn = prevHid ? Math.min(1, Math.max(0, (vt - c.at) / 0.3)) : 1;
+  const fadeOut = c.hide ? 1 - Math.min(1, Math.max(0, (vt - c.at - glide - 0.16 - 0.25) / 0.3)) : 1;
+  return { from: prev, to: c.to, glyph: c.glyph, progress, press: c.press ? Math.sin(Math.PI * pressT) : 0, at: c.at, shown: fadeIn * fadeOut };
 }
 
 /** Seconds the scripted Jam has been open at `vt`, or null when none is. */

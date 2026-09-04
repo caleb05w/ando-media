@@ -61,23 +61,23 @@ export const DEFAULT_TIMING: Timing = {
   agent: 4.0,
   // Two waves of typing dots (the library's own lead-in), then the morph
   // into Grok. The jobs run on the agents' clock from here (agents.ts): a
-  // job is read for 1.3s, then a crossfade to the next face (0.55s), and
+  // job is read for 1.3s, then the dot morph to the next face (0.85s), and
   // the next job rolls in as the face lands. Codex's job has been read at
-  // 10.78.
+  // 11.38.
   trace: 5.8,
-  collapse: 10.8,
-  indicator: 11.15,
+  collapse: 11.4,
+  indicator: 11.75,
   // The face has spun out into the dots at indicator + 1.05; half a second
   // on them, then the pull-back.
-  iface: 12.7,
+  iface: 13.3,
   // Sara types before her line lands at chat + 0.4; the room needs the
   // dots to have landed (iface + 1.2) before her indicator takes the strip.
-  chat: 14.7,
-  sidebar: 17.1,
-  reply: 18.7,
+  chat: 15.3,
+  sidebar: 17.7,
+  reply: 19.3,
   // The closer's five words have arrived at closer + 1.02; it holds for the logo.
-  closer: 21.1,
-  logo: 23.2,
+  closer: 21.7,
+  logo: 23.8,
   // The lockup has seated at logo + 2.3; a beat on it.
-  end: 25.7,
+  end: 26.3,
 };

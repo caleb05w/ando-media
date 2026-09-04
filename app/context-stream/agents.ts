@@ -3,8 +3,9 @@
 // Codex for a task each, and Codex spins back into the dots that the
 // composer picks up. The dots become the first face by one of /the-library's
 // v2 typing indicators' morphs (never Orbit v2, which is kept for the real
-// typing indicator at the end); face to face is a crossfade — the mark
-// shrinks and fades as the next grows in — not a typing indicator.
+// typing indicator at the end); face to face is a morph in the film's own
+// language — the mark dissolves into its dots, which travel and re-form as
+// the next mark (scene.tsx) — not a typing indicator.
 
 import { VARIANTS, type Variant } from "../agent-typing-experience/variants";
 import { INDICATOR } from "./stream";
@@ -17,12 +18,12 @@ export const BARE: ReadonlySet<string> = new Set([FACES.grok, FACES.claude, FACE
 const variant = (key: string): Variant => VARIANTS.find((v) => v.key === key) ?? INDICATOR;
 /** The becomings, in order: who the agent becomes. The first is the morph
  *  from the typing dots the agent was born as, by `FIRST_MORPH`; each next
- *  is a crossfade over SWAP_MS. The last face spins back into the dots at
+ *  is the dot morph over SWAP_MS. The last face spins back into the dots at
  *  `indicator`. */
 export const CHAIN: Array<{ face: keyof typeof FACES }> = [{ face: "grok" }, { face: "claude" }, { face: "codex" }];
 export const FIRST_MORPH: Variant = variant("slingshot-v2");
-/** A face-to-face crossfade, ms. */
-export const SWAP_MS = 550;
+/** A face-to-face morph, ms. */
+export const SWAP_MS = 850;
 /** How long a task is read before the agent becomes the next one. */
 export const TASK_DUR = 1.3;
 /** The k-th becoming's length, ms. */

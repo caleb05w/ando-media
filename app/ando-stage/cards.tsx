@@ -271,7 +271,7 @@ export function TypeCard({ card }: { card: TypeCardOn }) {
               src={face.actor.avatar}
               alt=""
               className={`st-face-talking size-14 rounded-full will-change-transform ${face.actor.avatar.startsWith("/agents/") ? "object-contain p-1" : "object-cover"}`}
-              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", animationDelay: `${-i * 0.37}s`, opacity: 0, background: face.actor.avatar.startsWith("/agents/") ? "#efedea" : face.actor.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
+              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", animationDelay: `${-i * 0.77}s`, opacity: 0, background: face.actor.avatar.startsWith("/agents/") ? "#efedea" : face.actor.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
             />
           ))}
         </div>

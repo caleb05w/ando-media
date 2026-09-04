@@ -126,8 +126,8 @@ export const CAST = {
   tadao: { name: "Tadao", avatar: `${AV}/agent-1.png`, agent: true },
   // The other agents that jam: on the middle card's face stack.
   grok: { name: "Grok", avatar: "/agents/grok.svg", agent: true },
-  claude: { name: "Claude", avatar: "/agents/claude.png", agent: true },
-  codex: { name: "Codex", avatar: "/agents/codex.png", agent: true },
+  claude: { name: "Claude", avatar: "/agents/claude-face.png", agent: true },
+  codex: { name: "Codex", avatar: "/agents/codex-face.png", agent: true },
 } as const satisfies Record<string, Actor>;
 
 export function isAgent(actor: Actor): boolean {

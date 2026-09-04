@@ -24,7 +24,7 @@ import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from ".
 import { Logo } from "./logo";
 import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
-import { AGENT, CHAT_LEAD, CHAT_STAGGER, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
+import { AGENT, CHAT_LEAD, CHAT_STAGGER, CODEX, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
 import { VALUE_SLOT_W, ValueLine } from "./value-line";
 import "../ando-stage/stage.css";
 import "./context-stream.css";
@@ -94,25 +94,32 @@ const pop = (p: number) => {
   return q * q * ((s + 1) * q + s) + 1;
 };
 
-/** The agent at `vt`: Tadao at rest; through the trace, becoming each of
+/** The agent at `vt`: born as the typing dots, waving, phased so the first
+ *  morph starts on a wave's beat; through the trace, becoming each of
  *  CHAIN in turn on the agents' clock (agents.ts); from `indicator`,
- *  /the-library's animation, `cycleFrame`, played backwards from the face
- *  — the morph in reverse, the face spinning out into three dots — and on
- *  into its typing wave, which carries until the composer takes over. One
- *  animation, reversed. */
+ *  /the-library's animation, `cycleFrame`, played backwards from the last
+ *  face — the morph in reverse, the face spinning out into three dots —
+ *  and on into its typing wave, which carries until the composer takes
+ *  over. One animation, reversed. */
+const LAST_FACE = FACES[CHAIN[CHAIN.length - 1].face];
 function agentAt(vt: number, T: Timing): AgentLook {
   if (vt >= T.indicator) {
     const c = FACE_AT - (vt - T.indicator) * 1000;
-    if (c >= 0) return { frame: cycleFrame(INDICATOR, c).frame, face: FACES.tadao };
+    if (c >= 0) return { frame: cycleFrame(INDICATOR, c).frame, face: LAST_FACE };
     // Past the start of the loop: the wave is periodic, keep it going.
-    return { frame: typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1), face: FACES.tadao };
+    return { frame: typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1), face: LAST_FACE };
+  }
+  if (vt < becomingAt(T, 0)) {
+    const c = (((vt - becomingAt(T, 0)) * 1000) % WAVE_MS) + WAVE_MS;
+    return { frame: typingFrame(c, 1), face: FACES[CHAIN[0].face] };
   }
   const k = swapIndex(vt, T);
   if (k == null) return { frame: AGENT_FRAME, face: faceLanded(vt, T) };
   const u = (vt - becomingAt(T, k)) * 1000;
-  const from = k === 0 ? FACES.tadao : FACES[CHAIN[k - 1].face];
   const to = FACES[CHAIN[k].face];
   const via = CHAIN[k].via;
+  if (k === 0) return { frame: via.morph(u), face: to };
+  const from = FACES[CHAIN[k - 1].face];
   if (u < RESET_MS) return { frame: resetFrame(u), face: from };
   if (u < RESET_MS + WAVE_MS) return { frame: typingFrame(u - RESET_MS, Math.min(1, (u - RESET_MS) / 250)), face: to };
   return { frame: via.morph(u - RESET_MS - WAVE_MS), face: to };
@@ -125,7 +132,7 @@ function swapIndex(vt: number, T: Timing): number | null {
 /** Whose face the agent wears at `vt`, between becomings: the last to have landed. */
 function faceLanded(vt: number, T: Timing): string {
   for (let k = CHAIN.length - 1; k >= 0; k -= 1) if (vt >= faceAt(T, k)) return FACES[CHAIN[k].face];
-  return FACES.tadao;
+  return FACES[CHAIN[0].face];
 }
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
@@ -375,8 +382,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         runShown = run;
         setRunPhase(run);
       }
-      // The agent is typing from the moment the pull-back lands until it replies.
-      const who: Actor | null = vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.reply ? AGENT : null;
+      // The composer's strip: Codex is typing from the moment the pull-back
+      // lands on its dots; Tadao from the moment it starts on the ask, until
+      // it replies. One strip, so the transcript never jumps.
+      const who: Actor | null = vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.reply ? (vt < runStart(T) ? CODEX : AGENT) : null;
       if (who !== typingShown) {
         typingShown = who;
         setTyping(who);
@@ -395,8 +404,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // The agent's frame: at rest until `indicator` (one frame, no churn),
       // then the library's animation, reversed, at 60 a second — the film's
       // own rate; 30 read as choppy beside it.
-      // Each becoming is its own run of ticks; a face at rest is one tick per face.
+      // The birth's wave, then each becoming, is its own run of ticks; a
+      // face at rest is one tick per face.
       const chainTick = () => {
+        if (vt < becomingAt(T, 0)) return 900 + Math.floor((vt - T.agent + 1) * 60) / 1000;
         const k = swapIndex(vt, T);
         if (k == null) return -1 - CHAIN.findIndex((step) => FACES[step.face] === faceLanded(vt, T)) - 1;
         return 1000 + k * 10 + Math.floor((vt - becomingAt(T, k)) * 60) / 1000;
@@ -417,10 +428,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       };
       fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
       // The narration, one line at a time in one spot above the agent: a
-      // sentence across the film — context is everywhere, agents need all of
-      // it, whichever agent you use, so we built one place for it.
-      fadeIn(titleBRef.current, T.agent + 0.35, becomingAt(T, 0) - 0.25);
-      fadeIn(titleARef.current, becomingAt(T, 0) + 0.2, T.collapse - 0.2);
+      // sentence across the film — context is everywhere, to harness it we
+      // built agents, whichever agent you use, so we built one place for it.
+      fadeIn(titleBRef.current, T.agent + 0.3, becomingAt(T, 0) - 0.2);
+      fadeIn(titleARef.current, faceAt(T, 0) + 0.1, T.collapse - 0.2);
       fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
 
       /* ── The canvas: the dots ──────────────────────────────────── */
@@ -535,7 +546,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
               Context is everywhere.
             </div>
             <div ref={titleBRef} data-cs="title-b" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-              Agents need all of it.
+              To harness it, we built agents.
             </div>
             <div ref={titleARef} data-cs="title-a" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
               Whichever agent you use.

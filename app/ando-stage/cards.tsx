@@ -251,6 +251,32 @@ export const LOCKUP = {
   letters: { x: 0, y: 35.7, w: 157.8, h: 41.0, px: FIG.letters.w * K },
   mark: { x: 160.3, y: 0, w: 48.4, h: 50.6, px: FIG.mark.w * K },
 };
+/** The closing lockup: when each half starts condensing (seconds after the
+ *  logo beat), how long the fade takes, how soft it starts, and how far
+ *  each half comes in from the left (px). */
+export const LOGO_IN = { mark: 0.6, letters: 0.9, fade: 1.1, blur: 16, travel: 56 } as const;
+/** The lockup `local` seconds into the logo beat: a beat of white, then it
+ *  condenses out of it like a cloud, coming in from the left — the mark
+ *  first, the wordmark a beat behind it — each from a soft blur and a touch
+ *  small, easing to sharp, still and seated. Then hold. Writes the
+ *  LogoCard's halves; both films call it per frame. */
+export function seatLogo(local: number) {
+  const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
+  const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
+  if (!mark || !letters) return;
+  const pm = easeInOut(seg(local, LOGO_IN.mark, LOGO_IN.fade));
+  const pl = easeInOut(seg(local, LOGO_IN.letters, LOGO_IN.fade));
+  // The travel eases out on its own, longer curve, so each half is still
+  // settling into its seat as it sharpens.
+  const dm = ease(seg(local, LOGO_IN.mark, LOGO_IN.fade + 0.3));
+  const dl = ease(seg(local, LOGO_IN.letters, LOGO_IN.fade + 0.3));
+  mark.style.opacity = `${pm}`;
+  mark.style.filter = pm < 1 ? `blur(${LOGO_IN.blur * (1 - pm)}px)` : "none";
+  mark.style.transform = `translate(${MARK_OFFSET.x - LOGO_IN.travel * (1 - dm)}px, ${MARK_OFFSET.y}px) scale(${0.94 + 0.06 * pm})`;
+  letters.style.opacity = `${pl}`;
+  letters.style.filter = pl < 1 ? `blur(${LOGO_IN.blur * (1 - pl)}px)` : "none";
+  letters.style.transform = `translate(${LETTERS_OFFSET.x - LOGO_IN.travel * (1 - dl)}px, ${LETTERS_OFFSET.y}px) scale(${0.94 + 0.06 * pl})`;
+}
 /** Each half's centre, offset from the lockup's centre, in px. */
 export const MARK_OFFSET = { x: (FIG.mark.x + FIG.mark.w / 2 - FIG.w / 2) * K, y: (FIG.mark.h / 2 - FIG.h / 2) * K };
 export const LETTERS_OFFSET = { x: (FIG.letters.x + FIG.letters.w / 2 - FIG.w / 2) * K, y: (FIG.letters.y + FIG.letters.h / 2 - FIG.h / 2) * K };

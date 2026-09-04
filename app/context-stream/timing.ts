@@ -11,13 +11,13 @@ export type Timing = {
   stream: number;
   /** Every dot is seated. */
   line: number;
-  /** The agent forms out of the dots at centre stage; the stream keeps pouring into it. "Agents need all of it." */
+  /** The stream collapses into the typing dots — the agent is born as the indicator. "To harness it, we built agents." */
   agent: number;
-  /** The trace line rises beneath the agent and narrates the run, a task per agent: Tadao reads the jam, then becomes Grok, Claude, Codex for a task each (agents.ts), then Tadao again. */
+  /** The dots morph into the first face; from here the trace runs a job per agent — Grok, Claude, Codex (agents.ts). "Whichever agent you use." */
   trace: number;
-  /** The trace line sinks back into the agent, and the context around it folds in, as the last becoming — back to Tadao — begins. */
+  /** The last job has been read: the trace line sinks back into the agent. */
   collapse: number;
-  /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
+  /** The last face spins back into the typing dots: the library's animation, reversed. */
   indicator: number;
   /** "So we built one place for it.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
   iface: number;
@@ -56,19 +56,19 @@ export const DEFAULT_TIMING: Timing = {
   stream: 1.9,
   line: 3.0,
   agent: 4.0,
-  trace: 5.2,
-  // The tasks run on the agents' clock from `trace` (agents.ts): a task is
-  // read for 1.3s, then a becoming — the library's reset (0.45s), one
-  // typing wave (0.9s), the variant's morph (0.73 · 0.96 · 1.08 · 1.4s) —
-  // and the next task rolls in as the face lands. The last becoming, back
-  // to Tadao, starts at 16.67 and lands at 19.42.
-  collapse: 16.65,
-  indicator: 19.7,
+  // Two waves of typing dots (the library's own lead-in), then the morph
+  // into Grok. The jobs run on the agents' clock from here (agents.ts): a
+  // job is read for 1.3s, then a becoming — reset (0.45s), a wave (0.9s),
+  // the variant's morph (0.96 · 1.08s) — and the next job rolls in as the
+  // face lands. Codex's job has been read at 14.42.
+  trace: 5.8,
+  collapse: 14.4,
+  indicator: 14.75,
   // The typing state holds for a second once the morph has landed on the dots.
-  iface: 21.75,
-  chat: 23.15,
-  sidebar: 25.65,
-  reply: 28.45,
-  logo: 30.65,
-  end: 32.65,
+  iface: 16.8,
+  chat: 18.2,
+  sidebar: 20.7,
+  reply: 23.5,
+  logo: 25.7,
+  end: 27.7,
 };

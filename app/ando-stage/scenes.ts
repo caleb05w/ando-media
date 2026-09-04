@@ -461,7 +461,7 @@ const JAMS_CUT: Scene = {
     { kind: "say", id: "d3", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 2400, body: [[{ text: "I can remind you again tomorrow." }]] },
     // Shot 7 — white. The closer, then the logo.
     { kind: "type", text: "Ando Jams - like huddles, but they don't evaporate.", hold: 3.6, ms: 3600 },
-    { kind: "logo", ms: 2000 },
+    { kind: "logo", ms: 2800 },
   ],
 };
 

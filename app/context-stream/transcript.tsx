@@ -9,7 +9,6 @@
 
 import { Avatar } from "../ando-stage/chrome";
 import { TraceLine, type TracePhases } from "../ando-stage/context-trace";
-import { DocsDisc, DriveDisc, GrainDisc, NotionDisc, SlackDisc, ZoomDisc } from "../the-library/context-trace";
 import { AVATAR } from "../agent-typing-experience/variants";
 import { CAST, type Actor, type Segment } from "../ando-stage/scenes";
 import { taskAt } from "./agents";
@@ -18,6 +17,28 @@ import type { Timing } from "./timing";
 /** The film's agent — the face /the-library's typing indicator resolves
  *  into, so the reply row shows the same one. */
 export const AGENT: Actor = { name: "Tadao", avatar: AVATAR, agent: true };
+/** The agent the pull-back lands on: the last face the film's agent wore, typing in the composer. */
+export const CODEX: Actor = { name: "Codex", avatar: "/agents/codex.png", agent: true };
+/** A pile disc, on the library's pattern: a small mark on a coloured disc. */
+function HashDisc() {
+  return (
+    <span className="flex size-full items-center justify-center bg-ando-bg-fill-muted">
+      <svg width="10" height="10" viewBox="0 0 14 14" aria-hidden>
+        <path d="M5.4 2.5l-1.2 9M9.8 2.5l-1.2 9M2.6 5.3h9.2M2.2 8.7h9.2" fill="none" stroke="#58524e" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+function TicketDisc() {
+  return (
+    <span className="flex size-full items-center justify-center bg-[#5E6AD2]">
+      <svg width="10" height="10" viewBox="0 0 14 14" aria-hidden>
+        <rect x="2.2" y="2.2" width="9.6" height="9.6" rx="2" fill="none" stroke="#fff" strokeWidth="1.5" />
+        <path d="M4.6 7.2l1.7 1.7 3.2-3.6" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
 
 export type Lands = "chat" | "reply";
 
@@ -89,15 +110,13 @@ export const runStart = (T: Timing) => T.chat + CHAT_LEAD + CHAT_STAGGER + 0.5;
 export function valuePhasesFor(T: Timing): TracePhases {
   return {
     start: T.trace + 0.3,
-    // A kind of reading per agent — different jobs, not one job handed
-    // around: Tadao, then Grok, Claude, Codex — each line rolls in as its
-    // agent's face lands. The reply is drafted where the question is: in
-    // the chat.
+    // A job per agent — different jobs, not one job handed around: Grok,
+    // Claude, Codex — each line rolls in as its agent's face lands. The
+    // reply is drafted where the question is: in the chat.
     steps: [
-      { t: taskAt(T, 0), label: "Reading the jam…", icon: "transcript" },
-      { t: taskAt(T, 1), label: "Reading the docs…", icon: "read", pile: [<NotionDisc key="n" />, <DriveDisc key="d" />, <DocsDisc key="g" />] },
-      { t: taskAt(T, 2), label: "Reading the calls…", icon: "transcript", pile: [<GrainDisc key="a" />, <ZoomDisc key="z" />, <SlackDisc key="s" />, <GrainDisc key="b" />] },
-      { t: taskAt(T, 3), label: "Reading the code…", icon: "read" },
+      { t: taskAt(T, 0), label: "Reading the channels…", icon: "read", pile: [<HashDisc key="a" />, <HashDisc key="b" />, <HashDisc key="c" />] },
+      { t: taskAt(T, 1), label: "Creating tickets…", icon: "write", pile: [<TicketDisc key="a" />, <TicketDisc key="b" />, <TicketDisc key="c" />] },
+      { t: taskAt(T, 2), label: "Catching up on the jams…", icon: "transcript" },
     ],
     done: T.collapse + 10,
   };

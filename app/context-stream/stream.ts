@@ -11,7 +11,7 @@
 // at module load, so scrubbing backwards puts every dot exactly where it
 // was.
 
-import { VARIANTS } from "../agent-typing-experience/variants";
+import { VARIANTS, WAVE_MS, typingFrame } from "../agent-typing-experience/variants";
 import type { Timing } from "./timing";
 
 /* ── The stage, in design pixels; the page scales it to fit. ───────── */
@@ -290,6 +290,18 @@ function seedRanks(T: Timing): Map<string, number> {
   return new Map(near.slice(0, SEED_COUNT).map((n, rank) => [n.id, rank]));
 }
 
+/** The birth's wave: the typing indicator's clock at `vt`, phased so the
+ *  first morph (at `trace`) starts on a wave's beat. scene.tsx draws the
+ *  indicator from the same clock, so the seeds and the balls agree. */
+export const birthWaveMs = (T: Timing, vt: number) => (((vt - T.trace) * 1000) % WAVE_MS) + WAVE_MS;
+/** The indicator's three balls at `vt`, in stage px: left, middle, right. */
+export function birthBalls(T: Timing, vt: number): Array<{ x: number; y: number; r: number }> {
+  const f = typingFrame(birthWaveMs(T, vt), 1);
+  const S = INDICATOR_PX / 60;
+  const at = (d: { x: number; y: number; r: number }) => ({ x: AGENT_X + (d.x - 30) * S, y: LINE_Y + (d.y - 30) * S, r: d.r * S });
+  return [at(f.sats[0]), at(f.blob), at(f.sats[1])];
+}
+
 /** Every dot at `vt`, and what the agent has made of them. */
 export function fieldAt(T: Timing, vt: number): Field {
   const marks: Mark[] = [];
@@ -305,19 +317,29 @@ export function fieldAt(T: Timing, vt: number): Field {
   // point collapses into a sunflower-packed disc — all of it at once, drawn
   // in and tightening — that turns slowly; then the disc closes onto the
   // agent growing inside it, and the particles are what it is made of.
+  // A seed: a mark that becomes the agent. The stream around the birth
+  // point collapses into the typing indicator's own first frame — three
+  // balls, each a sunflower-packed cluster of seeds at exactly the ball's
+  // place and size, riding its wave — and at `agent` the real balls fade
+  // in over them as the seeds go.
+  const balls = birthBalls(T, vt);
+  const perBall = Math.ceil(SEED_COUNT / balls.length);
   const seeded = (rank: number, x0: number, t0: number, r: number, dy: number): Mark | null => {
     total += 1;
-    const snap = ease(seg(vt, T.agent - 0.35, 0.4));
+    const snap = ease(seg(vt, T.agent, 0.18));
     if (snap >= 1) {
       eatenCount += 1;
       return null;
     }
+    const ball = balls[rank % balls.length];
+    const i = Math.floor(rank / balls.length);
     const p = smooth(seg(vt, tSeed + rank * 0.004, SEED_GATHER));
-    const ring = AGENT_R * (0.25 + 0.7 * Math.sqrt((rank + 0.5) / SEED_COUNT)) * (1 - snap) * (1.4 - 0.4 * p);
-    const angle = rank * GOLDEN + SEED_SPIN * (vt - tSeed);
-    const ax = AGENT_X;
+    // The cluster tightens onto the ball as it arrives: a touch wide, then
+    // packed inside the ball's own radius.
+    const ring = ball.r * 0.8 * Math.sqrt((i + 0.5) / perBall) * (1.6 - 0.6 * p);
+    const angle = i * GOLDEN + SEED_SPIN * (vt - tSeed);
     const here = ride(T, Math.min(vt, T.agent), x0, t0).x;
-    return { x: lerp(here, ax + ring * Math.cos(angle), p), y: lerp(LINE_Y + dy, LINE_Y + ring * Math.sin(angle), p), a: 1 - snap, r: r * (1 + 0.3 * p) };
+    return { x: lerp(here, ball.x + ring * Math.cos(angle), p), y: lerp(LINE_Y + dy, ball.y + ring * Math.sin(angle), p), a: 1 - snap, r: r * (1 + 0.3 * p) };
   };
 
   // A seated mark: riding, then eaten. Returns nothing once it is inside.

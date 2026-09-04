@@ -16,13 +16,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { RESET_MS, TYPE_MS, WAVE_MS, cycleFrame, resetFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
-import { BARE, CHAIN, FACES, becomingAt, faceAt } from "./agents";
+import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
+import { BARE, CHAIN, FACES, FIRST_MORPH, becomingAt, faceAt } from "./agents";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
-import { Logo } from "./logo";
-import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { LogoCard, TypeCard, driveTypeCard, seatLogo, type TypeCardOn } from "../ando-stage/cards";
+import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, birthWaveMs, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, CODEX, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
 import { VALUE_SLOT_W, ValueLine } from "./value-line";
@@ -80,6 +80,19 @@ function bare(look: AgentLook): AgentLook {
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
 const ZOOM_OUT = 1.2;
+/** How long someone's typing indicator shows before their line lands, and
+ *  how long your own line takes to type itself into the composer. */
+const PRE_TYPE = 0.7;
+const SELF_TYPE = 0.8;
+/** The closer: the stage's type card, one line, the white washing up under
+ *  it over WASH_LEAD (the stage's own), held for the logo to cut in over. */
+const CLOSER_LINE = "One interface, all your agents";
+const WASH_LEAD = 0.4;
+const closerCard = (T: Timing): TypeCardOn => {
+  const words = CLOSER_LINE.split(" ");
+  const hold = Math.max(0.5, T.logo - T.closer);
+  return { key: "closer", lines: [words], starts: [0], ends: [hold], t: T.closer, hold, faces: [] };
+};
 /** The agent at rest — the library's Orbit v2 with the face landed: the
  *  frame its animation ends on. */
 const AGENT_FRAME = INDICATOR.morph(INDICATOR.morphMs);
@@ -109,20 +122,25 @@ function agentAt(vt: number, T: Timing): AgentLook {
     // Past the start of the loop: the wave is periodic, keep it going.
     return { frame: typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1), face: LAST_FACE };
   }
-  if (vt < becomingAt(T, 0)) {
-    const c = (((vt - becomingAt(T, 0)) * 1000) % WAVE_MS) + WAVE_MS;
-    return { frame: typingFrame(c, 1), face: FACES[CHAIN[0].face] };
-  }
+  if (vt < becomingAt(T, 0)) return { frame: typingFrame(birthWaveMs(T, vt), 1), face: FACES[CHAIN[0].face] };
   const k = swapIndex(vt, T);
   if (k == null) return { frame: AGENT_FRAME, face: faceLanded(vt, T) };
-  const u = (vt - becomingAt(T, k)) * 1000;
-  const to = FACES[CHAIN[k].face];
-  const via = CHAIN[k].via;
-  if (k === 0) return { frame: via.morph(u), face: to };
-  const from = FACES[CHAIN[k - 1].face];
-  if (u < RESET_MS) return { frame: resetFrame(u), face: from };
-  if (u < RESET_MS + WAVE_MS) return { frame: typingFrame(u - RESET_MS, Math.min(1, (u - RESET_MS) / 250)), face: to };
-  return { frame: via.morph(u - RESET_MS - WAVE_MS), face: to };
+  if (k === 0) return { frame: FIRST_MORPH.morph((vt - becomingAt(T, 0)) * 1000), face: FACES[CHAIN[0].face] };
+  // A crossfade: the new face, at rest, growing in — the element's scale
+  // and opacity do the fade; the old face is the partner element.
+  return { frame: AGENT_FRAME, face: FACES[CHAIN[k].face] };
+}
+/** The face on its way out during a crossfade, if one is. */
+function faceLeaving(vt: number, T: Timing): AgentLook | null {
+  const k = swapIndex(vt, T);
+  if (k == null || k === 0) return null;
+  return { frame: AGENT_FRAME, face: FACES[CHAIN[k - 1].face] };
+}
+/** How far through a crossfade `vt` is, 0 outside one. */
+function swapProgress(vt: number, T: Timing): number {
+  const k = swapIndex(vt, T);
+  if (k == null || k === 0) return 0;
+  return ease(seg(vt, becomingAt(T, k), faceAt(T, k) - becomingAt(T, k)));
 }
 /** Which becoming `vt` is in, if any. */
 function swapIndex(vt: number, T: Timing): number | null {
@@ -164,9 +182,14 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
   const [runPhase, setRunPhase] = useState<RunPhase>(0);
   const [typing, setTyping] = useState<Actor | null>(null);
+  const [scripted, setScripted] = useState<string | null>(null);
   const [traceVt, setTraceVt] = useState(0);
   const [indicator, setIndicator] = useState<AgentLook | null>(null);
+  const [leaving, setLeaving] = useState<AgentLook | null>(null);
   const [valueOn, setValueOn] = useState(false);
+  const [logoOn, setLogoOn] = useState(false);
+  const [closerOn, setCloserOn] = useState(false);
+  const washRef = useRef<HTMLDivElement>(null);
 
   const groundRef = useRef<HTMLDivElement>(null);
   const pageGroundRef = useRef<HTMLDivElement>(null);
@@ -181,14 +204,13 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
+  const leavingRef = useRef<HTMLDivElement>(null);
   const traceRef = useRef<HTMLDivElement>(null);
   const valueLineRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const valueItemRefs = useRef<Array<Array<HTMLSpanElement | null>>>([]);
   const title0Ref = useRef<HTMLDivElement>(null);
   const titleBRef = useRef<HTMLDivElement>(null);
-  const titleARef = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Array<{ wrap: HTMLDivElement | null; inner: HTMLDivElement | null }>>(ROWS.map(() => ({ wrap: null, inner: null })));
 
   useEffect(() => {
@@ -204,8 +226,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let raf = 0;
     let runShown: RunPhase = 0;
     let typingShown: Actor | null = null;
+    let scriptedShown: string | null = null;
+    let logoShown = false;
+    let closerShown = false;
     let traceVtShown = 0;
     let indicatorShown: number | null = null;
+    let leavingShown: string | null = null;
     let valueShown = false;
 
     const paint = (T: Timing) => {
@@ -249,17 +275,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${winP}`;
       }
 
-      // The film opens on a push in to the cloud, and leaves for the logo.
+      // The film opens on a push in to the cloud.
       const pushIn = lerp(0.94, 1, ease(seg(vt, 0, T.line)));
-      const out = ease(seg(vt, T.logo, 0.55));
-      film.style.opacity = `${1 - out}`;
-      film.style.transform = `scale(${pushIn - 0.02 * out})`;
-      const logo = logoRef.current;
-      if (logo) {
-        const lin = ease(seg(vt, T.logo + 0.4, 0.55));
-        logo.style.opacity = `${lin}`;
-        logo.style.transform = `translate(-50%, -50%) scale(${0.97 + 0.03 * lin})`;
-      }
+      film.style.transform = `scale(${pushIn})`;
+      // ...and ends the way the Grok cut does: the white washes up over the
+      // room, the closer's line arrives word by word and holds, and the
+      // lockup cuts in over it and condenses (ando-stage/cards.tsx).
+      const wash = washRef.current;
+      if (wash) wash.style.opacity = `${ease(seg(vt, T.closer - WASH_LEAD, WASH_LEAD))}`;
+      if (vt >= T.closer && vt < T.logo) driveTypeCard(closerCard(T), vt - T.closer, true);
+      if (vt >= T.logo) seatLogo(vt - T.logo);
 
       /* ── The sidebar ───────────────────────────────────────────── */
       sidebar.style.transform = `translateX(${-SIDEBAR_W * (1 - side)}px)`;
@@ -343,10 +368,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           item.style.transform = `scale(${p})`;
         });
       });
-      // The agent forms out of the particles: it grows inside the disc
-      // as the disc tightens onto it, and settles with a little overshoot
-      // as the last of them are taken in.
-      const appear = pop(seg(vt, T.agent - 0.35, 0.45));
+      // The agent forms out of the particles: the seeds have already made
+      // its three balls (stream.ts birthBalls), so it arrives at full size —
+      // the real balls fading in exactly over the clusters.
+      const appear = 1;
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       // Where the composer's own indicator draws its middle dot: the strip
@@ -367,14 +392,27 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const full = field.fullAt == null ? 0 : Math.sin(Math.PI * seg(vt, field.fullAt + 0.05, 0.5));
       // Between beats the agent breathes, barely.
       const breathe = vt >= T.agent && vt < T.iface ? 0.012 * Math.sin(vt * Math.PI) : 0;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * (1 + 0.05 * Math.min(1, nod)) * (1 + 0.1 * full) * (1 + breathe);
+      // A face-to-face crossfade: the new face grows in from 0.8 as the old
+      // one, on the partner element, shrinks to 0.8 and fades — no typing
+      // indicator between agents.
+      const swap = swapProgress(vt, T);
+      const swapIn = zoomed ? 1 : lerp(0.8, 1, swap);
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * swapIn * (1 + 0.05 * Math.min(1, nod)) * (1 + 0.1 * full) * (1 + breathe);
       const sx = zoomed ? 1 : 1 + 0.07 * gulp;
       const sy = zoomed ? 1 : 1 - 0.05 * gulp;
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `translate(${zoomed ? 0 : 3 * gulp}px, 0) scale(${(size / INDICATOR_PX) * sx}, ${(size / INDICATOR_PX) * sy})`;
-      // Visible from the moment it starts to grow inside the disc.
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.35, 0.12)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      // In over the seeds as they go (stream.ts: the seeds fade over 0.18s from `agent`).
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.04, 0.2)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25))) * (swap > 0 ? swap : 1)}`;
+      const leavingEl = leavingRef.current;
+      if (leavingEl) {
+        const out = swap > 0 ? 1 - swap : 0;
+        leavingEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
+        leavingEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
+        leavingEl.style.transform = `scale(${lerp(0.8, 1, out) * (1 + breathe)})`;
+        leavingEl.style.opacity = `${out}`;
+      }
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -383,12 +421,42 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         setRunPhase(run);
       }
       // The composer's strip: Codex is typing from the moment the pull-back
-      // lands on its dots; Tadao from the moment it starts on the ask, until
-      // it replies. One strip, so the transcript never jumps.
-      const who: Actor | null = vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.reply ? (vt < runStart(T) ? CODEX : AGENT) : null;
+      // lands on its dots, and in every gap — it never posts; the room is
+      // still going when the closer comes. Everyone else types before they
+      // post: their indicator for PRE_TYPE, then the line lands. You never
+      // see your own — your line types itself into the composer instead.
+      let who: Actor | null = vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.closer ? CODEX : null;
+      let scriptedNow: string | null = null;
+      if (who) {
+        let chatI = 0;
+        for (const row of ROWS) {
+          const land = row.lands === "chat" ? T.chat + CHAT_LEAD + chatI * CHAT_STAGGER : T.reply;
+          if (row.lands === "chat") chatI += 1;
+          if (row.who === CAST[ME]) {
+            const typed = seg(vt, land - SELF_TYPE, SELF_TYPE);
+            if (typed > 0 && vt < land) scriptedNow = row.body[0].map((part) => part.text).join("").slice(0, Math.ceil(typed * row.body[0].map((part) => part.text).join("").length));
+            continue;
+          }
+          if (vt >= land - PRE_TYPE && vt < land) who = row.who;
+        }
+      }
+      if (scriptedNow !== scriptedShown) {
+        scriptedShown = scriptedNow;
+        setScripted(scriptedNow);
+      }
       if (who !== typingShown) {
         typingShown = who;
         setTyping(who);
+      }
+      const logoNow = vt >= T.logo;
+      if (logoNow !== logoShown) {
+        logoShown = logoNow;
+        setLogoOn(logoNow);
+      }
+      const closerNow = vt >= T.closer && vt < T.logo;
+      if (closerNow !== closerShown) {
+        closerShown = closerNow;
+        setCloserOn(closerNow);
       }
       // The trace lines read whole seconds off this; a tenth is plenty.
       const valueLive = vt >= T.trace - 0.05 && vt < T.collapse + 0.4;
@@ -404,14 +472,21 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // The agent's frame: at rest until `indicator` (one frame, no churn),
       // then the library's animation, reversed, at 60 a second — the film's
       // own rate; 30 read as choppy beside it.
-      // The birth's wave, then each becoming, is its own run of ticks; a
-      // face at rest is one tick per face.
+      // The birth's wave and the first morph are runs of ticks; a face at
+      // rest, or crossfading in, is one tick per face.
       const chainTick = () => {
         if (vt < becomingAt(T, 0)) return 900 + Math.floor((vt - T.agent + 1) * 60) / 1000;
         const k = swapIndex(vt, T);
         if (k == null) return -1 - CHAIN.findIndex((step) => FACES[step.face] === faceLanded(vt, T)) - 1;
-        return 1000 + k * 10 + Math.floor((vt - becomingAt(T, k)) * 60) / 1000;
+        if (k > 0) return 1000 + k * 10;
+        return 1000 + Math.floor((vt - becomingAt(T, 0)) * 60) / 1000;
       };
+      const leavingNow = vt < T.indicator ? faceLeaving(vt, T) : null;
+      const leavingKey = leavingNow?.face ?? null;
+      if (leavingKey !== leavingShown) {
+        leavingShown = leavingKey;
+        setLeaving(leavingNow ? bare(leavingNow) : null);
+      }
       const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? chainTick() : Math.floor((vt - T.indicator) * 60) / 60;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
@@ -429,9 +504,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
       // The narration, one line at a time in one spot above the agent: a
       // sentence across the film — context is everywhere, to harness it we
-      // built agents, whichever agent you use, so we built one place for it.
+      // built agents, so we built a place for them.
       fadeIn(titleBRef.current, T.agent + 0.3, becomingAt(T, 0) - 0.2);
-      fadeIn(titleARef.current, faceAt(T, 0) + 0.1, T.collapse - 0.2);
+
       fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
 
       /* ── The canvas: the dots ──────────────────────────────────── */
@@ -526,7 +601,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
                 </div>
                 {/* The composer slides up from under the window's floor. */}
                 <div ref={composerRef} data-cs="composer" className="absolute left-0 right-0" style={{ top: CARD.h + 12 }}>
-                  <Composer scene={ROOM} typing={typing} onSend={noop} scripted={null} />
+                  <Composer scene={ROOM} typing={typing} onSend={noop} scripted={scripted} />
                 </div>
               </div>
             </div>
@@ -538,6 +613,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
               {valueOn ? <ValueLine agent={AGENT} participants={READ_FROM} steps={valuePhases.steps} lineRefs={valueLineRefs} itemRefs={valueItemRefs} /> : null}
             </div>
             {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, at INDICATOR_PX — then the composer's own line. */}
+            {/* The face on its way out during a crossfade, under the one coming in. */}
+            <div ref={leavingRef} className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }} aria-hidden>
+              {leaving ? <Stage frame={leaving.frame} size={INDICATOR_PX} avatarSrc={leaving.face} /> : null}
+            </div>
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
               {indicator ? <Stage frame={indicator.frame} size={INDICATOR_PX} avatarSrc={indicator.face} /> : null}
             </div>
@@ -548,21 +627,19 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
             <div ref={titleBRef} data-cs="title-b" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
               To harness it, we built agents.
             </div>
-            <div ref={titleARef} data-cs="title-a" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-              Whichever agent you use.
-            </div>
           </div>
 
           {/* Outside the camera, so the pull-back leaves it still. */}
           <div ref={title2Ref} data-cs="title-2" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: CARD.y - 62, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-            So we built one place for it.
+            So we built a place for them.
           </div>
         </div>
 
-        <div ref={logoRef} data-cs="logo" className="absolute left-1/2 top-1/2" style={{ opacity: 0, transform: "translate(-50%, -50%)" }}>
-          <Logo width={420} />
-        </div>
       </div>
+      {/* The white the closer sits on: up over the room in the last WASH_LEAD before it. */}
+      <div ref={washRef} className="pointer-events-none fixed inset-0 z-[70] bg-white" style={{ opacity: 0 }} aria-hidden data-wash />
+      {closerOn ? <TypeCard card={closerCard(timing)} /> : null}
+      {logoOn ? <LogoCard /> : null}
     </div>
   );
 }

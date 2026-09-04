@@ -58,6 +58,10 @@ export type RowDef = {
 const ch = (text: string): Segment => ({ text, mention: true });
 const t = (text: string): Segment => ({ text });
 
+/** The agents in the room: the two that spoke first in the film, and the
+ *  one still typing. They chime in on their own — nobody tags them. */
+export const GROK: Actor = { name: "Grok", avatar: "/agents/grok.svg", agent: true };
+export const CLAUDE: Actor = { name: "Claude", avatar: "/agents/claude.png", agent: true };
 export const ROWS: RowDef[] = [
   {
     key: "sara",
@@ -67,25 +71,25 @@ export const ROWS: RowDef[] = [
     body: [[t("check out what im cooking in "), ch("#marketing")]],
   },
   {
-    key: "ask",
-    who: CAST.caleb,
-    time: "3:31 PM",
+    key: "grok",
+    who: GROK,
+    time: "3:27 PM",
     lands: "chat",
-    body: [[{ text: "@Tadao", mention: true, agent: true }, t(" what's Sara cooking in "), ch("#marketing"), t("?")]],
-    run: true,
+    body: [[t("Just read it. The new landing hero is the strongest thing in there — in review since Tuesday.")]],
   },
   {
-    key: "reply",
-    who: AGENT,
-    time: "3:31 PM",
+    key: "caleb",
+    who: CAST.caleb,
+    time: "3:28 PM",
+    lands: "chat",
+    body: [[t("does the affiliate wheel make the launch email?")]],
+  },
+  {
+    key: "claude",
+    who: CLAUDE,
+    time: "3:28 PM",
     lands: "reply",
-    body: [[t("Three things from "), ch("#marketing"), t(" this week:")]],
-    list: [
-      [t("New landing hero, in review since Tuesday")],
-      [t("Launch email, scheduled for Thursday")],
-      [t("Affiliate wheel announcement, final pass done")],
-    ],
-    runDone: true,
+    body: [[t("It does. Final pass went through this morning, so I've slotted it into Thursday's draft.")]],
   },
 ];
 
@@ -99,7 +103,7 @@ export type RunPhase = 0 | 1 | 2;
 /** Who the agent read on its way to the reply — the trace's facepile. */
 export const READ_FROM: Actor[] = [CAST.sara, CAST.oli, CAST.aj];
 
-/** When the run starts: once the ask has landed. */
+/** When the run starts: once the ask has landed. (No row runs one now — the agents just talk — but the trace is here for a script that wants it.) */
 export const runStart = (T: Timing) => T.chat + CHAT_LEAD + CHAT_STAGGER + 0.5;
 
 /** The value-prop run, beneath the agent after "Everything becomes context":

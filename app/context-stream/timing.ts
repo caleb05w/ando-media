@@ -13,26 +13,28 @@ export type Timing = {
   line: number;
   /** The stream collapses into the typing dots — the agent is born as the indicator. "To harness it, we built agents." */
   agent: number;
-  /** The dots morph into the first face; from here the trace runs a job per agent — Grok, Claude, Codex (agents.ts). "Whichever agent you use." */
+  /** The dots morph into the first face; from here the trace runs a job per agent — Grok, Claude, Codex (agents.ts). */
   trace: number;
   /** The last job has been read: the trace line sinks back into the agent. */
   collapse: number;
   /** The last face spins back into the typing dots: the library's animation, reversed. */
   indicator: number;
-  /** "So we built one place for it.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
+  /** "So we built a place for them.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
   iface: number;
   /** Header and the messages it is answering arrive. */
   chat: number;
   /** The sidebar slides in and the window widens. */
   sidebar: number;
-  /** The agent's reply lands. */
+  /** The last message lands: Claude's answer to Caleb. */
   reply: number;
-  /** The window goes; the logo comes. */
+  /** The closer: white, "One interface, all your agents", word by word, held. */
+  closer: number;
+  /** White washes up over the room and the lockup condenses out of it — the stage's ending, shared (ando-stage/cards.tsx). */
   logo: number;
   end: number;
 };
 
-export const ORDER: (keyof Timing)[] = ["gather", "stream", "line", "agent", "trace", "collapse", "indicator", "iface", "chat", "sidebar", "reply", "logo", "end"];
+export const ORDER: (keyof Timing)[] = ["gather", "stream", "line", "agent", "trace", "collapse", "indicator", "iface", "chat", "sidebar", "reply", "closer", "logo", "end"];
 
 export const LABELS: Record<keyof Timing, string> = {
   gather: "congregate",
@@ -45,7 +47,8 @@ export const LABELS: Record<keyof Timing, string> = {
   iface: "an interface",
   chat: "chat",
   sidebar: "sidebar",
-  reply: "agent replies",
+  reply: "Claude answers",
+  closer: "closer",
   logo: "logo",
   end: "end",
 };
@@ -58,17 +61,22 @@ export const DEFAULT_TIMING: Timing = {
   agent: 4.0,
   // Two waves of typing dots (the library's own lead-in), then the morph
   // into Grok. The jobs run on the agents' clock from here (agents.ts): a
-  // job is read for 1.3s, then a becoming — reset (0.45s), a wave (0.9s),
-  // the variant's morph (0.96 · 1.08s) — and the next job rolls in as the
-  // face lands. Codex's job has been read at 14.42.
+  // job is read for 1.3s, then a crossfade to the next face (0.55s), and
+  // the next job rolls in as the face lands. Codex's job has been read at
+  // 10.78.
   trace: 5.8,
-  collapse: 14.4,
-  indicator: 14.75,
+  collapse: 10.8,
+  indicator: 11.15,
   // The typing state holds for a second once the morph has landed on the dots.
-  iface: 16.8,
-  chat: 18.2,
-  sidebar: 20.7,
-  reply: 23.5,
-  logo: 25.7,
-  end: 27.7,
+  iface: 13.2,
+  // Sara types before her line lands at chat + 0.4; the room needs the
+  // dots to have landed (iface + 1.2) before her indicator takes the strip.
+  chat: 15.2,
+  sidebar: 17.6,
+  reply: 19.2,
+  // The closer's five words have arrived at closer + 1.02; it holds for the logo.
+  closer: 21.6,
+  logo: 23.7,
+  // The lockup has seated at logo + 2.3; a beat on it.
+  end: 26.2,
 };

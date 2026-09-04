@@ -47,15 +47,14 @@ const CURSOR_GLYPHS = {
   text: { src: "/cursors/cursor-ibeam.svg", w: 13, h: 22, dx: -6.5, dy: -10 },
 } as const;
 
-/** The closing lockup, the Grok ending (context-stream/MOTION.md): the mark
- *  drops in alone at centre with an overshoot and a highlight, then slides
- *  left as the wordmark lands beside it. Hold. Seconds after the logo beat. */
-const LOGO_DROP = 0.55;
-const LOGO_SLIDE_AT = 0.65;
-const LOGO_SLIDE = 0.5;
-const LOGO_LETTERS_AT = 0.75;
-const LOGO_LETTERS = 0.5;
-const LOGO_BLUR = 12;
+/** The closing lockup: when each half starts condensing (seconds after the
+ *  logo beat), how long the fade takes, and how soft it starts. */
+const LOGO_MARK_IN = 0.6;
+const LOGO_LETTERS_IN = 0.9;
+const LOGO_FADE = 1.1;
+const LOGO_BLUR = 16;
+/** How far each half comes in from the left (px). */
+const LOGO_TRAVEL = 56;
 
 /** Room the Studio pill needs at the foot of the window. */
 const STUDIO_CLEARANCE = 72;
@@ -946,22 +945,18 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
         const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
         if (mark && letters) {
           const local = vt - logoT;
-          // 1. The mark drops in at centre: from above, small, overshooting
-          //    its size on the way to rest, with a highlight that flashes
-          //    through it as it lands.
-          const drop = seg(local, 0, LOGO_DROP);
-          const land = backOut(drop);
-          const flash = Math.sin(Math.PI * seg(local, LOGO_DROP * 0.45, LOGO_DROP * 0.7));
-          // 2. It slides left into its seat as the wordmark lands beside it,
-          //    the letters coming in from a touch right, out of a blur.
-          const slide = easeInOut(seg(local, LOGO_SLIDE_AT, LOGO_SLIDE));
-          const pl = ease(seg(local, LOGO_LETTERS_AT, LOGO_LETTERS));
-          mark.style.opacity = `${Math.min(1, drop * 3)}`;
-          mark.style.filter = flash > 0 ? `brightness(${1 + 1.4 * flash})` : "none";
-          mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y - 48 * (1 - ease(drop))}px) scale(${0.4 + 0.6 * land})`;
+          const pm = easeInOut(seg(local, LOGO_MARK_IN, LOGO_FADE));
+          const pl = easeInOut(seg(local, LOGO_LETTERS_IN, LOGO_FADE));
+          // The travel eases out on its own, longer curve, so each half is
+          // still settling into its seat as it sharpens.
+          const dm = ease(seg(local, LOGO_MARK_IN, LOGO_FADE + 0.3));
+          const dl = ease(seg(local, LOGO_LETTERS_IN, LOGO_FADE + 0.3));
+          mark.style.opacity = `${pm}`;
+          mark.style.filter = pm < 1 ? `blur(${LOGO_BLUR * (1 - pm)}px)` : "none";
+          mark.style.transform = `translate(${MARK_OFFSET.x - LOGO_TRAVEL * (1 - dm)}px, ${MARK_OFFSET.y}px) scale(${0.94 + 0.06 * pm})`;
           letters.style.opacity = `${pl}`;
           letters.style.filter = pl < 1 ? `blur(${LOGO_BLUR * (1 - pl)}px)` : "none";
-          letters.style.transform = `translate(${LETTERS_OFFSET.x + 36 * (1 - pl)}px, ${LETTERS_OFFSET.y}px) scale(${0.96 + 0.04 * pl})`;
+          letters.style.transform = `translate(${LETTERS_OFFSET.x - LOGO_TRAVEL * (1 - dl)}px, ${LETTERS_OFFSET.y}px) scale(${0.94 + 0.06 * pl})`;
         }
       }
 

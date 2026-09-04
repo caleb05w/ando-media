@@ -251,31 +251,32 @@ export const LOCKUP = {
   letters: { x: 0, y: 35.7, w: 157.8, h: 41.0, px: FIG.letters.w * K },
   mark: { x: 160.3, y: 0, w: 48.4, h: 50.6, px: FIG.mark.w * K },
 };
-/** The closing lockup: when each half starts condensing (seconds after the
- *  logo beat), how long the fade takes, how soft it starts, and how far
- *  each half comes in from the left (px). */
-export const LOGO_IN = { mark: 0.6, letters: 0.9, fade: 1.1, blur: 16, travel: 56 } as const;
-/** The lockup `local` seconds into the logo beat: a beat of white, then it
- *  condenses out of it like a cloud, coming in from the left — the mark
- *  first, the wordmark a beat behind it — each from a soft blur and a touch
- *  small, easing to sharp, still and seated. Then hold. Writes the
- *  LogoCard's halves; both films call it per frame. */
+/** The closing lockup, the Grok ending (context-stream/MOTION.md): the mark
+ *  drops in alone at centre with an overshoot and a highlight, then slides
+ *  left as the wordmark lands beside it. Hold. Seconds after the logo beat. */
+export const LOGO_IN = { drop: 0.55, slideAt: 0.65, slide: 0.5, lettersAt: 0.75, letters: 0.5, blur: 12 } as const;
+/** The lockup `local` seconds into the logo beat. Writes the LogoCard's
+ *  halves; the stage's films and /context-stream call it per frame. */
 export function seatLogo(local: number) {
   const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
   const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
   if (!mark || !letters) return;
-  const pm = easeInOut(seg(local, LOGO_IN.mark, LOGO_IN.fade));
-  const pl = easeInOut(seg(local, LOGO_IN.letters, LOGO_IN.fade));
-  // The travel eases out on its own, longer curve, so each half is still
-  // settling into its seat as it sharpens.
-  const dm = ease(seg(local, LOGO_IN.mark, LOGO_IN.fade + 0.3));
-  const dl = ease(seg(local, LOGO_IN.letters, LOGO_IN.fade + 0.3));
-  mark.style.opacity = `${pm}`;
-  mark.style.filter = pm < 1 ? `blur(${LOGO_IN.blur * (1 - pm)}px)` : "none";
-  mark.style.transform = `translate(${MARK_OFFSET.x - LOGO_IN.travel * (1 - dm)}px, ${MARK_OFFSET.y}px) scale(${0.94 + 0.06 * pm})`;
+  // 1. The mark drops in at centre: from above, small, overshooting its
+  //    size on the way to rest, with a highlight that flashes through it
+  //    as it lands.
+  const drop = seg(local, 0, LOGO_IN.drop);
+  const land = backOut(drop);
+  const flash = Math.sin(Math.PI * seg(local, LOGO_IN.drop * 0.45, LOGO_IN.drop * 0.7));
+  // 2. It slides left into its seat as the wordmark lands beside it, the
+  //    letters coming in from a touch right, out of a blur.
+  const slide = easeInOut(seg(local, LOGO_IN.slideAt, LOGO_IN.slide));
+  const pl = ease(seg(local, LOGO_IN.lettersAt, LOGO_IN.letters));
+  mark.style.opacity = `${Math.min(1, drop * 3)}`;
+  mark.style.filter = flash > 0 ? `brightness(${1 + 1.4 * flash})` : "none";
+  mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y - 48 * (1 - ease(drop))}px) scale(${0.4 + 0.6 * land})`;
   letters.style.opacity = `${pl}`;
   letters.style.filter = pl < 1 ? `blur(${LOGO_IN.blur * (1 - pl)}px)` : "none";
-  letters.style.transform = `translate(${LETTERS_OFFSET.x - LOGO_IN.travel * (1 - dl)}px, ${LETTERS_OFFSET.y}px) scale(${0.94 + 0.06 * pl})`;
+  letters.style.transform = `translate(${LETTERS_OFFSET.x + 36 * (1 - pl)}px, ${LETTERS_OFFSET.y}px) scale(${0.96 + 0.04 * pl})`;
 }
 /** Each half's centre, offset from the lockup's centre, in px. */
 export const MARK_OFFSET = { x: (FIG.mark.x + FIG.mark.w / 2 - FIG.w / 2) * K, y: (FIG.mark.h / 2 - FIG.h / 2) * K };

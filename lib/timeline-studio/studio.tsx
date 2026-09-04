@@ -250,9 +250,9 @@ export function Studio<T extends Record<string, number>>({
   const snap = (v: number) => Math.round(v / snapStep) * snapStep;
 
   const [timing, setTiming] = useState<T>(defaultTiming);
-  // The scene's own timing changed under us (a beat added or moved in the
-  // source, hot-reloaded in): the edited map is keyed by beat index and
-  // would now scramble the cut. Re-seed from the new defaults.
+  // The scene's own timing changed under us (a beat added, renamed or moved
+  // in the source, hot-reloaded in): the edited map is keyed by beat index
+  // and would now scramble the cut. Re-seed from the new defaults.
   const [seed, setSeed] = useState(defaultTiming);
   if (seed !== defaultTiming && JSON.stringify(seed) !== JSON.stringify(defaultTiming)) {
     setSeed(defaultTiming);
@@ -437,7 +437,8 @@ export function Studio<T extends Record<string, number>>({
   };
   const loadTake = (s: SavedTake<T>) => {
     pushHistory();
-    setTiming(s.timing);
+    // Saved before a beat was added: the new beat keeps its default.
+    setTiming({ ...defaultTiming, ...s.timing });
     setRange(s.window ? { a: s.window[0], b: s.window[1] } : null);
     setTakesOpen(false);
     replay();

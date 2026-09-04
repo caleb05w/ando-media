@@ -12,7 +12,14 @@ import "../the-library/agent-context-trace.css";
 import type { Actor } from "./scenes";
 
 /** A run's steps on the stage clock — one per trace beat — and when it ended. */
-export type TracePhases = { start: number; steps: Array<{ t: number; label: string; icon: "read" | "write" | "transcript" | null }>; done: number };
+export type TracePhases = {
+  start: number;
+  /** One per beat: the label the line shimmers, an icon kind, and optionally
+   *  what is being read — the pile shown inline (a "transcript" step with no
+   *  pile shows the participants). */
+  steps: Array<{ t: number; label: string; icon: "read" | "write" | "transcript" | null; pile?: React.ReactNode[] }>;
+  done: number;
+};
 
 /** The light shimmer inks from .ct-light, without the card's ring. */
 const SHIMMER_INKS = { ["--ct-shimmer-lo" as string]: "rgba(88, 82, 78, 0.45)", ["--ct-shimmer-hi" as string]: "#58524e" };
@@ -35,11 +42,11 @@ export function TraceLine({ agent, participants, phases, vt, onReply }: { agent:
             <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate">
               {/* The library's thinking shimmer on the product's activity slot. */}
               <span className="ct-shimmer truncate" style={SHIMMER_INKS}>{status}</span>
-              {reading ? (
+              {step?.pile || reading ? (
                 <span className="ct-pop inline-flex shrink-0 items-center pl-0.5">
-                  {participants.map((actor, index) => (
-                    <span key={actor.name} className="ct-pop -ml-1 flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-ando-bg-main first:ml-0" style={{ animationDelay: `${index * 70}ms` }}>
-                      <Avatar actor={actor} size={16} />
+                  {(step?.pile ?? participants.map((actor) => <Avatar actor={actor} size={16} key={actor.name} />)).map((item, index) => (
+                    <span key={index} className="ct-pop -ml-1 flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-ando-bg-main first:ml-0" style={{ animationDelay: `${index * 70}ms` }}>
+                      {item}
                     </span>
                   ))}
                 </span>

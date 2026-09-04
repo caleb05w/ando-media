@@ -7,7 +7,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Icon, ComposeConversationIcon, HashtagLockIcon } from "./glyph";
 import { TypingIndicator } from "./typing";
 import { motion } from "motion/react";
-import { SIDEBAR, SIDEBAR_LOOSE, WORKSPACE, isAgent, type Actor, type Scene, type SidebarRow, type Surface } from "./scenes";
+import { SIDEBAR, SIDEBAR_LOOSE, WORKSPACE, type Actor, type Scene, type SidebarRow, type SidebarSection, type Surface } from "./scenes";
 
 /* ------------------------------- avatars ------------------------------- */
 
@@ -188,7 +188,7 @@ function FolderHeader({ label, collapsed = false }: { label: string; collapsed?:
 }
 
 /** global-sidebar-shell + sidebar-panel-header: the 354px panel. */
-export function Sidebar({ scene, unreadDms = [] }: { scene: Scene; /** DM handles with something new in them. */ unreadDms?: string[] }) {
+export function Sidebar({ scene, unreadDms = [], sections = SIDEBAR, loose = SIDEBAR_LOOSE }: { scene: Scene; /** DM handles with something new in them. */ unreadDms?: string[]; /** the folders — the stage's own unless a page brings its own */ sections?: SidebarSection[]; /** the unfoldered rows under the rule; none hides the rule */ loose?: SidebarRow[] }) {
   return (
     <div className="relative flex h-full shrink-0 flex-col bg-ando-bg-main" style={{ width: 354 }}>
       {/* SidebarPanelHeaderPrimitive: surface header, padding 0 12px 0 10px */}
@@ -212,7 +212,7 @@ export function Sidebar({ scene, unreadDms = [] }: { scene: Scene; /** DM handle
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2 pt-3">
         <div className="flex flex-col gap-3">
-          {SIDEBAR.map((section) => (
+          {sections.map((section) => (
             <div key={section.label} className="flex flex-col">
               <FolderHeader label={section.label} collapsed={section.collapsed === true} />
               {section.collapsed ? null : <ul className="ando-sidebar-conversation-list mt-1">
@@ -232,12 +232,16 @@ export function Sidebar({ scene, unreadDms = [] }: { scene: Scene; /** DM handle
               </ul>}
             </div>
           ))}
-          <div className="mx-2 h-px bg-ando-border-default" />
-          <ul className="ando-sidebar-conversation-list">
-            {SIDEBAR_LOOSE.map((row) => (
-              <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
-            ))}
-          </ul>
+          {loose.length > 0 ? (
+            <>
+              <div className="mx-2 h-px bg-ando-border-default" />
+              <ul className="ando-sidebar-conversation-list">
+                {loose.map((row) => (
+                  <ConversationRow key={row.kind === "channel" ? row.name : row.who} row={row} scene={scene} unreadDms={unreadDms} />
+                ))}
+              </ul>
+            </>
+          ) : null}
         </div>
         </div>
     </div>

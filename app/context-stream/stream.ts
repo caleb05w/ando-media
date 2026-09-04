@@ -193,7 +193,7 @@ const PULSE = 0.22;
  *  before `agent`, pack into a swirling disc-shaped cluster, and close onto
  *  the agent as it grows inside them. */
 const SEED_COUNT = 34;
-const SEED_LEAD = 0.8;
+const SEED_LEAD = 0.62;
 const SEED_GATHER = 0.42;
 /** Seeds come by preference from the stretch already past the agent —
  *  which would only flow away — so the birth leaves no hole in the
@@ -326,7 +326,8 @@ export function fieldAt(T: Timing, vt: number): Field {
   const perBall = Math.ceil(SEED_COUNT / balls.length);
   const seeded = (rank: number, x0: number, t0: number, r: number, dy: number): Mark | null => {
     total += 1;
-    const snap = ease(seg(vt, T.agent, 0.18));
+    // The clusters are the balls for a tenth of a second at most: the real balls take over at once.
+    const snap = ease(seg(vt, T.agent - 0.08, 0.1));
     if (snap >= 1) {
       eatenCount += 1;
       return null;

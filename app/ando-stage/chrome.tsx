@@ -301,7 +301,7 @@ function ComposerControl({ children, label, active }: { children: React.ReactNod
  *  strip. Live: Enter sends as the signed-in member and the message lands in
  *  the transcript at the current beat; Shift+Enter breaks a line. The typing
  *  indicator is the product's composer-placement slot above the box. */
-export function Composer({ scene, typing, onSend, scripted = null }: { scene: Scene; typing: Actor | null; onSend: (text: string) => void; /** a line the script is typing for you — shown in place of your draft */ scripted?: string | null }) {
+export function Composer({ scene, typing, onSend, scripted = null }: { scene: Scene; /** who is typing above the box — one, several, or nobody */ typing: Actor | Actor[] | null; onSend: (text: string) => void; /** a line the script is typing for you — shown in place of your draft */ scripted?: string | null }) {
   const surface = scene.surface;
   const target = surface.kind === "channel" ? `#${surface.name}` : scene.cast[surface.who].name;
   const [draft, setDraft] = useState("");
@@ -328,7 +328,7 @@ export function Composer({ scene, typing, onSend, scripted = null }: { scene: Sc
   return (
     <div className="relative z-10 flex flex-col space-y-2 px-4 pb-4">
       <div className="relative flex flex-col">
-        {typing ? <TypingIndicator actor={typing} /> : null}
+        {typing && (!Array.isArray(typing) || typing.length > 0) ? <TypingIndicator actors={Array.isArray(typing) ? typing : [typing]} /> : null}
         <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
           <div className="relative min-h-[70px]">
             {/* EditorContent: kanso-text-label-14 here (the product's is 16 — 14 sits better beside 14px messages on film), px-5 pt-4. A textarea that

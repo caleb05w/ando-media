@@ -48,11 +48,17 @@ function TypingIndicatorDots() {
   );
 }
 
-/** Mount inside a `relative` wrapper directly above the composer box. */
-export function TypingIndicator({ actor }: { actor: Actor }) {
+/** Mount inside a `relative` wrapper directly above the composer box.
+ *  One or several typers — "Sara Du is typing...", "Claude & Codex are
+ *  typing..." — on one element: the set can change while the dots keep
+ *  breathing, nothing remounts. */
+export function TypingIndicator({ actor, actors }: { actor?: Actor; actors?: Actor[] }) {
+  const who = actors ?? (actor ? [actor] : []);
+  if (who.length === 0) return null;
+  const names = who.map((a) => a.name);
+  const label = `${names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`} ${who.length === 1 ? "is" : "are"} typing`;
   return (
     <motion.div
-      key={actor.name}
       initial="hidden"
       animate="visible"
       exit="hidden"
@@ -63,16 +69,21 @@ export function TypingIndicator({ actor }: { actor: Actor }) {
       // the region's padding under it for the same reason.
       className="pointer-events-none absolute bottom-[calc(100%+3px)] left-0 flex h-9 w-full items-end overflow-hidden bg-linear-to-t from-ando-bg-main from-45% to-transparent pb-1.5 pl-1 pt-1"
       role="status"
-      aria-label={`${actor.name} is typing`}
+      aria-label={label}
     >
       <div className="pointer-events-auto flex cursor-default items-center space-x-1.5 kanso-text-label-14">
         <TypingIndicatorDots />
         <span aria-hidden className="inline-flex min-w-0 items-baseline">
-          <span className={isAgent(actor) ? "text-[#7C3AED]" : "text-ando-fg-primary"}>{actor.name}</span>
+          {who.map((a, i) => (
+            <span key={a.name} className="inline-flex items-baseline">
+              {i > 0 ? <span className="text-ando-fg-secondary">{i === who.length - 1 ? "\u00A0&\u00A0" : ",\u00A0"}</span> : null}
+              <span className={isAgent(a) ? "text-[#7C3AED]" : "text-ando-fg-primary"}>{a.name}</span>
+            </span>
+          ))}
           {/* NBSP: the suffix is its own flex item, and a flex item drops a leading
               ordinary space. The product survives this by wrapping every
               character in its own span. */}
-          <span className="text-ando-fg-secondary">{"\u00A0is typing..."}</span>
+          <span className="text-ando-fg-secondary">{who.length === 1 ? "\u00A0is typing..." : "\u00A0are typing..."}</span>
         </span>
       </div>
     </motion.div>

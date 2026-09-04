@@ -181,7 +181,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   }, []);
 
   const [runPhase, setRunPhase] = useState<RunPhase>(0);
-  const [typing, setTyping] = useState<Actor | null>(null);
+  const [typing, setTyping] = useState<Actor[] | null>(null);
   const [scripted, setScripted] = useState<string | null>(null);
   const [traceVt, setTraceVt] = useState(0);
   const [indicator, setIndicator] = useState<AgentLook | null>(null);
@@ -225,7 +225,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
     let last = performance.now();
     let raf = 0;
     let runShown: RunPhase = 0;
-    let typingShown: Actor | null = null;
+    let typingShown = "";
     let scriptedShown: string | null = null;
     let logoShown = false;
     let closerShown = false;
@@ -403,8 +403,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
       indicatorEl.style.transform = `translate(${zoomed ? 0 : 3 * gulp}px, 0) scale(${(size / INDICATOR_PX) * sx}, ${(size / INDICATOR_PX) * sy})`;
-      // In over the seeds as they go (stream.ts: the seeds fade over 0.18s from `agent`).
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.04, 0.2)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25))) * (swap > 0 ? swap : 1)}`;
+      // In over the seeds as they go (stream.ts: the clusters hand over in a tenth of a second).
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.08, 0.1)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25))) * (swap > 0 ? swap : 1)}`;
       const leavingEl = leavingRef.current;
       if (leavingEl) {
         const out = swap > 0 ? 1 - swap : 0;
@@ -425,28 +425,33 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // still going when the closer comes. Everyone else types before they
       // post: their indicator for PRE_TYPE, then the line lands. You never
       // see your own — your line types itself into the composer instead.
-      let who: Actor | null = vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.closer ? CODEX : null;
+      // Several can type at once — "Sara Du & Codex are typing..." — on one
+      // strip that only changes when the set does.
+      const typers: Actor[] = [];
       let scriptedNow: string | null = null;
-      if (who) {
+      if (vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.closer) {
         let chatI = 0;
         for (const row of ROWS) {
           const land = row.lands === "chat" ? T.chat + CHAT_LEAD + chatI * CHAT_STAGGER : T.reply;
           if (row.lands === "chat") chatI += 1;
           if (row.who === CAST[ME]) {
+            const line = row.body[0].map((part) => part.text).join("");
             const typed = seg(vt, land - SELF_TYPE, SELF_TYPE);
-            if (typed > 0 && vt < land) scriptedNow = row.body[0].map((part) => part.text).join("").slice(0, Math.ceil(typed * row.body[0].map((part) => part.text).join("").length));
+            if (typed > 0 && vt < land) scriptedNow = line.slice(0, Math.ceil(typed * line.length));
             continue;
           }
-          if (vt >= land - PRE_TYPE && vt < land) who = row.who;
+          if (vt >= land - PRE_TYPE && vt < land) typers.push(row.who);
         }
+        typers.push(CODEX);
       }
       if (scriptedNow !== scriptedShown) {
         scriptedShown = scriptedNow;
         setScripted(scriptedNow);
       }
-      if (who !== typingShown) {
-        typingShown = who;
-        setTyping(who);
+      const typingKey = typers.map((a) => a.name).join("&");
+      if (typingKey !== typingShown) {
+        typingShown = typingKey;
+        setTyping(typers.length > 0 ? typers : null);
       }
       const logoNow = vt >= T.logo;
       if (logoNow !== logoShown) {

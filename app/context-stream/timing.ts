@@ -67,16 +67,17 @@ export const DEFAULT_TIMING: Timing = {
   trace: 5.8,
   collapse: 10.8,
   indicator: 11.15,
-  // The typing state holds for a second once the morph has landed on the dots.
-  iface: 13.2,
+  // The face has spun out into the dots at indicator + 1.05; half a second
+  // on them, then the pull-back.
+  iface: 12.7,
   // Sara types before her line lands at chat + 0.4; the room needs the
   // dots to have landed (iface + 1.2) before her indicator takes the strip.
-  chat: 15.2,
-  sidebar: 17.6,
-  reply: 19.2,
+  chat: 14.7,
+  sidebar: 17.1,
+  reply: 18.7,
   // The closer's five words have arrived at closer + 1.02; it holds for the logo.
-  closer: 21.6,
-  logo: 23.7,
+  closer: 21.1,
+  logo: 23.2,
   // The lockup has seated at logo + 2.3; a beat on it.
-  end: 26.2,
+  end: 25.7,
 };

@@ -240,7 +240,9 @@ export function driveTypeCard(tc: TypeCardOn, local: number, closer: boolean) {
     const buried = li + 1 < lines.length - 1 ? easeInOut(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
     const lift = last ? 28 : 110;
     line.style.transform = `translateY(${12 * (1 - settle) - lift * gone}px)${last ? ` scale(${1 + 0.03 * gone})` : ""}`;
-    line.style.opacity = `${last ? 1 - gone : (1 - 0.85 * gone) * (1 - buried)}`;
+    // A lifted line is transparent by the time its top reaches the face
+    // stack (28px up, 40% of the lift) — it never passes through the faces.
+    line.style.opacity = `${last ? 1 - gone : Math.max(0, 1 - 2.5 * gone) * (1 - buried)}`;
     line.style.filter = `blur(${(last ? 8 : 6) * gone}px)`;
   });
   // The stack stays for every line (only the lines trade places beneath

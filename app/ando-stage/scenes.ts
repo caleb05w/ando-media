@@ -397,9 +397,9 @@ const JAMS_CUT: Scene = {
     { kind: "transcript", who: "caleb", text: "or agent first, as a cold open", ms: 400 },
     { kind: "transcript", who: "sara", text: "hmm, a cold open is bold", ms: 500 },
     { kind: "transcript", who: "caleb", text: "bold is the point", ms: 500 },
-    // Shot 4 — white. The middle line. The UI has been receding (blur,
-    // dim, scale — page.tsx CARD_LEAD) since it settled into the docked
-    // layout, 3s before the card.
+    // Shot 4 — white. The middle line. The UI recedes into it (blur,
+    // scale, then the white wash — page.tsx CARD_LEAD / WASH_LEAD) over
+    // the last 1.6s of the docked stretch.
     // Rule: a card's dwell covers its hold AND its 0.6s lift, plus a breath,
     // so nothing that follows — the cursor's trip to Thread, the press —
     // ever happens behind it. Change the hold, change the dwell with it.

@@ -62,9 +62,9 @@ type Trace = { run: string; who: Actor; label: string; icon: "read" | "write" | 
 
 
 /** Seconds before a type card in which the UI recedes (blur, scale down). */
-const CARD_LEAD = 3.0;
+const CARD_LEAD = 1.6;
 /** The last of those seconds, in which the white washes up over the receded UI — so the card's ground arrives, rather than cutting. */
-const WASH_LEAD = 0.6;
+const WASH_LEAD = 0.4;
 /** A type card straight before the logo is the closer: it holds its white and its line, and the logo cuts in over it. No exit. */
 function isCloser(scene: Scene, key: string): boolean {
   const index = Number(key.slice(1));

@@ -67,17 +67,19 @@ export const DEFAULT_TIMING: Timing = {
   trace: 5.8,
   collapse: 11.4,
   indicator: 11.75,
-  // The face has spun out into the dots at indicator + 1.05; half a second
-  // on them, then the pull-back.
-  iface: 13.3,
+  // The face has spun out into the dots at indicator + 1.05: no hold, the
+  // pull-back starts on that frame, the dots on the composer's clock.
+  iface: 12.8,
   // Sara types before her line lands at chat + 0.4; the room needs the
   // dots to have landed (iface + 1.2) before her indicator takes the strip.
-  chat: 15.3,
-  sidebar: 17.7,
-  reply: 19.3,
+  chat: 14.8,
+  sidebar: 17.2,
+  reply: 18.8,
+  // Three more lines land on the reply clock (to reply + 3.3) while the
+  // window recedes for the closer over its last 2.4s.
   // The closer's five words have arrived at closer + 1.02; it holds for the logo.
-  closer: 21.7,
-  logo: 23.8,
+  closer: 23.1,
+  logo: 25.2,
   // The lockup has seated at logo + 2.3; a beat on it.
-  end: 26.3,
+  end: 27.7,
 };

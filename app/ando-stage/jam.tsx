@@ -12,7 +12,6 @@ import { TypingIndicator } from "./typing";
 import { Icon } from "./glyph";
 import { Avatar } from "./chrome";
 import { Landing } from "./landing";
-import { animate } from "motion";
 import { motion } from "motion/react";
 import type { Actor } from "./scenes";
 
@@ -322,20 +321,6 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
   // over a read-only editor (the same arrangement as the room's composer).
   const [draft, setDraft] = useState("");
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const composerRef = useRef<HTMLDivElement>(null);
-  const composerGrown = useRef(false);
-  useLayoutEffect(() => {
-    const el = composerRef.current;
-    if (!el || composerGrown.current) return;
-    composerGrown.current = true;
-    // Measured, not Motion's `height: "auto"` — that under-read the box and
-    // it snapped the difference when the animation ended.
-    const target = el.offsetHeight;
-    el.style.overflow = "hidden";
-    const grow = animate(el, { height: [0, target], paddingTop: [0, 8], paddingBottom: [0, 16] }, { duration: 0.7, ease: [0.2, 0, 0, 1] });
-    grow.then(() => { el.style.height = "auto"; el.style.overflow = "visible"; });
-    return () => grow.stop();
-  });
   const shown = scripted ?? draft;
   const canSend = shown.trim().length > 0;
   useLayoutEffect(() => {
@@ -487,7 +472,11 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             it is never shoved: the section and the composer open together. */}
         {/* Only the thread has a composer — the live transcript is read-only. It grows in
             once, when the panel docks; a tab switch shows it in place. */}
-        {composer && tab === "thread" ? <div ref={composerRef} className="relative z-10 flex flex-col space-y-2 px-4 pb-4 pt-2">
+        {/* The composer lands like a row: its slot grows from nothing to the
+            measured height, clipped only while growing (Landing). An
+            imperative grow here once left the wrapper clipped for good, and
+            the typing indicator — which sits above the box — went unseen. */}
+        {composer && tab === "thread" ? <Landing className="relative z-10 shrink-0"><div className="relative flex flex-col space-y-2 px-4 pb-4 pt-2">
           <div className="relative flex flex-col">
           {typing ? <TypingIndicator actor={typing} /> : null}
           <div className="flex flex-col bg-ando-bg-input rounded-lg shadow-[0_0_0_1px_var(--color-ando-border-alpha)] overflow-hidden">
@@ -542,7 +531,7 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
             </div>
           </div>
           </div>
-        </div> : null}
+        </div></Landing> : null}
       </div>
     </div>
   );

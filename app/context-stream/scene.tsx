@@ -16,12 +16,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
+import { TYPE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
 import { BARE, CHAIN, FACES, FIRST_MORPH, becomingAt, faceAt } from "./agents";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
-import { LogoCard, TypeCard, driveTypeCard, seatLogo, type TypeCardOn } from "../ando-stage/cards";
+import { LogoCard, TypeCard, driveTypeCard, easeInOut, seatLogo, type TypeCardOn } from "../ando-stage/cards";
 import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, birthWaveMs, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, CODEX, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
@@ -117,6 +117,8 @@ const ZOOM_OUT = 1.2;
 /** How long someone's typing indicator shows before their line lands, and
  *  how long your own line takes to type itself into the composer. */
 const PRE_TYPE = 0.7;
+/** How long before the closer the window starts to recede (the stage's CARD_LEAD grammar). */
+const CLOSER_LEAD = 2.4;
 const SELF_TYPE = 0.8;
 /** The closer: the stage's type card, one line, the white washing up under
  *  it over WASH_LEAD (the stage's own), held for the logo to cut in over. */
@@ -152,9 +154,8 @@ const LAST_FACE = FACES[CHAIN[CHAIN.length - 1].face];
 function agentAt(vt: number, T: Timing): AgentLook {
   if (vt >= T.indicator) {
     const c = FACE_AT - (vt - T.indicator) * 1000;
-    if (c >= 0) return { frame: cycleFrame(INDICATOR, c).frame, face: LAST_FACE };
-    // Past the start of the loop: the wave is periodic, keep it going.
-    return { frame: typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1), face: LAST_FACE };
+    if (c >= TYPE_MS) return { frame: cycleFrame(INDICATOR, c).frame, face: LAST_FACE };
+    return { frame: handoverWave(vt, T), face: LAST_FACE };
   }
   if (vt < becomingAt(T, 0)) return { frame: typingFrame(birthWaveMs(T, vt), 1), face: FACES[CHAIN[0].face] };
   const k = swapIndex(vt, T);
@@ -175,6 +176,28 @@ function swapProgress(vt: number, T: Timing): number {
   const k = swapIndex(vt, T);
   if (k == null || k === 0) return 0;
   return ease(seg(vt, becomingAt(T, k), faceAt(T, k) - becomingAt(T, k)));
+}
+/** The composer's own indicator (ando-stage/typing.tsx): each dot on a
+ *  0.9s cycle from rest, the first 30ms after mount, each next 190ms
+ *  behind the one before (delayChildren 0.03 + stagger 0.05 + its own
+ *  0.14). */
+const PRODUCT_DOT_DELAY = { first: 30, step: 190 };
+/** Once the face has spun out into the dots, the dots run on the
+ *  composer's clock — the product's own model, from rest at `iface`, which
+ *  is when the composer's indicator mounts under them — so the two are one
+ *  and the handover is invisible. The reversed morph leaves the side dots
+ *  150ms into their cycle; they slip into the product's phasing over the
+ *  first 0.3s. */
+function handoverWave(vt: number, T: Timing): Frame {
+  const ms = (vt - T.iface) * 1000;
+  const slip = smooth(clamp01(ms / 300));
+  // typingFrame puts dot i at phase (ms + 150·(1 − i)); ask it for the phase we want.
+  const at = (i: number) => {
+    const library = ms + 150 * (1 - i);
+    const product = Math.max(0, ms - PRODUCT_DOT_DELAY.first - PRODUCT_DOT_DELAY.step * i);
+    return typingFrame(lerp(library, product, slip) - 150 * (1 - i), 1);
+  };
+  return { sats: [at(0).sats[0], at(2).sats[1]], blob: at(1).blob, avatarO: 0 };
 }
 /** Which becoming `vt` is in, if any. */
 function swapIndex(vt: number, T: Timing): number | null {
@@ -310,12 +333,19 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const cardW = lerp(CARD.w, CARD_WIDE.w, side);
       const cardY = CARD.y;
       const cardH = CARD.h;
+      // ...and in the lead before the closer the whole window recedes the way
+      // the stage's does before a type card: a soft blur and a step back to
+      // 0.96, no dimming — the room keeps talking while it lets go, and the
+      // white washes up over it in the last WASH_LEAD.
+      const recede = easeInOut(seg(vt, T.closer - CLOSER_LEAD, CLOSER_LEAD));
       for (const el of [card, content]) {
         el.style.left = `${cardX}px`;
         el.style.top = `${cardY}px`;
         el.style.width = `${cardW}px`;
         el.style.height = `${cardH}px`;
         el.style.opacity = `${winP}`;
+        el.style.transform = recede > 0 ? `scale(${1 - 0.04 * recede})` : "";
+        el.style.filter = recede > 0 ? `blur(${8 * recede}px)` : "";
       }
 
       // The film opens on a push in to the cloud.
@@ -361,7 +391,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           at = T.chat + CHAT_LEAD + chatIndex * CHAT_STAGGER;
           chatIndex += 1;
         } else {
-          at = T.reply;
+          at = T.reply + (row.after ?? 0);
         }
         const p = ease(seg(vt, at, 0.45));
         refs.wrap.style.height = `${rowH[i] * p}px`;
@@ -478,10 +508,12 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       // strip that only changes when the set does.
       const typers: Actor[] = [];
       let scriptedNow: string | null = null;
-      if (vt >= T.iface + ZOOM_OUT - 0.05 && vt < T.closer) {
+      // The composer's indicator is there from `iface`: it and the agent's
+      // dots run the same clock under the pull-back, and hand over unseen.
+      if (vt >= T.iface && vt < T.closer) {
         let chatI = 0;
         for (const row of ROWS) {
-          const land = row.lands === "chat" ? T.chat + CHAT_LEAD + chatI * CHAT_STAGGER : T.reply;
+          const land = row.lands === "chat" ? T.chat + CHAT_LEAD + chatI * CHAT_STAGGER : T.reply + (row.after ?? 0);
           if (row.lands === "chat") chatI += 1;
           if (row.who === CAST[ME]) {
             const line = row.body[0].map((part) => part.text).join("");

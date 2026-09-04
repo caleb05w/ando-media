@@ -47,6 +47,8 @@ export type RowDef = {
   who: Actor;
   time: string;
   lands: Lands;
+  /** A row on the reply clock: seconds after `reply` it lands (the reply itself is 0). */
+  after?: number;
   body: Segment[][];
   list?: Segment[][];
   /** The agent's run rides under this row while it works… */
@@ -91,6 +93,31 @@ export const ROWS: RowDef[] = [
     time: "3:28 PM",
     lands: "reply",
     body: [[t("It does. Final pass went through this morning, so I've slotted it into Thursday's draft.")]],
+  },
+  // The room keeps going under the recede into the closer.
+  {
+    key: "sara2",
+    who: CAST.sara,
+    time: "3:29 PM",
+    lands: "reply",
+    after: 1.1,
+    body: [[t("ok that's actually great. lock it")]],
+  },
+  {
+    key: "grok2",
+    who: GROK,
+    time: "3:29 PM",
+    lands: "reply",
+    after: 2.2,
+    body: [[t("Locked. Review Tuesday, send Thursday — I've put both on the launch calendar.")]],
+  },
+  {
+    key: "caleb2",
+    who: CAST.caleb,
+    time: "3:29 PM",
+    lands: "reply",
+    after: 3.3,
+    body: [[t("ship it 🔥")]],
   },
 ];
 

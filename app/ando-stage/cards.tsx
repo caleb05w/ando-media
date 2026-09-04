@@ -192,6 +192,67 @@ export function typeCardAt(scene: Scene, T: Timing, vt: number): TypeCardOn | nu
   return null;
 }
 
+/** The type card `local` seconds in: each word rises out of a blur into
+ *  its place on its own time, lines lift away above the next once held,
+ *  and the card as a whole leaves after its last line's hold — unless it
+ *  is the closer, which holds its white and its line for the logo to cut
+ *  in over. Writes the TypeCard's spans; the stage's films and
+ *  /context-stream call it per frame. */
+export function driveTypeCard(tc: TypeCardOn, local: number, closer: boolean) {
+  const lines = Array.from(document.querySelectorAll<HTMLElement>("[data-type-line]"));
+  if (lines.length === 0) return;
+  // Each face pops in with the word (of the first line) it is keyed to.
+  const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
+  const seen = new Map<number, number>();
+  faces.forEach((face) => {
+    const on = Number(face.dataset.on ?? 0);
+    // Faces keyed to one word arrive in a run, 70ms apart.
+    const nth = seen.get(on) ?? 0;
+    seen.set(on, nth + 1);
+    const p = seg(local, on * WORD_CADENCE + nth * 0.07, FACE_LAND);
+    face.style.opacity = `${Math.min(1, p * 3)}`;
+    face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
+  });
+  // The card as a whole lifts away after its last line's hold.
+  const exit = closer ? 0 : easeInOut(seg(local, tc.hold, TYPE_EXIT));
+  lines.forEach((line, li) => {
+    const start = tc.starts[li];
+    const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
+    // The line sits centred at its full width from the start; each word
+    // rises out of a blur into its place (no sideways slide, and the line
+    // never re-centres as words arrive — that stepped).
+    words.forEach((word, i) => {
+      const p = ease(seg(local, start + i * WORD_CADENCE, WORD_LAND));
+      word.style.opacity = `${p}`;
+      word.style.transform = `translateY(${(1 - p) * 16}px) scale(${1.03 - 0.03 * p})`;
+      word.style.filter = `blur(${(1 - p) * 8}px)`;
+    });
+    // The whole line settles up into its seat with its first word.
+    const settle = ease(seg(local, start, WORD_LAND + 0.2));
+    // A line that has had its hold lifts and blurs away above the next; the
+    // last line leaves with the card. The lift eases both ways.
+    const last = li === lines.length - 1;
+    // The last line leaves first — up and out of focus, the mirror of how
+    // words arrive — in the first 60% of the exit, so the words are gone
+    // before the wash has thinned enough to show the UI.
+    const gone = last ? (closer ? 0 : ease(seg(local, tc.hold, TYPE_EXIT * 0.6))) : easeInOut(seg(local, tc.ends[li], LINE_EXIT));
+    // Only one ghost at a time: a lifted line is gone for good once the line after it leaves too.
+    const buried = li + 1 < lines.length - 1 ? easeInOut(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
+    const lift = last ? 28 : 110;
+    line.style.transform = `translateY(${12 * (1 - settle) - lift * gone}px)${last ? ` scale(${1 + 0.03 * gone})` : ""}`;
+    line.style.opacity = `${last ? 1 - gone : (1 - 0.85 * gone) * (1 - buried)}`;
+    line.style.filter = `blur(${(last ? 8 : 6) * gone}px)`;
+  });
+  // The stack stays for every line (only the lines trade places beneath
+  // it) and leaves with the card.
+  const stack = document.querySelector<HTMLElement>("[data-type-faces]");
+  if (stack) {
+    stack.style.transform = `translateY(${-28 * exit}px)`;
+    stack.style.opacity = `${1 - exit}`;
+    stack.style.filter = exit > 0 ? `blur(${8 * exit}px)` : "none";
+  }
+}
+
 /** White, one line, the words arriving from the right. Word motion is
  *  written per frame by the driver via the `data-word` spans. */
 export function TypeCard({ card }: { card: TypeCardOn }) {
@@ -207,8 +268,8 @@ export function TypeCard({ card }: { card: TypeCardOn }) {
               data-on={face.on}
               src={face.actor.avatar}
               alt=""
-              className="size-14 rounded-full object-cover will-change-transform"
-              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", opacity: 0, background: face.actor.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
+              className={`size-14 rounded-full will-change-transform ${face.actor.avatar.startsWith("/agents/") ? "object-contain p-3" : "object-cover"}`}
+              style={{ marginLeft: i === 0 ? 0 : -14, boxShadow: "0 0 0 3px #ffffff", opacity: 0, background: face.actor.avatar.startsWith("/agents/") ? "#efedea" : face.actor.avatar.endsWith(".svg") ? "#fff" : undefined, zIndex: card.faces.length - i }}
             />
           ))}
         </div>
@@ -251,32 +312,32 @@ export const LOCKUP = {
   letters: { x: 0, y: 35.7, w: 157.8, h: 41.0, px: FIG.letters.w * K },
   mark: { x: 160.3, y: 0, w: 48.4, h: 50.6, px: FIG.mark.w * K },
 };
-/** The closing lockup, the Grok ending (context-stream/MOTION.md): the mark
- *  drops in alone at centre with an overshoot and a highlight, then slides
- *  left as the wordmark lands beside it. Hold. Seconds after the logo beat. */
-export const LOGO_IN = { drop: 0.55, slideAt: 0.65, slide: 0.5, lettersAt: 0.75, letters: 0.5, blur: 12 } as const;
-/** The lockup `local` seconds into the logo beat. Writes the LogoCard's
- *  halves; the stage's films and /context-stream call it per frame. */
+/** The closing lockup: when each half starts condensing (seconds after the
+ *  logo beat), how long the fade takes, how soft it starts, and how far
+ *  each half comes in from the left (px). */
+export const LOGO_IN = { mark: 0.6, letters: 0.9, fade: 1.1, blur: 16, travel: 56 } as const;
+/** The lockup `local` seconds into the logo beat: a beat of white, then it
+ *  condenses out of it like a cloud, coming in from the left — the mark
+ *  first, the wordmark a beat behind it — each from a soft blur and a touch
+ *  small, easing to sharp, still and seated. Then hold. Writes the
+ *  LogoCard's halves; the stage's films and /context-stream call it per
+ *  frame, so they end the same way. */
 export function seatLogo(local: number) {
   const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
   const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
   if (!mark || !letters) return;
-  // 1. The mark drops in at centre: from above, small, overshooting its
-  //    size on the way to rest, with a highlight that flashes through it
-  //    as it lands.
-  const drop = seg(local, 0, LOGO_IN.drop);
-  const land = backOut(drop);
-  const flash = Math.sin(Math.PI * seg(local, LOGO_IN.drop * 0.45, LOGO_IN.drop * 0.7));
-  // 2. It slides left into its seat as the wordmark lands beside it, the
-  //    letters coming in from a touch right, out of a blur.
-  const slide = easeInOut(seg(local, LOGO_IN.slideAt, LOGO_IN.slide));
-  const pl = ease(seg(local, LOGO_IN.lettersAt, LOGO_IN.letters));
-  mark.style.opacity = `${Math.min(1, drop * 3)}`;
-  mark.style.filter = flash > 0 ? `brightness(${1 + 1.4 * flash})` : "none";
-  mark.style.transform = `translate(${MARK_OFFSET.x * slide}px, ${MARK_OFFSET.y - 48 * (1 - ease(drop))}px) scale(${0.4 + 0.6 * land})`;
+  const pm = easeInOut(seg(local, LOGO_IN.mark, LOGO_IN.fade));
+  const pl = easeInOut(seg(local, LOGO_IN.letters, LOGO_IN.fade));
+  // The travel eases out on its own, longer curve, so each half is still
+  // settling into its seat as it sharpens.
+  const dm = ease(seg(local, LOGO_IN.mark, LOGO_IN.fade + 0.3));
+  const dl = ease(seg(local, LOGO_IN.letters, LOGO_IN.fade + 0.3));
+  mark.style.opacity = `${pm}`;
+  mark.style.filter = pm < 1 ? `blur(${LOGO_IN.blur * (1 - pm)}px)` : "none";
+  mark.style.transform = `translate(${MARK_OFFSET.x - LOGO_IN.travel * (1 - dm)}px, ${MARK_OFFSET.y}px) scale(${0.94 + 0.06 * pm})`;
   letters.style.opacity = `${pl}`;
   letters.style.filter = pl < 1 ? `blur(${LOGO_IN.blur * (1 - pl)}px)` : "none";
-  letters.style.transform = `translate(${LETTERS_OFFSET.x + 36 * (1 - pl)}px, ${LETTERS_OFFSET.y}px) scale(${0.96 + 0.04 * pl})`;
+  letters.style.transform = `translate(${LETTERS_OFFSET.x - LOGO_IN.travel * (1 - dl)}px, ${LETTERS_OFFSET.y}px) scale(${0.94 + 0.06 * pl})`;
 }
 /** Each half's centre, offset from the lockup's centre, in px. */
 export const MARK_OFFSET = { x: (FIG.mark.x + FIG.mark.w / 2 - FIG.w / 2) * K, y: (FIG.mark.h / 2 - FIG.h / 2) * K };

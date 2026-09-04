@@ -25,7 +25,7 @@ import { TraceLine, type TracePhases } from "./context-trace";
 import { ActiveJamCallCard, EndedJamCallCard, JAM_MOVE, JamHeaderControl, JamPanel, type JamCall, type TranscriptSegment } from "./jam";
 import { JamStage, lowerHeightFor, type JamPhase } from "./jam-stage";
 import { Landing, Leaving } from "./landing";
-import { ContextCard, LETTERS_OFFSET, LogoCard, MARK_OFFSET, TypeCard, FACE_LAND, LINE_EXIT, TYPE_EXIT, WORD_CADENCE, WORD_LAND, anchorSelector, autoPoseAt, pressesOf, backOut, contextAt, ease, easeInOut, logoAt, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
+import { ContextCard, LogoCard, TypeCard, TYPE_EXIT, anchorSelector, autoPoseAt, pressesOf, contextAt, driveTypeCard, ease, easeInOut, logoAt, seatLogo, seg, shotScale, shotsAt, typeCardAt, type ContextOn, type TypeCardOn } from "./cards";
 import { ME, SCENES, beatKey, cursorAt, defaultTiming, jamElapsedAt, pointerAt, scriptedDraftAt, scriptedDraftInThread, totalFor, type Actor, type Attachment, type LaunchCard, type Scene, type Segment, type Surface, type Timing } from "./scenes";
 
 /** Where each cursor beat aims, in the live DOM. */
@@ -46,15 +46,6 @@ const CURSOR_GLYPHS = {
   pointer: { src: "/cursors/cursor-hand.svg", w: 19, h: 20, dx: -7, dy: -1 },
   text: { src: "/cursors/cursor-ibeam.svg", w: 13, h: 22, dx: -6.5, dy: -10 },
 } as const;
-
-/** The closing lockup: when each half starts condensing (seconds after the
- *  logo beat), how long the fade takes, and how soft it starts. */
-const LOGO_MARK_IN = 0.6;
-const LOGO_LETTERS_IN = 0.9;
-const LOGO_FADE = 1.1;
-const LOGO_BLUR = 16;
-/** How far each half comes in from the left (px). */
-const LOGO_TRAVEL = 56;
 
 /** Room the Studio pill needs at the foot of the window. */
 const STUDIO_CLEARANCE = 72;
@@ -872,60 +863,9 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       const tc = typeCardAt(scene, T, vt);
       const tcKey = tc?.key ?? null;
       if (tcKey !== typeKeyRef.current) { typeKeyRef.current = tcKey; setTypeCard(tc); }
-      if (tc) {
-        const lines = Array.from(document.querySelectorAll<HTMLElement>("[data-type-line]"));
-        if (lines.length > 0) {
-          const local = vt - tc.t;
-          // Each face pops in with the word (of the first line) it is keyed to.
-          const faces = Array.from(document.querySelectorAll<HTMLElement>("[data-type-faces] [data-face]"));
-          faces.forEach((face) => {
-            const on = Number(face.dataset.on ?? 0);
-            const p = seg(local, on * WORD_CADENCE, FACE_LAND);
-            face.style.opacity = `${Math.min(1, p * 3)}`;
-            face.style.transform = `translateY(${10 * (1 - ease(p))}px) scale(${0.6 + 0.4 * backOut(p)})`;
-          });
-          // The card as a whole lifts away after its last line's hold.
-          const exit = isCloser(scene, tc.key) ? 0 : easeInOut(seg(local, tc.hold, TYPE_EXIT));
-          lines.forEach((line, li) => {
-            const start = tc.starts[li];
-            const words = Array.from(line.querySelectorAll<HTMLElement>("[data-word]"));
-            // The line sits centred at its full width from the start; each
-            // word rises out of a blur into its place (no sideways slide, and
-            // the line never re-centres as words arrive — that stepped).
-            words.forEach((word, i) => {
-              const p = ease(seg(local, start + i * WORD_CADENCE, WORD_LAND));
-              word.style.opacity = `${p}`;
-              word.style.transform = `translateY(${(1 - p) * 16}px) scale(${1.03 - 0.03 * p})`;
-              word.style.filter = `blur(${(1 - p) * 8}px)`;
-            });
-            // The whole line settles up into its seat with its first word.
-            const settle = ease(seg(local, start, WORD_LAND + 0.2));
-            // A line that has had its hold lifts and blurs away above the next;
-            // the last line leaves with the card. The lift eases both ways.
-            const last = li === lines.length - 1;
-            // The last line leaves first — up and out of focus, the mirror of
-            // how words arrive — in the first 60% of the exit, so the words
-            // are gone before the wash has thinned enough to show the UI.
-            const gone = last ? (isCloser(scene, tc.key) ? 0 : ease(seg(local, tc.hold, TYPE_EXIT * 0.6))) : easeInOut(seg(local, tc.ends[li], LINE_EXIT));
-            // Only one ghost at a time: a lifted line is gone for good once the line after it leaves too.
-            const buried = li + 1 < lines.length - 1 ? easeInOut(seg(local, tc.ends[li + 1], LINE_EXIT)) : li + 1 === lines.length - 1 ? exit : 0;
-            const lift = last ? 28 : 110;
-            line.style.transform = `translateY(${12 * (1 - settle) - lift * gone}px)${last ? ` scale(${1 + 0.03 * gone})` : ""}`;
-            line.style.opacity = `${last ? 1 - gone : (1 - 0.85 * gone) * (1 - buried)}`;
-            line.style.filter = `blur(${(last ? 8 : 6) * gone}px)`;
-          });
-          // The stack lifts with the first line.
-          const stack = document.querySelector<HTMLElement>("[data-type-faces]");
-          if (stack) {
-            const gone = lines.length > 1 ? easeInOut(seg(local, tc.ends[0], LINE_EXIT)) : exit;
-            const buried = lines.length > 2 ? easeInOut(seg(local, tc.ends[1], LINE_EXIT)) : lines.length === 2 ? exit : 0;
-            stack.style.transform = `translateY(${-(lines.length > 1 ? 110 : 28) * gone}px)`;
-            stack.style.opacity = `${lines.length > 1 ? (1 - 0.85 * gone) * (1 - buried) : 1 - gone}`;
-            stack.style.filter = lines.length > 1 ? `blur(${6 * gone}px)` : "none";
-          }
-          // The white is the stage's wash (below), thinning with the last line.
-        }
-      }
+      // Its words, lines and faces: cards.tsx driveTypeCard, shared with
+      // /context-stream. The white is the stage's wash (below).
+      if (tc) driveTypeCard(tc, vt - tc.t, isCloser(scene, tc.key));
 
       // The context card: mounted on its beat; its clock is a ref it reads itself.
       const cc = contextAt(scene, T, vt);
@@ -933,32 +873,12 @@ function Stage({ scene, hooks, timing, onCycleScene }: { scene: Scene; hooks: Ho
       if (ccKey !== contextKeyRef.current) { contextKeyRef.current = ccKey; setContextCard(cc); }
       contextLocalRef.current = cc ? vt - cc.t : 0;
 
-      // The logo: a beat of white, then the lockup condenses out of it like
-      // a cloud, coming in from the left — the mark first, the wordmark a
-      // beat behind it — each from a soft blur and a touch small, easing to
-      // sharp, still and seated. Then hold.
+      // The logo: the lockup condenses out of the white (cards.tsx seatLogo,
+      // shared with /context-stream). Then hold.
       const logoT = logoAt(scene, T, vt);
       const on = logoT != null;
       if (on !== logoOnRef.current) { logoOnRef.current = on; setLogoOn(on); }
-      if (logoT != null) {
-        const mark = document.querySelector<HTMLElement>("[data-logo-mark]");
-        const letters = document.querySelector<HTMLElement>("[data-logo-letters]");
-        if (mark && letters) {
-          const local = vt - logoT;
-          const pm = easeInOut(seg(local, LOGO_MARK_IN, LOGO_FADE));
-          const pl = easeInOut(seg(local, LOGO_LETTERS_IN, LOGO_FADE));
-          // The travel eases out on its own, longer curve, so each half is
-          // still settling into its seat as it sharpens.
-          const dm = ease(seg(local, LOGO_MARK_IN, LOGO_FADE + 0.3));
-          const dl = ease(seg(local, LOGO_LETTERS_IN, LOGO_FADE + 0.3));
-          mark.style.opacity = `${pm}`;
-          mark.style.filter = pm < 1 ? `blur(${LOGO_BLUR * (1 - pm)}px)` : "none";
-          mark.style.transform = `translate(${MARK_OFFSET.x - LOGO_TRAVEL * (1 - dm)}px, ${MARK_OFFSET.y}px) scale(${0.94 + 0.06 * pm})`;
-          letters.style.opacity = `${pl}`;
-          letters.style.filter = pl < 1 ? `blur(${LOGO_BLUR * (1 - pl)}px)` : "none";
-          letters.style.transform = `translate(${LETTERS_OFFSET.x - LOGO_TRAVEL * (1 - dl)}px, ${LETTERS_OFFSET.y}px) scale(${0.94 + 0.06 * pl})`;
-        }
-      }
+      if (logoT != null) seatLogo(vt - logoT);
 
       // The window pops up from the bottom as the film opens: 0.97 → 1, quick.
       const win = windowRef.current;

@@ -478,7 +478,8 @@ export function JamPanel({ call, target, muted, elapsed, tab, transcript, speaki
               <span className="kanso-text-label-12 text-ando-fg-tertiary inline ml-1.5">{clockTime(call.startedAt)}</span>
             </div>
           </div>
-          {thread ? <div className="flex flex-col pt-1 pb-2">{thread}</div> : null}
+          {/* The rows' padding only once there are rows: empty, it was a 12px gap under the join event. */}
+          {thread && threadCount > 0 ? <div className="flex flex-col pt-1 pb-2">{thread}</div> : null}
         </div>
         )}
         {/* Thread composer, compact, with the broadcast option. It grows in

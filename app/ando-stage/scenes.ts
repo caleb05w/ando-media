@@ -42,7 +42,7 @@ export type Beat =
   | { kind: "jam-dock"; ms: number }
   /** Your pointer travels to a control (and presses it). Pure in the clock:
    *  the glide runs over the beat's first 0.9s, both directions. */
-  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; /** The camera pulls in around the target as the cursor sets off for it — `true` for the default 1.6×, or a scale (cards.tsx autoPoseAt). */ zoom?: true | number; ms: number }
+  | { kind: "cursor"; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press?: boolean; /** Seconds the hand takes to reach the target (0.9 when unset). */ glide?: number; /** The camera pulls in around the target as the cursor sets off for it — `true` for the default 1.6×, or a scale (cards.tsx autoPoseAt). */ zoom?: true | number; ms: number }
   /** The Jam panel switches tab. */
   | { kind: "tab"; tab: "thread" | "transcript"; ms: number }
   /** Someone is talking — the ring on their tile — with nothing transcribed yet. */
@@ -124,6 +124,10 @@ export const CAST = {
   ando: { name: "Ando", avatar: ANDO_MARK, agent: true },
   scout: { name: "Scout", avatar: `${AV}/agent-2.png`, agent: true },
   tadao: { name: "Tadao", avatar: `${AV}/agent-1.png`, agent: true },
+  // The other agents that jam: on the middle card's face stack.
+  grok: { name: "Grok", avatar: "/agents/grok.svg", agent: true },
+  claude: { name: "Claude", avatar: "/agents/claude.png", agent: true },
+  codex: { name: "Codex", avatar: "/agents/codex.png", agent: true },
 } as const satisfies Record<string, Actor>;
 
 export function isAgent(actor: Actor): boolean {
@@ -413,7 +417,8 @@ const JAMS_CUT: Scene = {
     {
       kind: "type",
       text: "Jam it out together",
-      faces: [{ who: "caleb", on: 1 }, { who: "sara", on: 2 }, { who: "tadao", on: 3 }],
+      // Jam(0) it(1) out(2) together(3): you, Sara, then the agents in a run on "together". The stack stays for all three lines.
+      faces: [{ who: "caleb", on: 1 }, { who: "sara", on: 2 }, { who: "tadao", on: 3 }, { who: "grok", on: 3 }, { who: "claude", on: 3 }, { who: "codex", on: 3 }],
       lines: ["Calls that are live transcribed", "Your agents follow along"],
       lineHold: 0.8,
       hold: 2.1,
@@ -448,11 +453,13 @@ const JAMS_CUT: Scene = {
     // unread in the sidebar while the call is still on. You hang up, then
     // open it.
     { kind: "dm-unread", who: "tadao", ms: 0 },
-    { kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 500, body: [[{ text: "Follow-ups from the jam, on you:" }]] },
-    { kind: "transcript", who: "sara", text: "okay, I think we're good", ms: 600 },
-    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, ms: 950 },
-    { kind: "jam-end", ms: 300 },
-    { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, ms: 950 },
+    { kind: "say", id: "d1", who: "tadao", time: "11:13 AM", room: "dm", typed: true, ms: 250, body: [[{ text: "Follow-ups from the jam, on you:" }]] },
+    { kind: "transcript", who: "sara", text: "okay, I think we're good", ms: 300 },
+    // From the DM landing to opening it is ~1.8s (Caleb: halve it): the
+    // hands move at half a second, the dwells are short.
+    { kind: "cursor", to: "hang-up", glyph: "pointer", press: true, glide: 0.5, ms: 550 },
+    { kind: "jam-end", ms: 150 },
+    { kind: "cursor", to: "dm:tadao", glyph: "pointer", press: true, glide: 0.5, ms: 550 },
     // The DM opens on his one line; he types the rest while you watch.
     { kind: "surface", to: { kind: "dm", who: "tadao" }, ms: 700 },
     { kind: "typing", who: "tadao", ms: 900 },
@@ -561,15 +568,15 @@ export function scriptedDraftAt(scene: Scene, T: Timing, vt: number): string | n
  *  whether it is pressing. Null before the first cursor beat. */
 export function pointerAt(scene: Scene, T: Timing, vt: number): { from: CursorTarget | null; to: CursorTarget; glyph: "arrow" | "pointer" | "text"; progress: number; press: number; at: number } | null {
   let prev: CursorTarget | null = null;
-  let current: { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number } | null = null;
+  let current: { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number; glide?: number } | null = null;
   scene.beats.forEach((beat, index) => {
     if (beat.kind !== "cursor" || T[beatKey(index)] > vt) return;
     if (current) prev = current.to;
-    current = { to: beat.to, glyph: beat.glyph, press: beat.press === true, at: T[beatKey(index)] };
+    current = { to: beat.to, glyph: beat.glyph, press: beat.press === true, at: T[beatKey(index)], glide: beat.glide };
   });
   if (!current) return null;
-  const c = current as { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number };
-  const glide = 0.9;
+  const c = current as { to: CursorTarget; glyph: "arrow" | "pointer" | "text"; press: boolean; at: number; glide?: number };
+  const glide = c.glide ?? 0.9;
   const progress = Math.min(1, Math.max(0, (vt - c.at) / glide));
   const pressT = c.press ? Math.min(1, Math.max(0, (vt - c.at - glide) / 0.16)) : 0;
   return { from: prev, to: c.to, glyph: c.glyph, progress, press: c.press ? Math.sin(Math.PI * pressT) : 0, at: c.at };

@@ -124,6 +124,23 @@
   animation: st-speak-ring 2.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* The type card's face stack, talking: the same voice pattern as the call's
+ * ring, outside the 3px ground that separates the overlapping faces. Each
+ * face runs at its own offset (animation-delay), so they never speak in
+ * unison. */
+@keyframes st-face-ring {
+  0%, 14%   { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
+  18%, 24%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.15); }
+  28%, 50%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
+  55%, 60%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.2); }
+  64%, 82%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
+  87%, 93%  { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.1); }
+  100%      { box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px rgba(34,197,94,0.9); }
+}
+.st-face-talking {
+  animation: st-face-ring 2.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* The caret behind the script's typing: a steady blink, held solid while
  * letters are landing (the keystroke restarts it). */
 @keyframes st-caret {

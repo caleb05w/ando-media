@@ -12,8 +12,9 @@ import { INDICATOR } from "./stream";
 import type { Timing } from "./timing";
 
 export const FACES = { tadao: INDICATOR.avatar ?? AVATAR, grok: "/agents/grok.svg", claude: "/agents/claude.png", codex: "/agents/codex.png" } as const;
-/** The faces that are a mark, not a portrait: no disc under them once they have landed. */
-export const BARE: ReadonlySet<string> = new Set([FACES.claude, FACES.codex]);
+/** The faces that are a mark, not a portrait: no disc under them once they
+ *  have landed. Grok's eyes are cutouts, so it counts. */
+export const BARE: ReadonlySet<string> = new Set([FACES.grok, FACES.claude, FACES.codex]);
 const variant = (key: string): Variant => VARIANTS.find((v) => v.key === key) ?? INDICATOR;
 /** The becomings, in order: who the agent becomes, and by which indicator. */
 export const CHAIN: Array<{ face: keyof typeof FACES; via: Variant }> = [

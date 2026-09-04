@@ -67,12 +67,14 @@ const TITLE_TOP = LINE_Y - AGENT_R - 62;
 type AgentLook = { frame: Frame; face: string };
 /** A bare face has no disc: the disc fades out as the face fades in, and
  *  back as it goes — the library's frame, with its disc's ink made to
- *  follow the face. */
+ *  follow the face. Its satellites go with the disc: the library parks
+ *  them under it at rest, and a mark with a gap in it would show them. */
 function bare(look: AgentLook): AgentLook {
   if (!BARE.has(look.face)) return look;
   const a = Math.max(0, 1 - look.frame.avatarO);
   const fill = look.frame.blob.fill.replace(/^rgb\((.*)\)$/, `rgba($1, ${a})`);
-  return { ...look, frame: { ...look.frame, blob: { ...look.frame.blob, fill } } };
+  const sats = look.frame.sats.map((dot) => ({ ...dot, o: dot.o * a }));
+  return { ...look, frame: { ...look.frame, sats, blob: { ...look.frame.blob, fill } } };
 }
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
@@ -414,8 +416,9 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
       fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
-      // The narration, one line at a time in one spot above the agent: what
-      // it does with all that context, then that it could be any agent.
+      // The narration, one line at a time in one spot above the agent: a
+      // sentence across the film — context is everywhere, agents need all of
+      // it, whichever agent you use, so we built one place for it.
       fadeIn(titleBRef.current, T.agent + 0.35, becomingAt(T, 0) - 0.25);
       fadeIn(titleARef.current, becomingAt(T, 0) + 0.2, T.collapse - 0.2);
       fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
@@ -532,16 +535,16 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
               Context is everywhere.
             </div>
             <div ref={titleBRef} data-cs="title-b" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-              Your agent reads it.
+              Agents need all of it.
             </div>
             <div ref={titleARef} data-cs="title-a" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-              Any agent.
+              Whichever agent you use.
             </div>
           </div>
 
           {/* Outside the camera, so the pull-back leaves it still. */}
           <div ref={title2Ref} data-cs="title-2" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: CARD.y - 62, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-            So we built the interface.
+            So we built one place for it.
           </div>
         </div>
 

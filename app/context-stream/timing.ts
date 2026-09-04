@@ -11,7 +11,7 @@ export type Timing = {
   stream: number;
   /** Every dot is seated. */
   line: number;
-  /** The agent forms out of the dots at centre stage; the stream keeps pouring into it. "Your agent reads it." */
+  /** The agent forms out of the dots at centre stage; the stream keeps pouring into it. "Agents need all of it." */
   agent: number;
   /** The trace line rises beneath the agent and narrates the run, a task per agent: Tadao reads the jam, then becomes Grok, Claude, Codex for a task each (agents.ts), then Tadao again. */
   trace: number;
@@ -19,7 +19,7 @@ export type Timing = {
   collapse: number;
   /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
   indicator: number;
-  /** "So we built the interface.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
+  /** "So we built one place for it.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
   iface: number;
   /** Header and the messages it is answering arrive. */
   chat: number;

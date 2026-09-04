@@ -4,9 +4,9 @@
 // and pulls into one line — and as it does, the camera starts to move:
 // the line streams left under it as it forms, one motion. More dots curve
 // in from off-frame, right to left, and join it. The agent is born out of
-// the dots at the left — the end the stream is heading for, where it will
-// stay: the trace line draws out beside it — and the stream never halts:
-// it keeps pouring into the agent until the line is gone. Every
+// the dots at centre stage — where it stays, the trace reading beneath it
+// — and the stream never halts: it keeps pouring into the agent until the
+// line is gone. Every
 // position here is a function of (timing, vt) and a per-dot constant fixed
 // at module load, so scrubbing backwards puts every dot exactly where it
 // was.
@@ -26,10 +26,10 @@ export const CARD = FRAME_TIGHT;
 export const SIDEBAR_W = 354;
 export const PANE_W = CARD.w;
 export const CARD_WIDE = { x: 63, w: PANE_W + SIDEBAR_W } as const;
-/** Centre stage, and where the agent is born — the left of the line,
- *  where it stays: the trace line draws out to its right. */
+/** Centre stage — where the agent is born, on the line, and stays; the
+ *  trace reads beneath it. */
 export const CENTER_X = STAGE.w / 2;
-export const AGENT_X = CENTER_X - 330;
+export const AGENT_X = CENTER_X;
 export const DOT_R = 2.5;
 /** The agent is one of /the-library's typing indicators, at rest — the face
  *  in its disc — drawn at twice the shelf's 120px. Swap the key for another
@@ -77,8 +77,17 @@ type Dot = {
   cx: number;
   cy: number;
   phase: number;
-  /** Which seat on the line it takes — several dots share one and merge. */
+  phase2: number;
+  /** How near it is, 0 far → 1 near: near dots are big, bold, quick. */
+  z: number;
+  /** Its own drift, px/s. */
+  vx: number;
+  vy: number;
+  /** Which seat on the line it takes — several dots share one, spread a little. */
   slot: number;
+  /** Its own offset from the seat, and from the line: the stream is a band, not a wire. */
+  dx: number;
+  dy: number;
   /** Its stagger, fixed: when in the gather it starts to move. */
   d: number;
 };
@@ -93,13 +102,18 @@ type Flow = {
   order: number;
   /** Its size — particles vary. */
   r: number;
+  /** Its offset from the line. */
+  dy: number;
 };
+
+/** How far off the line a dot may sit — the stream's thickness, either way. */
+const LINE_FAT = 8;
 
 const SLOTS = 21;
 const slotX = (i: number) => FRAME_TIGHT.x + 48 + (i * (FRAME_TIGHT.w - 96)) / (SLOTS - 1);
 
 const rng = mulberry32(7);
-const DOT_COUNT = 56;
+const DOT_COUNT = 96;
 const perm = Array.from({ length: DOT_COUNT }, (_, i) => i);
 for (let i = perm.length - 1; i > 0; i -= 1) {
   const j = Math.floor(rng() * (i + 1));
@@ -119,8 +133,15 @@ export const DOTS: Dot[] = Array.from({ length: DOT_COUNT }, (_, i) => {
     else if (band < 0.8) { cx = 40 + rng() * (STAGE.w - 80); cy = FRAME_CLOUD.y + FRAME_CLOUD.h + 24 + rng() * (STAGE.h - FRAME_CLOUD.y - FRAME_CLOUD.h - 48); }
     else { cx = rng() < 0.5 ? 30 + rng() * 70 : STAGE.w - 100 + rng() * 70; cy = 40 + rng() * (STAGE.h - 80); }
   }
-  return { cx, cy, phase: rng() * Math.PI * 2, slot: perm[i] % SLOTS, d: rng() };
+  const z = rng() ** 1.4;
+  const heading = rng() * Math.PI * 2;
+  const speed = (6 + 22 * z) * (0.6 + 0.8 * rng());
+  return { cx, cy, phase: rng() * Math.PI * 2, phase2: rng() * Math.PI * 2, z, vx: Math.cos(heading) * speed, vy: Math.sin(heading) * speed, slot: perm[i] % SLOTS, dx: (rng() - 0.5) * 40, dy: (rng() - 0.5) * 2 * LINE_FAT, d: rng() };
 });
+
+/** The cloud in depth: a dot's size and ink by how near it is. */
+const cloudR = (z: number) => DOT_R * (0.45 + 1.25 * z);
+const cloudA = (z: number) => 0.22 + 0.78 * z;
 
 // Inflows — a crowd of them, from off-frame above and below in turn, into
 // the gaps between seats (each gap taken more than once, at different
@@ -140,7 +161,7 @@ export const FLOWS: Flow[] = gaps.map((gap, i) => {
   // From the right, like the stream.
   const ox = Math.min(STAGE.w + 60, tx + 150 + rng() * 220);
   const oy = fromAbove ? -30 : STAGE.h + 30;
-  return { fromAbove, ox, oy, tx, order: rng(), r: DOT_R * (0.75 + 0.5 * rng()) };
+  return { fromAbove, ox, oy, tx, order: rng(), r: DOT_R * (0.75 + 0.5 * rng()), dy: (rng() - 0.5) * 2 * LINE_FAT };
 });
 
 /* ── The line as a stream ───────────────────────────────────────────── */
@@ -150,23 +171,34 @@ const FADE = 44;
 /** The stream's own flow, px/s, from `line` on — leftward, like the camera. */
 const DRIFT = -16;
 /** The camera: it starts with the gather, comes up to speed over RAMP_UP,
- *  cruises through the agent's birth and the eating — the stream never
- *  halts — and eases off over RAMP_DOWN once the line has emptied. */
+ *  cruises through the agent's birth, and from just after it eases off
+ *  over a long RAMP_DOWN — so the stream decelerates into the agent, the
+ *  last dots arriving slowly, rather than feeding it at one speed. */
 const CAM_V = 900;
 const RAMP_UP = 0.6;
-const RAMP_DOWN = 0.6;
-const CRUISE_PAST_AGENT = 1.1;
+const RAMP_DOWN = 0.9;
+const CRUISE_PAST_AGENT = 0.2;
+/** The agent's pull on the stream — px/s², from EAT_LEAD before `agent` —
+ *  so the whole line is in it by the time its face has formed: the stream
+ *  consolidates into the agent, all of it, as one motion. */
+const PULL = 1700;
+const EAT_LEAD = 0.45;
+const eatFrom = (T: Timing) => T.agent - EAT_LEAD;
 /** A dot pouring into the agent streaks: its trail, px per px/s of speed, and its cap. */
-const STREAK = 0.02;
+const STREAK = 0.012;
 const STREAK_MAX = 26;
 /** How long a landing rings the disc. */
 const PULSE = 0.22;
-/** The agent's birth: the dots nearest the end of the line peel off this
- *  long before `agent`, pack into a swirling disc-shaped cluster, then snap
- *  inward as the agent pops out of them. */
-const SEED_COUNT = 22;
-const SEED_LEAD = 0.6;
-const SEED_GATHER = 0.32;
+/** The agent's birth: the dots nearest centre stage peel off this long
+ *  before `agent`, pack into a swirling disc-shaped cluster, and close onto
+ *  the agent as it grows inside them. */
+const SEED_COUNT = 34;
+const SEED_LEAD = 0.8;
+const SEED_GATHER = 0.42;
+/** Seeds come by preference from the stretch already past the agent —
+ *  which would only flow away — so the birth leaves no hole in the
+ *  stream still to come. */
+const SEED_AHEAD_COST = 2.2;
 const SEED_SPIN = 1.6;
 const GOLDEN = 2.399963;
 
@@ -183,13 +215,11 @@ export function camX(T: Timing, vt: number) {
   return up + cruise + down;
 }
 const drift = (T: Timing, vt: number) => DRIFT * Math.max(0, vt - T.line);
+const pull = (T: Timing, vt: number) => {
+  const u = Math.max(0, vt - eatFrom(T));
+  return 0.5 * PULL * u * u;
+};
 
-/** Where the agent is at `vt`: born at the left of the line, where the
- *  trace line draws out beside it; once that has folded it walks to centre
- *  stage for the typing indicator. */
-export function agentX(T: Timing, vt: number) {
-  return lerp(AGENT_X, CENTER_X, ease(seg(vt, T.collapse + 0.35, 0.7)));
-}
 /** A dot is eaten when it is this far into the disc. */
 const EAT_R = AGENT_R * 0.6;
 
@@ -215,12 +245,13 @@ function bisect(f: (t: number) => number, lo: number, hi: number) {
  *  motion, unwrapped, and is eaten when it reaches the disc. */
 function ride(T: Timing, vt: number, x0: number, t0: number): { x: number; eatenAt: number | null; tA: number; v: number } {
   const pre = (t: number) => wrapX(x0 + drift(T, t) - drift(T, t0) - (camX(T, t) - camX(T, t0)));
-  if (vt < T.agent) return { x: pre(vt), eatenAt: null, tA: T.agent, v: 0 };
-  const tA = Math.max(t0, T.agent);
-  const xA = t0 >= T.agent ? x0 : pre(T.agent);
-  const at = (t: number) => xA + drift(T, t) - drift(T, tA) - (camX(T, t) - camX(T, tA));
+  const tE = eatFrom(T);
+  if (vt < tE) return { x: pre(vt), eatenAt: null, tA: tE, v: 0 };
+  const tA = Math.max(t0, tE);
+  const xA = t0 >= tE ? x0 : pre(tE);
+  const at = (t: number) => xA + drift(T, t) - drift(T, tA) - (camX(T, t) - camX(T, tA)) - (pull(T, t) - pull(T, tA));
   // Streaming left into the disc's right edge; a mark already past it is inside.
-  const gap = (t: number) => (agentX(T, t) + EAT_R) - at(t);
+  const gap = (t: number) => (AGENT_X + EAT_R) - at(t);
   const eatenAt = gap(tA) >= 0 ? tA : bisect(gap, tA, tA + 6);
   const dt = 1 / 120;
   return { x: at(vt), eatenAt, tA, v: (at(vt) - at(vt - dt)) / dt };
@@ -238,18 +269,22 @@ export type Field = {
   eaten: number;
   /** The disc's ring, from the dots landing in it. */
   pulse: number;
+  /** When the last dot went in — the line is empty from here. */
+  fullAt: number | null;
 };
 
-/** Which marks seed the agent: the ones nearest the end of the line when
- *  the birth begins, by their seat. Pure in the timing, so it scrubs. */
+/** Which marks seed the agent: the ones nearest the birth point when the
+ *  birth begins, by their seat — the ones ahead of it costing more. Pure
+ *  in the timing, so it scrubs. */
 function seedRanks(T: Timing): Map<string, number> {
   const tSeed = T.agent - SEED_LEAD;
+  const cost = (x: number) => (x > AGENT_X ? (x - AGENT_X) * SEED_AHEAD_COST : AGENT_X - x);
   const near: Array<{ id: string; dist: number }> = [];
-  DOTS.forEach((dot, i) => near.push({ id: `d${i}`, dist: Math.abs(ride(T, tSeed, slotX(dot.slot), T.gather).x - AGENT_X) }));
-  const window = Math.max(0.3, T.agent + 0.3 - FLOW_DUR - T.stream);
+  DOTS.forEach((dot, i) => near.push({ id: `d${i}`, dist: cost(ride(T, tSeed, slotX(dot.slot) + dot.dx, T.gather).x) }));
+  const window = Math.max(0.3, eatFrom(T) - 0.1 - FLOW_DUR - T.stream);
   FLOWS.forEach((flow, i) => {
     const arrive = T.stream + ((i + flow.order * 0.6) / FLOW_COUNT) * window + FLOW_DUR;
-    if (arrive <= tSeed) near.push({ id: `f${i}`, dist: Math.abs(ride(T, tSeed, flow.tx, arrive).x - AGENT_X) });
+    if (arrive <= tSeed) near.push({ id: `f${i}`, dist: cost(ride(T, tSeed, flow.tx, arrive).x) });
   });
   near.sort((a, b) => a.dist - b.dist);
   return new Map(near.slice(0, SEED_COUNT).map((n, rank) => [n.id, rank]));
@@ -261,72 +296,87 @@ export function fieldAt(T: Timing, vt: number): Field {
   let total = 0;
   let eatenCount = 0;
   let pulse = 0;
+  let fullAt: number | null = null;
   const gatherDur = Math.max(0.5, T.line - T.gather);
   const tSeed = T.agent - SEED_LEAD;
   const seeds = vt >= tSeed ? seedRanks(T) : null;
 
-  // A seed: a mark that becomes the agent. It leaves the line for its place
-  // in a sunflower-packed disc that turns slowly, and at `agent` the disc
-  // snaps to nothing as the agent pops out of it.
-  const seeded = (rank: number, x0: number, t0: number, r: number): Mark | null => {
+  // A seed: a mark that becomes the agent. The stream around the birth
+  // point collapses into a sunflower-packed disc — all of it at once, drawn
+  // in and tightening — that turns slowly; then the disc closes onto the
+  // agent growing inside it, and the particles are what it is made of.
+  const seeded = (rank: number, x0: number, t0: number, r: number, dy: number): Mark | null => {
     total += 1;
-    const snap = ease(seg(vt, T.agent - 0.1, 0.14));
+    const snap = ease(seg(vt, T.agent - 0.35, 0.4));
     if (snap >= 1) {
       eatenCount += 1;
       return null;
     }
-    const p = ease(seg(vt, tSeed + rank * 0.012, SEED_GATHER));
-    const ring = AGENT_R * (0.25 + 0.7 * Math.sqrt((rank + 0.5) / SEED_COUNT)) * (1 - snap);
+    const p = smooth(seg(vt, tSeed + rank * 0.004, SEED_GATHER));
+    const ring = AGENT_R * (0.25 + 0.7 * Math.sqrt((rank + 0.5) / SEED_COUNT)) * (1 - snap) * (1.4 - 0.4 * p);
     const angle = rank * GOLDEN + SEED_SPIN * (vt - tSeed);
-    const ax = agentX(T, vt);
+    const ax = AGENT_X;
     const here = ride(T, Math.min(vt, T.agent), x0, t0).x;
-    return { x: lerp(here, ax + ring * Math.cos(angle), p), y: lerp(LINE_Y, LINE_Y + ring * Math.sin(angle), p), a: 1 - snap, r: r * (1 + 0.3 * p) };
+    return { x: lerp(here, ax + ring * Math.cos(angle), p), y: lerp(LINE_Y + dy, LINE_Y + ring * Math.sin(angle), p), a: 1 - snap, r: r * (1 + 0.3 * p) };
   };
 
   // A seated mark: riding, then eaten. Returns nothing once it is inside.
   // Rushing in it streaks, and bends a little off the line — a current
   // pouring into the agent, not beads on a wire.
-  const seated = (id: string, x0: number, t0: number, r: number, d: number): Mark | null => {
+  const seated = (id: string, x0: number, t0: number, r: number, d: number, dy: number): Mark | null => {
     const rank = seeds?.get(id);
-    if (rank != null) return seeded(rank, x0, t0, r);
+    if (rank != null) return seeded(rank, x0, t0, r, dy);
     total += 1;
     const { x, eatenAt, tA, v } = ride(T, vt, x0, t0);
+    if (eatenAt != null) fullAt = fullAt == null ? eatenAt : Math.max(fullAt, eatenAt);
     if (eatenAt != null && vt >= eatenAt) {
       eatenCount += 1;
       pulse += Math.sin(Math.PI * seg(vt, eatenAt, PULSE));
       return null;
     }
-    if (eatenAt == null) return { x, y: LINE_Y, a: edgeAlpha(x), r };
+    if (eatenAt == null) return { x, y: LINE_Y + dy, a: edgeAlpha(x), r };
     const along = clamp01((vt - tA) / Math.max(0.05, eatenAt - tA));
-    const y = LINE_Y - Math.sin(Math.PI * along) * 12 * (d - 0.5);
+    const y = LINE_Y + dy * (1 - along) - Math.sin(Math.PI * along) * 12 * (d - 0.5);
     // Into the disc: the last few px shrink, so the landing reads as a swallow.
-    const near = clamp01(1 - (Math.abs(x - agentX(T, vt)) - EAT_R) / 14);
+    const near = clamp01(1 - (Math.abs(x - AGENT_X) - EAT_R) / 14);
     // The streak trails against the motion, whichever way it is going.
     const trail = Math.max(-STREAK_MAX, Math.min(STREAK_MAX, -v * STREAK));
     return { x, y, a: edgeAlpha(x), r: r * (1 - 0.5 * near), sx: trail * along };
   };
 
+  // The cloud: the camera pushes in on it from the first frame to `line`,
+  // and the near dots spread faster than the far ones — depth. Each dot
+  // appears in its own moment, drifts on its own heading and jitters,
+  // the near ones most; the gather brings every one up to the line's own
+  // size and ink.
+  const push = lerp(0.78, 1, ease(seg(vt, 0, T.line)));
+  const tCloud = Math.min(vt, T.line);
   DOTS.forEach((dot, i) => {
     const p = ease(seg(vt, T.gather + dot.d * 0.4 * gatherDur, 0.6 * gatherDur));
     // The seat is already moving — the line streams left as it forms.
-    const seat = seated(`d${i}`, slotX(dot.slot), T.gather, DOT_R, dot.d);
+    const seat = seated(`d${i}`, slotX(dot.slot) + dot.dx, T.gather, DOT_R, dot.d, dot.dy);
     if (!seat) return;
     if (p >= 1) {
       marks.push(seat);
       return;
     }
-    const wander = (1 - p) * 6;
-    const cx = dot.cx + Math.sin(vt * 0.7 + dot.phase) * wander;
-    const cy = dot.cy + Math.cos(vt * 0.5 + dot.phase * 1.3) * wander;
+    const wander = (1 - p) * (7 + 15 * dot.z);
+    const jx = Math.sin(vt * 1.9 + dot.phase) * wander + Math.sin(vt * 4.3 + dot.phase2) * wander * 0.35;
+    const jy = Math.cos(vt * 1.5 + dot.phase * 1.3) * wander + Math.cos(vt * 3.7 + dot.phase2) * wander * 0.35;
+    const par = 1 + (push - 1) * (0.4 + 0.9 * dot.z);
+    const cx = CENTER_X + (dot.cx + dot.vx * tCloud + jx - CENTER_X) * par;
+    const cy = STAGE.h / 2 + (dot.cy + dot.vy * tCloud + jy - STAGE.h / 2) * par;
+    const appear = ease(seg(vt, 0.1 + (dot.phase / (Math.PI * 2)) * 0.8, 0.5));
     const x = lerp(cx, seat.x, p);
     // A touch of arc so the gather reads as a flock, not a tween.
-    const y = lerp(cy, LINE_Y, p) - Math.sin(Math.PI * p) * 22 * (dot.d - 0.5);
-    const a = lerp(1, seat.a, p);
-    if (a > 0.005) marks.push({ x, y, a, r: DOT_R });
+    const y = lerp(cy, LINE_Y + dot.dy, p) - Math.sin(Math.PI * p) * 22 * (dot.d - 0.5);
+    const a = lerp(appear * cloudA(dot.z), seat.a, p);
+    if (a > 0.005) marks.push({ x, y, a, r: lerp(cloudR(dot.z), DOT_R, p) });
   });
 
-  // Inflows keep coming into the first beat of the eating, and no later.
-  const window = Math.max(0.3, T.agent + 0.3 - FLOW_DUR - T.stream);
+  // Every inflow has landed on the line before the pull begins: nothing
+  // arrives late to straggle in behind the rest.
+  const window = Math.max(0.3, eatFrom(T) - 0.1 - FLOW_DUR - T.stream);
   FLOWS.forEach((flow, i) => {
     const start = T.stream + ((i + flow.order * 0.6) / FLOW_COUNT) * window;
     const q = seg(vt, start, FLOW_DUR);
@@ -339,15 +389,15 @@ export function fieldAt(T: Timing, vt: number): Field {
     if (q < 1) {
       const e = ease(q);
       const x = bezier(flow.ox, flow.ox - 20, tx + 170, tx, e);
-      const y = bezier(flow.oy, flow.oy + (LINE_Y - flow.oy) * 0.62, LINE_Y, LINE_Y, e);
+      const y = bezier(flow.oy, flow.oy + (LINE_Y - flow.oy) * 0.62, LINE_Y + flow.dy, LINE_Y + flow.dy, e);
       marks.push({ x, y, a: Math.min(1, q / 0.15), r: flow.r });
       return;
     }
-    const seat = seated(`f${i}`, tx, arrive, flow.r, flow.order);
+    const seat = seated(`f${i}`, tx, arrive, flow.r, flow.order, flow.dy);
     if (!seat) return;
     const landing = Math.sin(Math.PI * seg(vt, arrive, 0.3));
     marks.push({ ...seat, r: seat.r + 1.4 * landing });
   });
 
-  return { marks, eaten: total > 0 ? eatenCount / total : 0, pulse: Math.min(2, pulse) };
+  return { marks, eaten: total > 0 ? eatenCount / total : 0, pulse: Math.min(2, pulse), fullAt };
 }

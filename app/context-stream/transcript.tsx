@@ -12,6 +12,7 @@ import { TraceLine, type TracePhases } from "../ando-stage/context-trace";
 import { DocsDisc, DriveDisc, GrainDisc, NotionDisc, SlackDisc, ZoomDisc } from "../the-library/context-trace";
 import { AVATAR } from "../agent-typing-experience/variants";
 import { CAST, type Actor, type Segment } from "../ando-stage/scenes";
+import { taskAt } from "./agents";
 import type { Timing } from "./timing";
 
 /** The film's agent — the face /the-library's typing indicator resolves
@@ -37,13 +38,6 @@ const ch = (text: string): Segment => ({ text, mention: true });
 const t = (text: string): Segment => ({ text });
 
 export const ROWS: RowDef[] = [
-  {
-    key: "oli",
-    who: CAST.oli,
-    time: "3:12 PM",
-    lands: "chat",
-    body: [[t("demo run-through is Thursday. who has the marketing cut?")]],
-  },
   {
     key: "sara",
     who: CAST.sara,
@@ -85,22 +79,25 @@ export type RunPhase = 0 | 1 | 2;
 export const READ_FROM: Actor[] = [CAST.sara, CAST.oli, CAST.aj];
 
 /** When the run starts: once the ask has landed. */
-export const runStart = (T: Timing) => T.chat + CHAT_LEAD + 2 * CHAT_STAGGER + 0.5;
+export const runStart = (T: Timing) => T.chat + CHAT_LEAD + CHAT_STAGGER + 0.5;
 
-/** The value-prop run, beside the agent at "Everything becomes context":
- *  the library's context-trace copy on the product's trace line, one step
- *  at a time, the sources piled inline where they are read. Never done —
- *  it folds back into the agent while still drafting. */
+/** The value-prop run, beneath the agent after "Everything becomes context":
+ *  the library's context-trace copy on the product's trace line, one task
+ *  at a time — each by a different agent, see agents.ts — the sources
+ *  piled inline where they are read. Never done — it folds back into the
+ *  agent while still drafting. */
 export function valuePhasesFor(T: Timing): TracePhases {
   return {
     start: T.trace + 0.3,
-    // Two seconds a step: time to read each one.
+    // A kind of reading per agent — different jobs, not one job handed
+    // around: Tadao, then Grok, Claude, Codex — each line rolls in as its
+    // agent's face lands. The reply is drafted where the question is: in
+    // the chat.
     steps: [
-      { t: T.trace + 0.3, label: "Starting agent session", icon: null },
-      { t: T.trace + 1.9, label: "Reading today's jam…", icon: "transcript" },
-      { t: T.trace + 3.9, label: "Checking company policies…", icon: "read", pile: [<NotionDisc key="n" />, <DriveDisc key="d" />, <DocsDisc key="g" />] },
-      { t: T.trace + 5.9, label: "Reading the call transcripts…", icon: "transcript", pile: [<GrainDisc key="a" />, <ZoomDisc key="z" />, <SlackDisc key="s" />, <GrainDisc key="b" />] },
-      { t: T.trace + 7.9, label: "Drafting the standup summary…", icon: "write" },
+      { t: taskAt(T, 0), label: "Reading the jam…", icon: "transcript" },
+      { t: taskAt(T, 1), label: "Reading the docs…", icon: "read", pile: [<NotionDisc key="n" />, <DriveDisc key="d" />, <DocsDisc key="g" />] },
+      { t: taskAt(T, 2), label: "Reading the calls…", icon: "transcript", pile: [<GrainDisc key="a" />, <ZoomDisc key="z" />, <SlackDisc key="s" />, <GrainDisc key="b" />] },
+      { t: taskAt(T, 3), label: "Reading the code…", icon: "read" },
     ],
     done: T.collapse + 10,
   };

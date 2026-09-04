@@ -16,15 +16,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hooks } from "../../lib/timeline-studio/studio";
 import { Stage } from "../agent-typing-experience/stage";
-import { TYPE_MS, WAVE_MS, cycleFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
+import { RESET_MS, TYPE_MS, WAVE_MS, cycleFrame, resetFrame, typingFrame, type Frame } from "../agent-typing-experience/variants";
+import { BARE, CHAIN, FACES, becomingAt, faceAt } from "./agents";
 import { Composer, ConversationHeader, Sidebar } from "../ando-stage/chrome";
 import { JamHeaderControl } from "../ando-stage/jam";
 import { CAST, ME, type Actor, type Scene as Room, type SidebarSection } from "../ando-stage/scenes";
 import { Logo } from "./logo";
-import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, agentX, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
+import { AGENT_R, AGENT_X, CARD, CARD_WIDE, INDICATOR, INDICATOR_PX, LINE_Y, PANE_W, SIDEBAR_W, STAGE, clamp01, ease, fieldAt, lerp, seg, smooth } from "./stream";
 import type { Timing } from "./timing";
 import { AGENT, CHAT_LEAD, CHAT_STAGGER, READ_FROM, ROWS, RowView, runStart, tracePhasesFor, valuePhasesFor, type RunPhase } from "./transcript";
-import { ValueLine } from "./value-line";
+import { VALUE_SLOT_W, ValueLine } from "./value-line";
 import "../ando-stage/stage.css";
 import "./context-stream.css";
 
@@ -53,11 +54,26 @@ const STRIP_H = 36;
  *  product's 4px on a 6px pitch, so at 60px they land 1:1 on the composer's
  *  own indicator. */
 const INDICATOR_SMALL = 60;
-/** The trace line beside the agent: the product's 12px line at this
- *  scale, this far from the agent's edge. */
-const TRACE_SCALE = 3;
-const TRACE_GAP = 28;
-const TRACE_LEAD = 0.3;
+/** The trace line beneath the agent: the product's 12px line scaled to
+ *  the title's 19px — the two share one slot — this far under the agent's
+ *  edge. */
+const TRACE_SCALE = 19 / 12;
+const TRACE_GAP = 26;
+const TRACE_LEAD = 0.2;
+/** The one spot beneath the agent: the trace line's slot. */
+const SLOT_TOP = LINE_Y + AGENT_R + TRACE_GAP;
+/** The narration above the agent, and the stream: one line at a time. */
+const TITLE_TOP = LINE_Y - AGENT_R - 62;
+type AgentLook = { frame: Frame; face: string };
+/** A bare face has no disc: the disc fades out as the face fades in, and
+ *  back as it goes — the library's frame, with its disc's ink made to
+ *  follow the face. */
+function bare(look: AgentLook): AgentLook {
+  if (!BARE.has(look.face)) return look;
+  const a = Math.max(0, 1 - look.frame.avatarO);
+  const fill = look.frame.blob.fill.replace(/^rgb\((.*)\)$/, `rgba($1, ${a})`);
+  return { ...look, frame: { ...look.frame, blob: { ...look.frame.blob, fill } } };
+}
 /** The camera: how far in it is on the indicator when the interface starts
  *  to build, and how long the pull-back takes. */
 const ZOOM = INDICATOR_PX / INDICATOR_SMALL;
@@ -76,17 +92,38 @@ const pop = (p: number) => {
   return q * q * ((s + 1) * q + s) + 1;
 };
 
-/** The agent's frame `t` seconds into `indicator`: at rest before; then
- *  /the-library's animation, `cycleFrame`, played backwards from the face —
- *  the morph in reverse, the face spinning out into three dots — and on
+/** The agent at `vt`: Tadao at rest; through the trace, becoming each of
+ *  CHAIN in turn on the agents' clock (agents.ts); from `indicator`,
+ *  /the-library's animation, `cycleFrame`, played backwards from the face
+ *  — the morph in reverse, the face spinning out into three dots — and on
  *  into its typing wave, which carries until the composer takes over. One
  *  animation, reversed. */
-function agentFrame(t: number): Frame {
-  if (t < 0) return AGENT_FRAME;
-  const c = FACE_AT - t * 1000;
-  if (c >= 0) return cycleFrame(INDICATOR, c).frame;
-  // Past the start of the loop: the wave is periodic, keep it going.
-  return typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1);
+function agentAt(vt: number, T: Timing): AgentLook {
+  if (vt >= T.indicator) {
+    const c = FACE_AT - (vt - T.indicator) * 1000;
+    if (c >= 0) return { frame: cycleFrame(INDICATOR, c).frame, face: FACES.tadao };
+    // Past the start of the loop: the wave is periodic, keep it going.
+    return { frame: typingFrame(((c % WAVE_MS) + WAVE_MS) % WAVE_MS + WAVE_MS, 1), face: FACES.tadao };
+  }
+  const k = swapIndex(vt, T);
+  if (k == null) return { frame: AGENT_FRAME, face: faceLanded(vt, T) };
+  const u = (vt - becomingAt(T, k)) * 1000;
+  const from = k === 0 ? FACES.tadao : FACES[CHAIN[k - 1].face];
+  const to = FACES[CHAIN[k].face];
+  const via = CHAIN[k].via;
+  if (u < RESET_MS) return { frame: resetFrame(u), face: from };
+  if (u < RESET_MS + WAVE_MS) return { frame: typingFrame(u - RESET_MS, Math.min(1, (u - RESET_MS) / 250)), face: to };
+  return { frame: via.morph(u - RESET_MS - WAVE_MS), face: to };
+}
+/** Which becoming `vt` is in, if any. */
+function swapIndex(vt: number, T: Timing): number | null {
+  for (let k = 0; k < CHAIN.length; k += 1) if (vt >= becomingAt(T, k) && vt < faceAt(T, k)) return k;
+  return null;
+}
+/** Whose face the agent wears at `vt`, between becomings: the last to have landed. */
+function faceLanded(vt: number, T: Timing): string {
+  for (let k = CHAIN.length - 1; k >= 0; k -= 1) if (vt >= faceAt(T, k)) return FACES[CHAIN[k].face];
+  return FACES.tadao;
 }
 
 export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing; hooks: Hooks; onReplay: () => void }) {
@@ -100,7 +137,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   // Every face the film will show, decoded up front — the 500px avatars
   // otherwise decode on the frame they first paint, a 100ms hitch.
   useEffect(() => {
-    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), AGENT.avatar, "/avatars/jordan.png"])];
+    const faces = [...new Set([...Object.values(CAST).map((actor) => actor.avatar), AGENT.avatar, "/avatars/jordan.png", ...Object.values(FACES)])];
     for (const src of faces) {
       const img = new Image();
       img.src = src;
@@ -119,7 +156,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const [runPhase, setRunPhase] = useState<RunPhase>(0);
   const [typing, setTyping] = useState<Actor | null>(null);
   const [traceVt, setTraceVt] = useState(0);
-  const [indicator, setIndicator] = useState<Frame | null>(null);
+  const [indicator, setIndicator] = useState<AgentLook | null>(null);
   const [valueOn, setValueOn] = useState(false);
 
   const groundRef = useRef<HTMLDivElement>(null);
@@ -139,7 +176,8 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
   const valueLineRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const valueItemRefs = useRef<Array<Array<HTMLSpanElement | null>>>([]);
   const title0Ref = useRef<HTMLDivElement>(null);
-  const title1Ref = useRef<HTMLDivElement>(null);
+  const titleBRef = useRef<HTMLDivElement>(null);
+  const titleARef = useRef<HTMLDivElement>(null);
   const title2Ref = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Array<{ wrap: HTMLDivElement | null; inner: HTMLDivElement | null }>>(ROWS.map(() => ({ wrap: null, inner: null })));
@@ -189,7 +227,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const winP = ease(seg(vt, T.iface + 0.1, 0.7));
       ground.style.opacity = `${winP}`;
       if (pageGroundRef.current) pageGroundRef.current.style.opacity = `${winP}`;
-      const side = ease(seg(vt, T.sidebar, 0.7));
+      const side = ease(seg(vt, T.sidebar, 0.35));
       const cardX = lerp(CARD.x, CARD_WIDE.x, side);
       const cardW = lerp(CARD.w, CARD_WIDE.w, side);
       const cardY = CARD.y;
@@ -202,10 +240,11 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.opacity = `${winP}`;
       }
 
-      // The film leaves for the logo.
+      // The film opens on a push in to the cloud, and leaves for the logo.
+      const pushIn = lerp(0.94, 1, ease(seg(vt, 0, T.line)));
       const out = ease(seg(vt, T.logo, 0.55));
       film.style.opacity = `${1 - out}`;
-      film.style.transform = `scale(${1 - 0.02 * out})`;
+      film.style.transform = `scale(${pushIn - 0.02 * out})`;
       const logo = logoRef.current;
       if (logo) {
         const lin = ease(seg(vt, T.logo + 0.4, 0.55));
@@ -255,25 +294,24 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
       /* ── The agent and the camera ──────────────────────────────── */
       // The agent is /the-library's agent typing indicator, untouched: its
-      // own avatar, its own 120px, its own animation. It is born out of the
-      // dots at the far right of the line, the stream swings back and pours
-      // into it, it walks to centre stage; at `indicator` its animation plays backwards
-      // — the face spins out into the dots — and the moment it lands on
-      // them the interface starts: the camera is already in on the dots —
-      // the same 120px on screen — and pulls back while the window builds
-      // around them; when the pull ends they are exactly the composer's
-      // own, and hand over.
+      // own avatar, its own animation, at INDICATOR_PX. It forms at centre
+      // stage out of the dots, the stream pours into it, the trace reads
+      // beneath it; at `indicator` its animation plays backwards — the face
+      // spins out into the dots — and the moment it lands on them the
+      // interface starts: the camera is already in on the dots — the same
+      // size on screen — and pulls back while the window builds around
+      // them; when the pull ends they are exactly the composer's own, and
+      // hand over.
       const field = fieldAt(T, vt);
-      // The trace line: the agent is already at the left of its line, so
-      // the product's trace line simply draws out beside it, narrating the
-      // run; at `collapse` it folds back into the agent.
+      // The trace line: centred beneath the agent, it rises in and narrates
+      // the run; at `collapse` it sinks back into the agent.
       const drawn = ease(seg(vt, T.trace + TRACE_LEAD, 0.4)) * (1 - ease(seg(vt, T.collapse, 0.3)));
-      const ax = agentX(T, vt);
+      const ax = AGENT_X;
       const ay = LINE_Y;
-      trace.style.left = `${ax + AGENT_R + TRACE_GAP}px`;
-      trace.style.top = `${LINE_Y - 12 * TRACE_SCALE}px`;
-      trace.style.opacity = `${clamp01(drawn / 0.25)}`;
-      trace.style.clipPath = `inset(-8px ${(1 - drawn) * 100}% -8px -8px)`;
+      trace.style.left = `${ax - (VALUE_SLOT_W * TRACE_SCALE) / 2}px`;
+      trace.style.top = `${SLOT_TOP}px`;
+      trace.style.opacity = `${drawn}`;
+      trace.style.transform = `translateY(${(1 - drawn) * -10}px) scale(${TRACE_SCALE})`;
       // The slot: each line rolls up into place on its beat and tips away
       // when the next one comes — the banner's reel, on the film's clock.
       // Each line's pile pops in item by item once the line has landed, and
@@ -287,7 +325,7 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         const roll = ease(seg(vt, step.t, 0.5));
         const gone = next ? ease(seg(vt, next.t, 0.38)) : 0;
         line.style.opacity = `${roll * (1 - gone)}`;
-        line.style.transform = `translateY(${lerp(24, 0, roll) - 18 * gone}px) rotateX(${lerp(-42, 0, roll) + 42 * gone}deg)`;
+        line.style.transform = `translate(-50%, ${lerp(24, 0, roll) - 18 * gone}px) rotateX(${lerp(-42, 0, roll) + 42 * gone}deg)`;
         nod += Math.sin(Math.PI * seg(vt, step.t, 0.4));
         (valueItemRefs.current[i] ?? []).forEach((item, j) => {
           if (!item) return;
@@ -296,9 +334,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
           item.style.transform = `scale(${p})`;
         });
       });
-      // The agent pops out of the cluster the seeds snapped into: from
-      // nothing, past full, and settles — fast.
-      const appear = pop(seg(vt, T.agent - 0.04, 0.32));
+      // The agent forms out of the particles: it grows inside the disc
+      // as the disc tightens onto it, and settles with a little overshoot
+      // as the last of them are taken in.
+      const appear = pop(seg(vt, T.agent - 0.35, 0.45));
       const zoomed = vt >= T.iface;
       const zp = smooth(seg(vt, T.iface, ZOOM_OUT));
       // Where the composer's own indicator draws its middle dot: the strip
@@ -312,11 +351,21 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
       const S = zoomed ? { x: lerp(C.x, P.x, zp), y: lerp(C.y, P.y, zp) } : P;
       camera.style.transform = `translate(${S.x - z * P.x}px, ${S.y - z * P.y}px) scale(${z})`;
       const at = zoomed ? P : C;
-      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * (1 + 0.05 * Math.min(1, nod));
+      // Eating has a body to it: every swallow is a small gulp — a squash
+      // and a recoil toward the stream — and when the line is empty the
+      // agent settles with one satisfied bounce.
+      const gulp = Math.min(1, field.pulse);
+      const full = field.fullAt == null ? 0 : Math.sin(Math.PI * seg(vt, field.fullAt + 0.05, 0.5));
+      // Between beats the agent breathes, barely.
+      const breathe = vt >= T.agent && vt < T.iface ? 0.012 * Math.sin(vt * Math.PI) : 0;
+      const size = zoomed ? INDICATOR_SMALL : INDICATOR_PX * appear * (1 + 0.05 * Math.min(1, nod)) * (1 + 0.1 * full) * (1 + breathe);
+      const sx = zoomed ? 1 : 1 + 0.07 * gulp;
+      const sy = zoomed ? 1 : 1 - 0.05 * gulp;
       indicatorEl.style.left = `${at.x - INDICATOR_PX / 2}px`;
       indicatorEl.style.top = `${at.y - INDICATOR_PX / 2}px`;
-      indicatorEl.style.transform = `scale(${size / INDICATOR_PX})`;
-      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.04, 0.06)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
+      indicatorEl.style.transform = `translate(${zoomed ? 0 : 3 * gulp}px, 0) scale(${(size / INDICATOR_PX) * sx}, ${(size / INDICATOR_PX) * sy})`;
+      // Visible from the moment it starts to grow inside the disc.
+      indicatorEl.style.opacity = `${clamp01(seg(vt, T.agent - 0.35, 0.12)) * (1 - ease(seg(vt, T.iface + ZOOM_OUT - 0.1, 0.25)))}`;
 
       /* ── The discrete state — the only React state ─────────────── */
       const run: RunPhase = vt >= T.reply - 0.05 ? 2 : vt >= runStart(T) ? 1 : 0;
@@ -342,11 +391,18 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         setTraceVt(coarse);
       }
       // The agent's frame: at rest until `indicator` (one frame, no churn),
-      // then the library's animation, reversed, at 30 a second.
-      const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? -1 : Math.floor((vt - T.indicator) * 30) / 30;
+      // then the library's animation, reversed, at 60 a second — the film's
+      // own rate; 30 read as choppy beside it.
+      // Each becoming is its own run of ticks; a face at rest is one tick per face.
+      const chainTick = () => {
+        const k = swapIndex(vt, T);
+        if (k == null) return -1 - CHAIN.findIndex((step) => FACES[step.face] === faceLanded(vt, T)) - 1;
+        return 1000 + k * 10 + Math.floor((vt - becomingAt(T, k)) * 60) / 1000;
+      };
+      const tick = vt < T.agent - 0.4 || vt >= T.iface + ZOOM_OUT + 0.3 ? null : vt < T.indicator ? chainTick() : Math.floor((vt - T.indicator) * 60) / 60;
       if (tick !== indicatorShown) {
         indicatorShown = tick;
-        setIndicator(tick == null ? null : agentFrame(tick));
+        setIndicator(tick == null ? null : bare(agentAt(vt, T)));
       }
 
       /* ── Titles ────────────────────────────────────────────────── */
@@ -358,7 +414,10 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
         el.style.transform = `translate(-50%, ${rise * (1 - a)}px)`;
       };
       fadeIn(title0Ref.current, 0.3, T.gather - 0.1);
-      fadeIn(title1Ref.current, T.agent + 0.3, T.indicator - 0.2);
+      // The narration, one line at a time in one spot above the agent: what
+      // it does with all that context, then that it could be any agent.
+      fadeIn(titleBRef.current, T.agent + 0.35, becomingAt(T, 0) - 0.25);
+      fadeIn(titleARef.current, becomingAt(T, 0) + 0.2, T.collapse - 0.2);
       fadeIn(title2Ref.current, T.iface + ZOOM_OUT - 0.3, T.chat + 0.9);
 
       /* ── The canvas: the dots ──────────────────────────────────── */
@@ -460,26 +519,29 @@ export function ContextStreamScene({ timing, hooks, onReplay }: { timing: Timing
 
             <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" style={{ width: STAGE.w, height: STAGE.h }} aria-hidden />
 
-            {/* The trace line beside the agent — the product's TraceLine at the agent's scale. No data-cs: its shimmer and pops are its own. */}
+            {/* The trace line beneath the agent — the product's trace line, scaled to the title. No data-cs: its shimmer and pops are its own. */}
             <div ref={traceRef} data-trace className="absolute whitespace-nowrap" style={{ left: AGENT_X, top: LINE_Y, opacity: 0, transform: `scale(${TRACE_SCALE})`, transformOrigin: "0 0" }}>
               {valueOn ? <ValueLine agent={AGENT} participants={READ_FROM} steps={valuePhases.steps} lineRefs={valueLineRefs} itemRefs={valueItemRefs} /> : null}
             </div>
-            {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, 120px — then the composer's own line. */}
+            {/* The agent: /the-library's typing indicator as its shelf renders it — its variant's avatar, at INDICATOR_PX — then the composer's own line. */}
             <div ref={indicatorRef} data-cs="indicator" className="absolute" style={{ opacity: 0, width: INDICATOR_PX, height: INDICATOR_PX, transformOrigin: "50% 50%" }}>
-              {indicator ? <Stage frame={indicator} size={INDICATOR_PX} avatarSrc={INDICATOR.avatar} /> : null}
+              {indicator ? <Stage frame={indicator.frame} size={INDICATOR_PX} avatarSrc={indicator.face} /> : null}
             </div>
 
             <div ref={title0Ref} data-cs="title-0" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: STAGE.h / 2 - 20, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
               Context is everywhere.
             </div>
-            <div ref={title1Ref} data-cs="title-1" className="kanso-text-label-16 absolute whitespace-nowrap text-ando-fg-primary" style={{ left: CARD.x + CARD.w / 2, top: CARD.y + 56, opacity: 0, fontSize: 19, transform: "translate(-50%, 0)" }}>
-              Everything becomes context for your agents.
+            <div ref={titleBRef} data-cs="title-b" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
+              Your agent reads it.
+            </div>
+            <div ref={titleARef} data-cs="title-a" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: TITLE_TOP, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
+              Any agent.
             </div>
           </div>
 
           {/* Outside the camera, so the pull-back leaves it still. */}
           <div ref={title2Ref} data-cs="title-2" className="absolute left-1/2 whitespace-nowrap text-ando-fg-primary" style={{ top: CARD.y - 62, opacity: 0, fontSize: 30, letterSpacing: -0.4, transform: "translate(-50%, 0)" }}>
-            “so we built an interface around that”
+            So we built the interface.
           </div>
         </div>
 

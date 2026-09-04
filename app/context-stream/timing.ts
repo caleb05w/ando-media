@@ -11,15 +11,15 @@ export type Timing = {
   stream: number;
   /** Every dot is seated. */
   line: number;
-  /** The agent is born out of the dots at the end of the line; the stream keeps pouring into it. First title. */
+  /** The agent forms out of the dots at centre stage; the stream keeps pouring into it. "Your agent reads it." */
   agent: number;
-  /** The trace line draws out beside the agent and narrates the run: the sources, the reading, the draft. */
+  /** The trace line rises beneath the agent and narrates the run, a task per agent: Tadao reads the jam, then becomes Grok, Claude, Codex for a task each (agents.ts), then Tadao again. */
   trace: number;
-  /** The trace line folds back into the agent, which walks to centre. */
+  /** The trace line sinks back into the agent, and the context around it folds in, as the last becoming — back to Tadao — begins. */
   collapse: number;
   /** The agent becomes the typing indicator: the library's animation, reversed — the face spins out into the dots. */
   indicator: number;
-  /** "so we built an interface around that": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
+  /** "So we built the interface.": after the typing state has held, the camera pulls back from the dots as the window builds around them. */
   iface: number;
   /** Header and the messages it is answering arrive. */
   chat: number;
@@ -51,19 +51,24 @@ export const LABELS: Record<keyof Timing, string> = {
 };
 
 export const DEFAULT_TIMING: Timing = {
-  gather: 1.6,
+  // A long congregation — the line streams left the whole time it forms.
+  gather: 1.4,
   stream: 1.9,
-  line: 2.3,
-  agent: 3.4,
-  trace: 4.6,
-  collapse: 14.2,
-  // The agent walks to centre after the fold; the morph happens there.
-  indicator: 15.6,
+  line: 3.0,
+  agent: 4.0,
+  trace: 5.2,
+  // The tasks run on the agents' clock from `trace` (agents.ts): a task is
+  // read for 1.3s, then a becoming — the library's reset (0.45s), one
+  // typing wave (0.9s), the variant's morph (0.73 · 0.96 · 1.08 · 1.4s) —
+  // and the next task rolls in as the face lands. The last becoming, back
+  // to Tadao, starts at 16.67 and lands at 19.42.
+  collapse: 16.65,
+  indicator: 19.7,
   // The typing state holds for a second once the morph has landed on the dots.
-  iface: 17.65,
-  chat: 19.05,
-  sidebar: 22.45,
-  reply: 25.25,
-  logo: 27.45,
-  end: 29.45,
+  iface: 21.75,
+  chat: 23.15,
+  sidebar: 25.65,
+  reply: 28.45,
+  logo: 30.65,
+  end: 32.65,
 };

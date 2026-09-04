@@ -3,28 +3,33 @@
 // /landing-page-animations — the Ando Brand dot wheel (Figma
 // e4gEqJUqBMec19AI1BhLEc / 3446-2571) running as a loop.
 //
-// The storyboard: a ring of 36 dots whose centre sits below the banner, so
-// only the crest shows. Small, it spins up and gains momentum; then it
-// grows toward the camera and the growth and the slow-down are the same
-// gesture — a bike wheel freewheeling down, reading bigger as it reads
-// slower. The crest stays pinned to the storyboard's 34/152 line while the
-// wheel scales, so it grows downward, into the scrim.
+// A ring of avatars whose centre sits below the banner, so only the crest
+// shows. It cranks up small, pushes into a close-up, holds on whoever
+// crested while their typing indicator plays (3446-2775), then pulls back
+// out. Everything is integrated per frame — angular velocity to an angle —
+// so momentum is real and every arrival is one continuous, forward motion:
+// the approach is steered so the wheel's natural coast lands a face at
+// dead centre, with no corrective roll afterwards.
 //
-// The angle is integrated from an angular velocity (revolutions/second)
-// rather than tweened, so momentum is real: spin-up is a rising ω on a
-// squared ramp, the slow-down is friction bleeding ω off exponentially.
-// The loop ping-pongs: the second half of the cycle retraces the first, so
-// the wheel shrinks back out of the close-up and gathers its speed again on
-// the way. No fades, no seam — ω and scale are continuous at both turns.
+// The hold composes to the blueprint (3488-1842): the crest face centred
+// at 48u with "{name} is {verb}" centred 12u beneath it, and its two
+// neighbours at ±38.3% of the banner, lower on the arc, blurred into the
+// scrim.
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import "./landing-page-animations.css";
 
-// ── The wheel, in storyboard numbers ────────────────────────────────────
 const DOTS = 28; // storyboard ran 36 at 10°; opened up for breathing room
 const SECTOR = 360 / DOTS; // degrees between neighbouring avatars
 
-// The people in the wheel — public/avatars, repeated around the 36 dots so
+// The people in the wheel — public/avatars, repeated around the dots so
 // no two neighbours share a face.
 const AVATARS = [
   "aj",
@@ -38,53 +43,83 @@ const AVATARS = [
   "sara",
 ];
 
-// The crest label (Figma 3446-2775): "{name} is {verb}", shown beside
-// whichever face is at the top of the wheel once the close-up lands.
+// The crest label: "{name} is {verb}" for whoever crested (3488-1842).
 const VERBS = ["prompting", "typing", "jamming"];
 const displayName = (slug: string) =>
   slug === "aj" ? "AJ" : slug[0].toUpperCase() + slug.slice(1);
 
+// The face in each slot. 28 % 9 = 1, so a plain modulo puts the same face
+// on dots 27 and 0 — neighbours across the wrap. Patch the last slot with
+// a face that matches neither neighbour.
+const FACES = Array.from({ length: DOTS }, (_, i) =>
+  i === DOTS - 1 ? AVATARS[4] : AVATARS[i % AVATARS.length],
+);
 
 // ── The loop ────────────────────────────────────────────────────────────
-const CYCLE = 16; // seconds for out → hold → back
-const OUT_F = 0.36; // fraction of the cycle spent pushing in…
-const HOLD_F = 0.28; // …holding at the close-up (label plays here)…
-// …and the remainder pulling back out.
-const SPIN_UP_TO = 0.35; // fraction of each leg spent cranking
-const START_SPEED = 0.06; // rev/s the leg opens on
-const PEAK_SPEED = 0.25; // rev/s at the end of the crank
-const FLOOR_SPEED = 0.02; // rev/s the freewheel decays toward
-const FRICTION = 5; // how hard the wheel is braked once torque is off
-const MAX_SCALE = 3.8; // 288px ring → ~1100px, the close-up frame
-
-// ── The camera ──────────────────────────────────────────────────────────
-// The zoom blur is a focus pull, not a speed effect: the frame smears
-// quickly when the push starts, then spends the whole approach resolving —
-// fully sharp before the close-up lands, so arriving reads as un-blurring.
-const BLUR_MAX = 6; // px at the height of the pull
-const BLUR_ON_BY = 0.07; // leg fraction after the push starts to reach max
-const SHARP_FROM = 0.55; // leg position where the resolve begins…
-const SHARP_BY = 0.92; // …and where the frame is fully sharp again
-// The shudder when the zoom lands at full size — a subtle settle, more
-// tremor than thud.
-const SHUDDER_AMP = 2; // px, before the decay envelope
-const SHUDDER_DECAY = 9; // higher = settles faster (~0.5s tail)
+const CYCLE = 13.2; // seconds for out → hold → back
+const OUT_F = 0.435; // fraction of the cycle spent pushing in…
+const HOLD_F = 0.13; // …holding at the close-up (~1.7s)…
+// …and the remainder pulling back out. The label rides the zoom's tail,
+// so the hold only needs to cover the read, not the whole reveal.
+// The motion curves are EDITABLE — drag the handles on the timeline strip.
+// Spin ω(h) is two quadratic beziers (rise to the peak, fall to zero at
+// the hold); the zoom is a cubic-bezier ease over [zoomStart, 1]. The
+// frame loop, the landing steer, and the scrubber all read these live.
+const MOTION = {
+  sy: 0.09, // rev/s at the cycle seam
+  peak: { x: 0.32, y: 0.25 }, // the spin's summit (leg position, rev/s)
+  // Both shape handles sit near the summit's height, so the bell crests
+  // through a rounded top instead of a corner — the rise arrives level and
+  // the long coast leaves level, then brakes smoothly into the hold.
+  rise: { x: 0.2, y: 0.24 }, // rise-shape handle
+  fall: { x: 0.72, y: 0.23 }, // fall-shape handle — the long live coast
+  zoomStart: 0.25, // leg position where the push-in begins
+  // The ease engages immediately (no flat lead-in): the lull-then-lurch
+  // came from a dead first half of the ease window.
+  z1: { x: 0.3, y: 0.12 }, // zoom ease handle 1
+  z2: { x: 0.65, y: 0.95 }, // zoom ease handle 2
+};
+const MOTION_DEFAULTS = JSON.stringify(MOTION);
+const STEER_EASE = 0.16; // leg fraction over which the landing scale eases in
+const HOLD_CREEP = 0.0015; // rev/s — the hold never dead-stops; the landed
+// composition (faces + label together) pans on, barely
+// The blueprint's close-up (3488-1842) puts the crest avatar at 48/152 of
+// the banner; dots are 11.52 in storyboard units, so the zoom ceiling is
+// 48 / 11.52. Keep in sync with --lpa-max in the CSS.
+const MAX_SCALE = 48 / 11.52;
 
 // ── The stop ────────────────────────────────────────────────────────────
-// The wheel never freezes mid-motion. Approaching the hold, the remaining
-// spin drains away (STOP_*), and over the last stretch of the leg the ring
-// rolls the crest face into its detent (SNAP_FROM_H → landing) — like a
-// wheel settling into a notch, already stopped when the hold begins. The
-// departure builds back up through the same taper in reverse.
-const STOP_FROM = 0.88; // leg position where the spin starts draining…
-const STOP_BY = 0.97; // …and where it reaches zero
-const SNAP_FROM_H = 0.955; // leg position where the detent roll begins
+// One curve, one landing: the descent (1-v)^p runs from the peak straight
+// to zero at the hold — the zoom's opposite number, equally smooth. At the
+// crank's end the remaining descent is projected, the nearest face-centre
+// is chosen, and the whole descent is scaled by a hair (±7% at most, eased
+// in across the peak blend) so the coast runs out exactly on a face.
 
-// ── The hold ────────────────────────────────────────────────────────────
-// While held, the crest face's label rises centred beneath it, dwells,
-// and folds away before departure.
-const LABEL_IN = [0.06, 0.22] as const; // hold fraction: rise in
-const LABEL_OUT = [0.8, 0.94] as const; // hold fraction: fold away
+// ── The spread ──────────────────────────────────────────────────────────
+// As the camera closes in, spacing between avatars grows until the crest
+// face's neighbours sit just past the banner's edges — the close-up is one
+// person. The exact multiple is computed from the banner's measured width.
+const SPREAD_START = 0.45; // leg position where the parting begins — early,
+// woven into the zoom. On the approach its progress is tied to the wheel's
+// own remaining travel, so faces part only as (and as fast as) the wheel
+// moves; on screen the zoom's expansion carries them the same direction,
+// and the parting is never a separate event.
+
+// ── The label ───────────────────────────────────────────────────────────
+// The typing indicator starts on the approach, not at the landing: as the
+// zoom closes in (h ≥ LABEL_AT_H) the crest face pips, "…" rises in from
+// below and cycles, and the sentence resolves right around touchdown —
+// already read-ready when the wheel parks. The departure motion is what
+// removes it.
+const LABEL_AT_H = 0.8; // leg position (approach) where the label starts
+const RISE_PX = 26; // px the label climbs while fading in
+const RESOLVE_AT = 0.9; // s after the label starts: dots → sentence
+const DOT_PERIOD = 0.9; // s: one wave through the three dots
+// Blueprint 3488-1842: the crest face's neighbours sit at ±38.3% of the
+// banner width (their centres), lower on the arc. Their blur comes from
+// the side scrims (gradient-masked backdrop-filters), not the avatars.
+const NEIGHBOUR_X = (206 - 48) / 412;
+
 
 /** Hermite ramp between two edges — 0 below edge0, 1 above edge1, eased. */
 function smoothstep(edge0: number, edge1: number, x: number) {
@@ -92,25 +127,133 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return t * t * (3 - 2 * t);
 }
 
-/** Angular velocity, rev/s, at leg position h ∈ [0,1]. */
-function speedAt(h: number) {
-  if (h < SPIN_UP_TO) {
-    // Squared ramp — the wheel puts on speed faster the longer you crank,
-    // which reads as momentum rather than an ease-in.
-    const u = h / SPIN_UP_TO;
-    return START_SPEED + (PEAK_SPEED - START_SPEED) * u * u;
-  }
-  // Torque off: exponential decay toward the floor. By the time the wheel
-  // is huge it's barely turning; on the return leg this same curve runs
-  // backwards, so the wheel gathers speed again as it shrinks out.
-  const u = (h - SPIN_UP_TO) / (1 - SPIN_UP_TO);
-  return FLOOR_SPEED + (PEAK_SPEED - FLOOR_SPEED) * Math.exp(-FRICTION * u);
+/** Normalize an angle to (-180, 180]. */
+function norm(a: number) {
+  const m = ((a % 360) + 360) % 360;
+  return m > 180 ? m - 360 : m;
 }
 
-/** Scale at leg position h — held at 1 through the crank, then the push in. */
-function scaleAt(h: number) {
-  return 1 + (MAX_SCALE - 1) * smoothstep(SPIN_UP_TO, 1, h);
+/** y(x) on a quadratic bezier (x monotone between the endpoints). */
+function qBezY(
+  x: number,
+  p0x: number,
+  p0y: number,
+  cx: number,
+  cy: number,
+  p1x: number,
+  p1y: number,
+) {
+  const a = p0x - 2 * cx + p1x;
+  const b = 2 * (cx - p0x);
+  const c = p0x - x;
+  let t: number;
+  if (Math.abs(a) < 1e-6) {
+    t = Math.abs(b) < 1e-9 ? 0 : -c / b;
+  } else {
+    const disc = Math.max(0, b * b - 4 * a * c);
+    t = (-b + Math.sqrt(disc)) / (2 * a);
+    if (t < 0 || t > 1) t = (-b - Math.sqrt(disc)) / (2 * a);
+  }
+  t = Math.min(1, Math.max(0, t));
+  return (1 - t) * (1 - t) * p0y + 2 * (1 - t) * t * cy + t * t * p1y;
 }
+
+/** y(x) on a CSS-style cubic-bezier ease (endpoints (0,0) and (1,1)). */
+function cubicEaseY(x: number, x1: number, y1: number, x2: number, y2: number) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  let lo = 0;
+  let hi = 1;
+  let t = x;
+  for (let i = 0; i < 24; i++) {
+    const mt = 1 - t;
+    const cx = 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t;
+    if (cx < x) lo = t;
+    else hi = t;
+    t = (lo + hi) / 2;
+  }
+  const mt = 1 - t;
+  return 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t;
+}
+
+/** Angular velocity, rev/s, at leg position h ∈ [0,1] — the editable spin
+ *  bell: quadratic rise from the seam speed to the peak, quadratic fall
+ *  from the peak to zero at the hold. */
+function speedAt(h: number) {
+  const m = MOTION;
+  if (h <= m.peak.x)
+    return Math.max(
+      0,
+      qBezY(h, 0, m.sy, m.rise.x, m.rise.y, m.peak.x, m.peak.y),
+    );
+  return Math.max(
+    0,
+    qBezY(h, m.peak.x, m.peak.y, m.fall.x, m.fall.y, 1, 0),
+  );
+}
+
+/** Degrees the wheel coasts from leg position h0 to the hold, optionally
+ *  weighted by the steer's ease-in window. */
+function coastFrom(h0: number, legSeconds: number, rampTo = -1) {
+  const steps = 32;
+  let deg = 0;
+  for (let i = 0; i < steps; i++) {
+    const h = h0 + ((i + 0.5) / steps) * (1 - h0);
+    const w = rampTo > h0 ? smoothstep(h0, rampTo, h) : 1;
+    deg += speedAt(h) * w * 360 * (legSeconds * (1 - h0)) / steps;
+  }
+  return deg;
+}
+
+/** Scale at leg position h — the editable zoom ease over [zoomStart, 1]. */
+function scaleAt(h: number) {
+  const u = (h - MOTION.zoomStart) / (1 - MOTION.zoomStart);
+  const e = cubicEaseY(u, MOTION.z1.x, MOTION.z1.y, MOTION.z2.x, MOTION.z2.y);
+  return 1 + (MAX_SCALE - 1) * e;
+}
+
+// ── The timeline strip ──────────────────────────────────────────────────
+// A read-out of the cycle drawn under the banner: the same functions the
+// frame loop runs, sampled once at module load. ω is speed × stop-taper
+// on the legs and zero through the hold (the per-cycle steer ratio is
+// omitted — it varies with where the coast lands). The playhead is driven
+// from the rAF loop.
+const TL_W = 1000;
+const TL_H = 120;
+function cycleAt(p: number) {
+  let h: number;
+  let tau = -1;
+  if (p < OUT_F) h = p / OUT_F;
+  else if (p < OUT_F + HOLD_F) {
+    h = 1;
+    tau = (p - OUT_F) / HOLD_F;
+  } else h = 1 - (p - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
+  const omega = tau >= 0 ? HOLD_CREEP : speedAt(h);
+  const zoom = (scaleAt(h) - 1) / (MAX_SCALE - 1);
+  let lab = 0;
+  if (p < OUT_F) lab = smoothstep(LABEL_AT_H, LABEL_AT_H + 0.05, h);
+  else if (tau >= 0) lab = 1;
+  else lab = smoothstep(0.9, 0.985, h);
+  return { omega, zoom, lab };
+}
+function tlPath(pick: (c: ReturnType<typeof cycleAt>) => number, max = 1) {
+  const pts: string[] = [];
+  for (let i = 0; i <= 240; i++) {
+    const p = i / 240;
+    const y = TL_H - 12 - (pick(cycleAt(p)) / max) * (TL_H - 28);
+    pts.push(`${i === 0 ? "M" : "L"}${((p * TL_W)).toFixed(1)},${y.toFixed(1)}`);
+  }
+  return pts.join(" ");
+}
+const TL_OMEGA_MAX = 0.4; // fixed headroom so handle drags don't rescale
+const TL_HOLD = { x: OUT_F * TL_W, w: HOLD_F * TL_W };
+// Strip-space mapping for the editable handles (out leg only — the return
+// leg mirrors the same curves automatically).
+const tlXLeg = (hx: number) => OUT_F * hx * TL_W;
+const tlYOm = (y: number) => TL_H - 12 - (y / TL_OMEGA_MAX) * (TL_H - 28);
+const tlYUnit = (v: number) => TL_H - 12 - v * (TL_H - 28);
+const tlXZoom = (u: number) =>
+  tlXLeg(MOTION.zoomStart + u * (1 - MOTION.zoomStart));
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(onChange: () => void) {
@@ -126,42 +269,119 @@ function useReducedMotion() {
   );
 }
 
+// IconEyeOpen off the brand file (3495-1536), inlined so it can't expire;
+// the closed state adds the conventional slash in the same stroke.
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M21.5298 11.1188C16.6909 2.62714 7.30917 2.62704 2.47032 11.1187C2.15898 11.665 2.15898 12.3348 2.47032 12.8811C7.30917 21.3728 16.6909 21.3729 21.5298 12.8812C21.8411 12.3349 21.8411 11.6652 21.5298 11.1188Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.25 12C15.25 13.7949 13.7949 15.25 12 15.25C10.2051 15.25 8.75 13.7949 8.75 12C8.75 10.2051 10.2051 8.75 12 8.75C13.7949 8.75 15.25 10.2051 15.25 12Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {!open && (
+        <path
+          d="M4 4L20 20"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
+
 export default function LandingPageAnimations() {
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
+  const playheadRef = useRef<SVGLineElement>(null);
+  const tlRef = useRef<SVGSVGElement>(null);
+  const [ver, bumpVer] = useReducer((c: number) => c + 1, 0);
+  const [showCurves, setShowCurves] = useState(true);
   const reduced = useReducedMotion();
+
+  // The strip's curves and handle positions — recomputed when a handle is
+  // dragged (bumpVer). The motion itself reads MOTION live; this memo is
+  // only the drawing.
+  const strip = useMemo(() => {
+    void ver;
+    const m = MOTION;
+    return {
+      paths: {
+        omega: tlPath((c) => c.omega, TL_OMEGA_MAX),
+        zoom: tlPath((c) => c.zoom),
+        label: tlPath((c) => c.lab),
+      },
+      marks: [
+        tlXLeg(m.peak.x),
+        (OUT_F + HOLD_F + (1 - OUT_F - HOLD_F) * (1 - m.peak.x)) * TL_W,
+      ],
+      handles: {
+        sy: { x: 0, y: tlYOm(m.sy) },
+        rise: { x: tlXLeg(m.rise.x), y: tlYOm(m.rise.y) },
+        peak: { x: tlXLeg(m.peak.x), y: tlYOm(m.peak.y) },
+        fall: { x: tlXLeg(m.fall.x), y: tlYOm(m.fall.y) },
+        zs: { x: tlXLeg(m.zoomStart), y: tlYUnit(0) },
+        z1: { x: tlXZoom(m.z1.x), y: tlYUnit(m.z1.y) },
+        z2: { x: tlXZoom(m.z2.x), y: tlYUnit(m.z2.y) },
+      },
+      vals: JSON.stringify(m),
+    };
+  }, [ver]);
 
   useEffect(() => {
     const ring = ringRef.current;
     const label = labelRef.current;
     if (!ring || !label) return;
+    const banner = ring.parentElement as HTMLElement;
+    const textEl = label.querySelector<HTMLSpanElement>(".lpa-label-text")!;
+    const dotEls = Array.from(
+      label.querySelectorAll<HTMLElement>(".lpa-label-dots i"),
+    );
+    const avatarEls = ring.querySelectorAll<SVGImageElement>("image");
+    const dotGroups = ring.querySelectorAll<SVGGElement>("svg > g");
 
-    // Half the ring's laid-out size — the crest-pinning offset is
-    // (radius × scale). Cached on resize so the frame loop never reads
-    // layout.
+    // Geometry, cached on resize so the frame loop never reads layout for
+    // it: the crest-pin offset, and how far the spacing must spread to put
+    // the crest face's neighbours at the blueprint's ±38.3% of the banner.
     let baseR = ring.offsetWidth / 2;
-    const ro = new ResizeObserver(() => {
+    let spreadMax = 1; // sector multiple that lands the neighbours on spec
+    const measure = () => {
       baseR = ring.offsetWidth / 2;
-    });
+      const rimR = baseR * (138.24 / 144.115);
+      const targetX = banner.clientWidth * NEIGHBOUR_X;
+      spreadMax = Math.max(
+        1,
+        ((Math.asin(Math.min(0.98, targetX / rimR)) * 180) / Math.PI) / SECTOR,
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(ring);
+    ro.observe(banner);
 
-    const place = (angle: number, scale: number, sx = 0, sy = 0, blur = 0) => {
+    const place = (angle: number, scale: number) => {
       // The ring is laid out at MAX_SCALE (see the CSS), so the on-screen
       // scale is scale/MAX_SCALE — always ≤ 1. Scaling down instead of up
       // keeps the avatar bitmaps rasterized at close-up resolution.
       const v = scale / MAX_SCALE;
-      // sx/sy is the arrival shudder — applied after the crest offset so
-      // it's in screen pixels, unaffected by the zoom.
-      ring.style.transform = `translateY(${baseR * v}px) translate(${sx}px, ${sy}px) rotate(${angle}deg) scale(${v})`;
-      // The zoom blur goes on the ring div (one GPU-composited layer) — a
-      // filter on the SVG's child images forces a software re-raster of the
-      // whole SVG every frame and drops the page to ~1fps. Quantized so the
-      // style only changes when the blur visibly does.
-      const q = Math.round(blur * 4) / 4;
-      ring.style.filter = q > 0 ? `blur(${q}px)` : "";
+      ring.style.transform = `translateY(${baseR * v}px) rotate(${angle}deg) scale(${v})`;
       // Fed to the CSS on each avatar: the counter-rotation that keeps
-      // faces upright while the wheel turns.
-      ring.style.setProperty("--lpa-spin", `${angle}deg`);
+      // faces upright while the wheel turns. Flushed only when it moved a
+      // visible amount — every write recalcs style on all 28 faces.
+      if (Math.abs(angle - lastSpinWritten) > 0.02) {
+        lastSpinWritten = angle;
+        ring.style.setProperty("--lpa-spin", `${angle}deg`);
+      }
     };
 
     if (reduced) {
@@ -174,18 +394,109 @@ export default function LandingPageAnimations() {
     let last = performance.now();
     let phase = 0;
     let angle = 0;
-    let shudderT = -1; // <0 = not shuddering
-    let prevTau = -1; // hold-local time last frame; <0 = not holding
-    let snapArmed = false; // detent roll engaged for this approach
-    let snapFrom = 0; // ring angle when the detent roll began…
-    let snapTo = 0; // …and the sector-aligned angle it rolls to
+    let cycleStartAngle = 0; // ring angle when this cycle began (for scrub)
+    let steerOn = false; // landing projection armed for this approach
+    let steerH0 = 0; // leg position where the projection was armed
+    let steerExtra = 0; // extra speed factor, eased in via the steer ramp
+    let steerTarget = 0; // the sector-aligned angle the coast lands on
+    let labelT = -1; // seconds since the label sequence started; <0 = off
+    let spreadRem0 = -1; // wheel travel remaining when the parting began
+    let pendingText = `${displayName(FACES[0])} is ${VERBS[0]}`;
+    let pipEl: SVGImageElement | null = null; // the crest face, for the pip
+    let lastSpread = 1; // last spacing multiple written to the dots
+    let scrubP: number | null = null; // timeline scrub position; null = live
+    let holdDrift = 0; // degrees the composition has panned during the hold
+    let wasHold = false; // previous frame was inside the hold
+    let lastSpinWritten = 1e9; // last --lpa-spin value flushed to CSS
+
+    // Deterministically rebuild the loop's state at cycle position p by
+    // re-integrating from the cycle's start — the angle is integrated, so
+    // scrubbing can't just be a function evaluation. Used while dragging
+    // the timeline; on release the live loop adopts the rebuilt state.
+    const simulate = (p: number) => {
+      const steps = 480;
+      const sdt = (p * CYCLE) / steps || 1e-6;
+      let a = cycleStartAngle;
+      let sOn = false;
+      let sH0 = 0;
+      let sExtra = 0;
+      let sTarget = steerTarget;
+      let lT = -1;
+      let rem0 = -1;
+      let simHold = false;
+      let simDrift = 0;
+      for (let i = 0; i < steps; i++) {
+        const ph = ((i + 1) / steps) * p;
+        let hh: number;
+        let tt = -1;
+        if (ph < OUT_F) hh = ph / OUT_F;
+        else if (ph < OUT_F + HOLD_F) {
+          hh = 1;
+          tt = (ph - OUT_F) / HOLD_F;
+        } else hh = 1 - (ph - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
+        if (tt < 0) {
+          if (ph < OUT_F && hh >= MOTION.peak.x) {
+            const legS = OUT_F * CYCLE;
+            if (!sOn) {
+              sOn = true;
+              sH0 = hh;
+              const nat = coastFrom(hh, legS);
+              sTarget = Math.round((a + nat) / SECTOR) * SECTOR;
+            }
+            const remaining = coastFrom(hh, legS);
+            const needed = sTarget - a;
+            if (needed <= 0 || remaining < 1e-3) {
+              a = sTarget - Math.max(0, needed);
+            } else {
+              const ratio = Math.min(1.8, Math.max(0.4, needed / remaining));
+              sExtra = ratio - 1;
+              const f = 1 + sExtra * smoothstep(sH0, sH0 + STEER_EASE, hh);
+              a += speedAt(hh) * Math.max(0, f) * sdt * 360;
+              a = Math.min(a, sTarget);
+            }
+            if (hh >= SPREAD_START && rem0 < 0) rem0 = sTarget - a;
+          } else {
+            a = (a + speedAt(hh) * sdt * 360) % 360;
+          }
+        } else {
+          if (!simHold) {
+            simHold = true;
+            simDrift = 0;
+          }
+          simDrift += HOLD_CREEP * sdt * 360;
+          a = sTarget + simDrift;
+        }
+        if (lT < 0 && ph < OUT_F && hh >= LABEL_AT_H) lT = 0;
+        else if (lT >= 0) {
+          lT += sdt;
+          if (tt < 0 && ph > OUT_F + HOLD_F && hh < 0.85) lT = -1;
+        }
+      }
+      return { a, sOn, sH0, sExtra, sTarget, lT, rem0, drift: simDrift };
+    };
 
     const frame = (now: number) => {
       // Clamped so a backgrounded tab doesn't return and jump the wheel.
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
-      phase = (phase + dt / CYCLE) % 1;
+      if (scrubP === null) {
+        const next = (phase + dt / CYCLE) % 1;
+        if (next < phase) cycleStartAngle = angle; // cycle wrapped
+        phase = next;
+      } else {
+        // Scrubbing: park time at the handle and rebuild state there.
+        phase = scrubP;
+        const st = simulate(phase);
+        angle = st.a;
+        steerOn = st.sOn;
+        steerH0 = st.sH0;
+        steerExtra = st.sExtra;
+        steerTarget = st.sTarget;
+        labelT = st.lT;
+        spreadRem0 = st.rem0;
+        holdDrift = st.drift;
+      }
 
       // Timeline: push in (h 0→1) → hold (h = 1, tau 0→1) → pull back out
       // (h 1→0). The wheel only turns on the legs; the hold is still.
@@ -200,87 +511,300 @@ export default function LandingPageAnimations() {
         h = 1 - (phase - OUT_F - HOLD_F) / (1 - OUT_F - HOLD_F);
       }
 
-      if (tau < 0) {
-        // The stop taper: spin drains to zero before the hold, and builds
-        // back through the same curve on the way out — no hard stops.
-        const stopper = 1 - smoothstep(STOP_FROM, STOP_BY, h);
-        angle = (angle + speedAt(h) * stopper * dt * 360) % 360;
-        // The detent roll (approach only): with the spin drained, the ring
-        // rolls the crest face the last few degrees into dead centre.
-        if (phase < OUT_F && h >= SNAP_FROM_H) {
-          if (!snapArmed) {
-            snapArmed = true;
-            snapFrom = angle;
-            snapTo = Math.round(angle / SECTOR) * SECTOR;
+      if (tau < 0 && scrubP === null) {
+        if (phase < OUT_F && h >= MOTION.peak.x) {
+          // Feedback steering: pick the NEAREST face-centre once at the
+          // peak, then every frame scale ω by (travel still required ÷
+          // natural coast remaining). Required and available shrink to
+          // zero together, so the ratio stays near 1, the curve's shape
+          // is preserved, the landing is exact — and there is no end-of-
+          // approach clamp or settle to freeze or yank the wheel. The
+          // factor eases in over STEER_EASE and adapts live if the curves
+          // are edited mid-flight.
+          const legS = OUT_F * CYCLE;
+          if (!steerOn) {
+            steerOn = true;
+            steerH0 = h;
+            holdDrift = 0;
+            const natural = coastFrom(h, legS);
+            steerTarget = Math.round((angle + natural) / SECTOR) * SECTOR;
           }
-          angle = snapFrom + (snapTo - snapFrom) * smoothstep(SNAP_FROM_H, 1, h);
+          const remaining = coastFrom(h, legS);
+          const needed = steerTarget - angle;
+          if (needed <= 0 || remaining < 1e-3) {
+            angle = steerTarget - Math.max(0, needed);
+          } else {
+            const ratio = Math.min(1.8, Math.max(0.4, needed / remaining));
+            steerExtra = ratio - 1;
+            const factor =
+              1 + steerExtra * smoothstep(steerH0, steerH0 + STEER_EASE, h);
+            angle += speedAt(h) * Math.max(0, factor) * dt * 360;
+            angle = Math.min(angle, steerTarget);
+          }
+        } else {
+          angle = (angle + speedAt(h) * dt * 360) % 360;
+          if (phase > OUT_F + HOLD_F) steerOn = false; // re-arm next pass
         }
-        if (phase > OUT_F + HOLD_F && h < SNAP_FROM_H) snapArmed = false;
-      } else {
-        // Held: parked on the detent.
-        if (!snapArmed) {
-          // A clamped-dt jump can skip the roll; land directly.
-          snapArmed = true;
-          snapTo = Math.round(angle / SECTOR) * SECTOR;
-        }
-        angle = snapTo;
+      } else if (scrubP === null) {
+        // Held: no dead-stop — the landed composition pans on, barely.
+        if (!wasHold) holdDrift = 0;
+        holdDrift += HOLD_CREEP * dt * 360;
+        angle = steerTarget + holdDrift;
       }
+      wasHold = tau >= 0;
 
-      // Hold entry: name the crest face and arm the settle.
-      if (tau >= 0 && prevTau < 0) {
-        const k = (((Math.round(-snapTo / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
-        label.textContent = `${displayName(AVATARS[k % AVATARS.length])} is ${VERBS[k % VERBS.length]}`;
-        shudderT = 0;
+      // Label trigger — on the approach, once the landing face is known
+      // and the zoom is closing (the steer armed long ago): pick the verb,
+      // stage the sentence, aim the pip.
+      if (scrubP === null && labelT < 0 && phase < OUT_F && h >= LABEL_AT_H) {
+        labelT = 0;
+        const k =
+          (((Math.round(-steerTarget / SECTOR) % DOTS) + DOTS) % DOTS) | 0;
+        const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
+        pendingText = `${displayName(FACES[k])} is ${verb}`;
+        textEl.textContent = "";
+        if (pipEl) pipEl.style.setProperty("--lpa-pip", "1");
+        pipEl = avatarEls[k] ?? null;
+      } else if (scrubP === null && labelT >= 0) {
+        labelT += dt;
+        // Off again once the departure fade has fully taken it.
+        if (tau < 0 && phase > OUT_F + HOLD_F && h < 0.85) labelT = -1;
       }
-      prevTau = tau;
 
       const scale = scaleAt(h);
 
-      // The focus pull — a function of where the leg is, not how fast it's
-      // moving: smears on quickly when the push starts, then unblurs across
-      // the whole approach so the close-up resolves into focus. On the
-      // return leg the same curve runs backwards — sharp leaving the
-      // close-up, resolving again into the small state.
-      const blur =
-        BLUR_MAX *
-        smoothstep(SPIN_UP_TO, SPIN_UP_TO + BLUR_ON_BY, h) *
-        (1 - smoothstep(SHARP_FROM, SHARP_BY, h));
-
-      // The arrival shudder — a decaying two-axis wobble as the hold lands.
-      let sx = 0;
-      let sy = 0;
-      if (shudderT >= 0) {
-        shudderT += dt;
-        const envelope = Math.exp(-SHUDDER_DECAY * shudderT);
-        if (envelope < 0.01) {
-          shudderT = -1;
+      // The spread — each dot eases from its rotating position toward its
+      // FINAL spot in the landing composition (spacing widened around the
+      // landing crest, clamped at the wheel's bottom so far dots never
+      // wrap into view). On the approach, progress is the fraction of the
+      // wheel's own remaining travel already covered — the parting moves
+      // only as the wheel moves, so it dissolves into the zoom instead of
+      // reading as its own event. The return contracts on the leg's ease.
+      let sMix: number;
+      if (tau >= 0) {
+        sMix = 1;
+      } else if (phase < OUT_F) {
+        if (h < SPREAD_START || steerTarget <= angle) {
+          sMix = h >= SPREAD_START ? 1 : 0;
+          spreadRem0 = -1;
         } else {
-          sx = SHUDDER_AMP * envelope * Math.sin(38 * shudderT);
-          sy = SHUDDER_AMP * 0.6 * envelope * Math.cos(29 * shudderT);
+          if (spreadRem0 < 0) spreadRem0 = steerTarget - angle;
+          sMix = smoothstep(
+            0,
+            1,
+            1 - (steerTarget - angle) / Math.max(spreadRem0, 1e-3),
+          );
+        }
+      } else {
+        sMix = smoothstep(SPREAD_START, 1, h);
+        spreadRem0 = -1;
+      }
+      if (sMix > 0.0005 || lastSpread > 0.0005) {
+        lastSpread = sMix;
+        for (let j = 0; j < dotGroups.length; j++) {
+          const base = j * SECTOR;
+          let a = base;
+          if (sMix > 0) {
+            const anchor = steerTarget + holdDrift;
+            const nf = norm(anchor + base);
+            const nfTo =
+              Math.sign(nf) * Math.min(Math.abs(nf) * spreadMax, 180);
+            const finalWorld = anchor + base + (nfTo - nf);
+            a = base + sMix * norm(finalWorld - angle - base);
+          }
+          dotGroups[j].setAttribute(
+            "transform",
+            `rotate(${a.toFixed(3)} 144.115 144.115)`,
+          );
+          avatarEls[j].style.setProperty("--lpa-da", `${a.toFixed(3)}deg`);
         }
       }
 
-      // The label plays only inside the hold: g runs 0→1→0 (rise, dwell,
-      // fold away). Centred beneath the crest face, it reveals from its
-      // middle outward while drifting up into place.
-      const g =
-        tau >= 0
-          ? smoothstep(LABEL_IN[0], LABEL_IN[1], tau) *
-            (1 - smoothstep(LABEL_OUT[0], LABEL_OUT[1], tau))
-          : 0;
-      const s = ((1 - g) * 50).toFixed(1);
-      label.style.opacity = String(g);
-      label.style.clipPath = `inset(0 ${s}% 0 ${s}%)`;
-      label.style.transform = `translateX(-50%) translateY(${((1 - g) * 8).toFixed(1)}px)`;
+      // ── The typing indicator ──────────────────────────────────────────
+      // The crest face's pip — a small breath as its label sets off.
+      if (pipEl && labelT >= 0 && labelT < 0.5) {
+        const pp = Math.min(1, labelT / 0.45);
+        pipEl.style.setProperty(
+          "--lpa-pip",
+          (1 + 0.06 * Math.sin(Math.PI * pp)).toFixed(4),
+        );
+      }
 
-      place(angle, scale, sx, sy, blur);
+      // Container: rises from below ON THE ZOOM'S OWN PROGRESS — its
+      // velocity profile is the zoom's tail, so it decelerates into place
+      // with the same momentum as everything else and parks exactly as
+      // the wheel does. The departure fade takes it back down with the
+      // pull-out.
+      let cOp = 0;
+      let cDy = RISE_PX;
+      if (labelT >= 0) {
+        if (tau >= 0 || phase < OUT_F) {
+          const rise = smoothstep(LABEL_AT_H, 1, h);
+          cOp = smoothstep(LABEL_AT_H, LABEL_AT_H + 0.05, h);
+          cDy = (1 - rise) * RISE_PX;
+        } else {
+          // Return leg: the camera leaving is what removes the label.
+          const e = smoothstep(0.9, 0.985, h);
+          cOp = e;
+          cDy = (1 - e) * 6;
+        }
+      }
+
+      if (cOp > 0) {
+        // The three dots cycle the whole time the label is up — the live
+        // typing indicator, trailing the sentence once it resolves.
+        const te = smoothstep(RESOLVE_AT, RESOLVE_AT + 0.18, labelT);
+        const wave = now / 1000 / DOT_PERIOD;
+        for (let j = 0; j < dotEls.length; j++) {
+          const o =
+            0.25 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * wave - j * 1.05));
+          dotEls[j].style.opacity = o.toFixed(2);
+        }
+        if (te > 0) {
+          if (textEl.textContent !== pendingText) textEl.textContent = pendingText;
+          textEl.style.opacity = te.toFixed(3);
+          textEl.style.transform = `translateY(${((1 - te) * 4).toFixed(1)}px)`;
+        }
+      }
+
+      // The label sits centred beneath the crest face (blueprint: 12u gap,
+      // 20u/28u text).
+      // The label pans with the crest face through the hold's creep.
+      const panDx = Math.sin((holdDrift * Math.PI) / 180) * baseR * 0.9594;
+      label.style.opacity = cOp.toFixed(3);
+      label.style.transform = `translateX(calc(-50% + ${panDx.toFixed(1)}px)) translateY(${cDy.toFixed(1)}px)`;
+
+      place(angle, scale);
+      const ph = playheadRef.current;
+      if (ph) {
+        const x = (phase * TL_W).toFixed(1);
+        ph.setAttribute("x1", x);
+        ph.setAttribute("x2", x);
+      }
       raf = requestAnimationFrame(frame);
     };
 
     raf = requestAnimationFrame(frame);
+
+    // Timeline interaction — grab a curve handle to edit the motion, or
+    // drag anywhere else to scrub the loop; double-click resets the curves.
+    const tl = tlRef.current;
+    let dragId: string | null = null;
+    const toP = (e: PointerEvent) => {
+      const r = tl!.getBoundingClientRect();
+      return Math.min(0.999, Math.max(0, (e.clientX - r.left) / r.width));
+    };
+    const clamp = (v: number, a: number, b: number) =>
+      Math.min(b, Math.max(a, v));
+    const handleList = () => {
+      const m = MOTION;
+      return [
+        { id: "sy", x: 0, y: tlYOm(m.sy) },
+        { id: "rise", x: tlXLeg(m.rise.x), y: tlYOm(m.rise.y) },
+        { id: "peak", x: tlXLeg(m.peak.x), y: tlYOm(m.peak.y) },
+        { id: "fall", x: tlXLeg(m.fall.x), y: tlYOm(m.fall.y) },
+        { id: "zs", x: tlXLeg(m.zoomStart), y: tlYUnit(0) },
+        { id: "z1", x: tlXZoom(m.z1.x), y: tlYUnit(m.z1.y) },
+        { id: "z2", x: tlXZoom(m.z2.x), y: tlYUnit(m.z2.y) },
+      ];
+    };
+    const hitHandle = (e: PointerEvent) => {
+      if (!tl) return null;
+      const r = tl.getBoundingClientRect();
+      let best: string | null = null;
+      let bestD = 14; // px
+      for (const hd of handleList()) {
+        const px = r.left + (hd.x / TL_W) * r.width;
+        const py = r.top + (hd.y / TL_H) * r.height;
+        const d = Math.hypot(e.clientX - px, e.clientY - py);
+        if (d < bestD) {
+          bestD = d;
+          best = hd.id;
+        }
+      }
+      return best;
+    };
+    const applyDrag = (e: PointerEvent) => {
+      if (!tl || !dragId) return;
+      const r = tl.getBoundingClientRect();
+      const vx = ((e.clientX - r.left) / r.width) * TL_W;
+      const vy = ((e.clientY - r.top) / r.height) * TL_H;
+      const hx = clamp(vx / (OUT_F * TL_W), 0, 1); // leg position
+      const om = clamp(
+        ((TL_H - 12 - vy) / (TL_H - 28)) * TL_OMEGA_MAX,
+        0,
+        TL_OMEGA_MAX,
+      );
+      const unit = clamp((TL_H - 12 - vy) / (TL_H - 28), -0.2, 1.2);
+      const m = MOTION;
+      if (dragId === "sy") m.sy = clamp(om, 0, 0.3);
+      else if (dragId === "peak") {
+        m.peak.x = clamp(hx, 0.1, 0.6);
+        m.peak.y = clamp(om, 0.04, TL_OMEGA_MAX);
+        m.rise.x = Math.min(m.rise.x, m.peak.x - 0.01);
+        m.fall.x = Math.max(m.fall.x, m.peak.x + 0.01);
+      } else if (dragId === "rise") {
+        m.rise.x = clamp(hx, 0.01, m.peak.x - 0.01);
+        m.rise.y = om;
+      } else if (dragId === "fall") {
+        m.fall.x = clamp(hx, m.peak.x + 0.01, 0.99);
+        m.fall.y = om;
+      } else if (dragId === "zs") {
+        m.zoomStart = clamp(hx, 0.05, 0.7);
+      } else if (dragId === "z1") {
+        m.z1.x = clamp(
+          (hx - m.zoomStart) / (1 - m.zoomStart),
+          0,
+          1,
+        );
+        m.z1.y = unit;
+      } else if (dragId === "z2") {
+        m.z2.x = clamp(
+          (hx - m.zoomStart) / (1 - m.zoomStart),
+          0,
+          1,
+        );
+        m.z2.y = unit;
+      }
+      bumpVer();
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!tl) return;
+      try {
+        tl.setPointerCapture(e.pointerId);
+      } catch {
+        // synthetic events have no active pointer — still works
+      }
+      dragId = hitHandle(e);
+      if (dragId) applyDrag(e);
+      else scrubP = toP(e);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (dragId) applyDrag(e);
+      else if (scrubP !== null) scrubP = toP(e);
+    };
+    const onUp = () => {
+      dragId = null;
+      scrubP = null;
+    };
+    const onDbl = () => {
+      Object.assign(MOTION, JSON.parse(MOTION_DEFAULTS));
+      bumpVer();
+    };
+    tl?.addEventListener("dblclick", onDbl);
+    tl?.addEventListener("pointerdown", onDown);
+    tl?.addEventListener("pointermove", onMove);
+    tl?.addEventListener("pointerup", onUp);
+    tl?.addEventListener("pointercancel", onUp);
+
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      tl?.removeEventListener("pointerdown", onDown);
+      tl?.removeEventListener("pointermove", onMove);
+      tl?.removeEventListener("pointerup", onUp);
+      tl?.removeEventListener("pointercancel", onUp);
+      tl?.removeEventListener("dblclick", onDbl);
     };
   }, [reduced]);
 
@@ -288,7 +812,7 @@ export default function LandingPageAnimations() {
     <main className="lpa-field bg-gray-100">
       <section className="lpa-banner">
         {/* The wheel is one SVG in the storyboard's own coordinate space —
-            36 circles straight off the Figma asset (cx 144.115, cy 5.875,
+            circles straight off the Figma asset (cx 144.115, cy 5.875,
             r 5.76 in a 288.23 box), each rotated about the centre. */}
         <div ref={ringRef} className="lpa-ring">
           <svg
@@ -312,7 +836,7 @@ export default function LandingPageAnimations() {
                     offset, negated) keeps it upright while it orbits. */}
                 <image
                   className="lpa-avatar"
-                  href={`/avatars/${AVATARS[i % AVATARS.length]}.png`}
+                  href={`/avatars/${FACES[i]}.png`}
                   x={144.115 - 5.76}
                   y={5.875 - 5.76}
                   width={11.52}
@@ -325,21 +849,128 @@ export default function LandingPageAnimations() {
             ))}
           </svg>
         </div>
+        {/* Side scrims — gradient-masked backdrop blur + wash at each edge
+            so the crest face's neighbours dissolve toward the banner edges
+            without filtering the avatars themselves. */}
+        <div className="lpa-side lpa-side-l">
+          <div className="lpa-side-blur" />
+          <div className="lpa-side-wash" />
+        </div>
+        <div className="lpa-side lpa-side-r">
+          <div className="lpa-side-blur" />
+          <div className="lpa-side-wash" />
+        </div>
         {/* Progressive blur + white wash over the bottom half — see the
             .lpa-scrim rules for how the bands stack. */}
         <div className="lpa-scrim">
           <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-blur" />
-          <div className="lpa-scrim-blur" />
-          <div className="lpa-scrim-blur" />
           <div className="lpa-scrim-wash" />
         </div>
-        {/* "{name} is {verb}" centred beneath the crest face (Figma
-            3446-2775) — text, opacity, and reveal written per frame from
-            the rAF loop. After the scrim in paint order so it sits above
-            the blur it would otherwise be washed by. */}
-        <div ref={labelRef} className="lpa-label" aria-hidden="true" />
+        {/* The typing indicator, composed beside the crest face at the
+            Figma pill's ratios (3446-2773): "…" cycles, the sentence
+            resolves whole, the dots trail live. All motion written per
+            frame from the rAF loop. After the scrim in paint order so it
+            sits above the blur it would otherwise be washed by. */}
+        <div ref={labelRef} className="lpa-label" aria-hidden="true">
+          <span className="lpa-label-text" />
+          <span className="lpa-label-dots">
+            <i />
+            <i />
+            <i />
+          </span>
+        </div>
       </section>
+      {/* The motion timeline — the cycle's curves with a live playhead.
+          A read-out, not part of the piece. The eye tucks it away; the
+          strip stays mounted so its handlers and refs survive the toggle. */}
+      <div className="lpa-timeline" aria-hidden="true">
+        <button
+          type="button"
+          className="lpa-tl-toggle"
+          onClick={() => setShowCurves((v) => !v)}
+          title={showCurves ? "Hide motion curves" : "Show motion curves"}
+        >
+          <EyeIcon open={showCurves} />
+        </button>
+        <div className={showCurves ? "lpa-tl-body" : "lpa-tl-body lpa-tl-body-hidden"}>
+        <svg
+          ref={tlRef}
+          viewBox={`0 0 ${TL_W} ${TL_H}`}
+          preserveAspectRatio="none"
+          className="lpa-tl-svg"
+        >
+          <rect
+            x={TL_HOLD.x}
+            y={0}
+            width={TL_HOLD.w}
+            height={TL_H}
+            className="lpa-tl-hold"
+          />
+          {strip.marks.map((x, i) => (
+            <line
+              key={i}
+              x1={x}
+              x2={x}
+              y1={10}
+              y2={TL_H}
+              className="lpa-tl-mark"
+            />
+          ))}
+          <path d={strip.paths.omega} className="lpa-tl-omega" />
+          <path d={strip.paths.zoom} className="lpa-tl-zoom" />
+          <path d={strip.paths.label} className="lpa-tl-label" />
+          {/* Editable handles: olive = the spin bell (seam speed, shape
+              handles, peak), blue = the zoom ease (start + two bezier
+              handles). Connector stems show what each handle bends. */}
+          <line x1={strip.handles.rise.x} y1={strip.handles.rise.y} x2={0} y2={tlYOm(MOTION.sy)} className="lpa-tl-stem lpa-tl-stem-om" />
+          <line x1={strip.handles.rise.x} y1={strip.handles.rise.y} x2={strip.handles.peak.x} y2={strip.handles.peak.y} className="lpa-tl-stem lpa-tl-stem-om" />
+          <line x1={strip.handles.fall.x} y1={strip.handles.fall.y} x2={strip.handles.peak.x} y2={strip.handles.peak.y} className="lpa-tl-stem lpa-tl-stem-om" />
+          <line x1={strip.handles.z1.x} y1={strip.handles.z1.y} x2={strip.handles.zs.x} y2={tlYUnit(0)} className="lpa-tl-stem lpa-tl-stem-zm" />
+          <line x1={strip.handles.z2.x} y1={strip.handles.z2.y} x2={tlXZoom(1)} y2={tlYUnit(1)} className="lpa-tl-stem lpa-tl-stem-zm" />
+          {(["sy", "rise", "peak", "fall"] as const).map((id) => (
+            <circle
+              key={id}
+              cx={strip.handles[id].x}
+              cy={strip.handles[id].y}
+              r={5}
+              className="lpa-tl-handle lpa-tl-handle-om"
+            />
+          ))}
+          {(["z1", "z2"] as const).map((id) => (
+            <circle
+              key={id}
+              cx={strip.handles[id].x}
+              cy={strip.handles[id].y}
+              r={5}
+              className="lpa-tl-handle lpa-tl-handle-zm"
+            />
+          ))}
+          <rect
+            x={strip.handles.zs.x - 4}
+            y={strip.handles.zs.y - 4}
+            width={8}
+            height={8}
+            className="lpa-tl-handle lpa-tl-handle-zm"
+          />
+          <line
+            ref={playheadRef}
+            x1={0}
+            x2={0}
+            y1={0}
+            y2={TL_H}
+            className="lpa-tl-playhead"
+          />
+        </svg>
+        <div className="lpa-tl-legend">
+          <span className="lpa-tl-key lpa-tl-key-zoom">zoom</span>
+          <span className="lpa-tl-key lpa-tl-key-omega">spin ω</span>
+          <span className="lpa-tl-key lpa-tl-key-label">label</span>
+          <span className="lpa-tl-key">drag handles to edit · elsewhere to scrub · dbl-click resets</span>
+        </div>
+        <code className="lpa-tl-vals">{strip.vals}</code>
+        </div>
+      </div>
     </main>
   );
 }

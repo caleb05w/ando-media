@@ -14,8 +14,10 @@
   /* The grey placeholder the banner floats on. */
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
 }
 
 /* The banner — 0.9× the original 100vw × 35vh strip, centered in the field
@@ -27,7 +29,7 @@
      it DOWN from there. Scaling down keeps the avatar bitmaps rasterizing
      at full size; laying out small and scaling up rasterizes the faces at
      dot size and they smear. */
-  --lpa-max: 3.8;
+  --lpa-max: calc(48 / 11.52);
   --lpa-ring-d: calc(var(--u) * 288.23 * var(--lpa-max));
   --lpa-crest: calc(var(--u) * 34);
   position: relative;
@@ -67,24 +69,118 @@
 .lpa-avatar {
   transform-box: fill-box;
   transform-origin: center;
-  transform: rotate(calc((var(--lpa-spin, 0deg) + var(--lpa-da, 0deg)) * -1));
+  /* --lpa-pip is the crest face's acknowledgment breath, pulsed from the
+     rAF loop just before its typing dots appear. */
+  transform: rotate(calc((var(--lpa-spin, 0deg) + var(--lpa-da, 0deg)) * -1))
+    scale(var(--lpa-pip, 1));
 }
 
-/* The crest label — "{name} is {verb}" (Figma 3446-2775: 20px text against
-   a 48px avatar, #24211f). Centred beneath the top face at its close-up
-   size: the dot's visual radius at full zoom is 11.52 × 3.8 / 2 storyboard
-   units, and the text scales with the same ratio the pill uses (20/48 of
-   the avatar). Text and opacity are written per frame from the rAF loop. */
+/* The crest label — "{name} is {verb}" per the blueprint (3488-1842):
+   centred beneath the 48u close-up face with a 12u gap, 20u/28u Geist,
+   #24211f. Crest top is 34u and the close-up avatar is 48u tall, so the
+   label's top edge sits at (34 + 48 + 12)u. Text, opacity, and the reveal
+   are written per frame from the rAF loop. */
 .lpa-label {
   position: absolute;
   left: 50%;
-  top: calc(var(--u) * (34 + 11.52 * 3.8) + 14px);
+  top: calc(var(--u) * (34 + 48 + 12));
   transform: translateX(-50%);
-  font-size: calc(var(--u) * 11.52 * 3.8 * (20 / 48));
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--u) * 14);
+  font-size: calc(var(--u) * 10);
+  line-height: calc(var(--u) * 14);
   color: #24211f;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
+}
+
+/* The sentence — pops in whole at the resolve; hidden while the dots have
+   the floor. Opacity/offset written per frame. */
+.lpa-label-text {
+  display: inline-block;
+  min-height: calc(var(--u) * 14);
+  opacity: 0;
+}
+
+.lpa-label-text:empty {
+  display: none;
+}
+
+/* The three dots — the live typing indicator. Absolutely positioned so
+   the SENTENCE is what centres under the face (the text+dots group
+   centring as a unit sat the sentence ~half the dots' width off the
+   optical centre). Centred alone during the "…" phase, trailing just off
+   the sentence's right after the resolve. */
+.lpa-label-dots {
+  position: absolute;
+  left: calc(100% + 0.32em);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+}
+
+.lpa-label-text:empty + .lpa-label-dots {
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.lpa-label-dots i {
+  width: 0.24em;
+  height: 0.24em;
+  border-radius: 50%;
+  background: #24211f;
+}
+
+/* Side scrims — the neighbours' dissolve. A gradient-masked backdrop
+   blur compounding toward each edge plus a soft white wash, so the faces
+   at the banner's sides blur and fade without any filter touching the
+   avatars themselves (SVG-child filters re-raster per frame). */
+.lpa-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  pointer-events: none;
+}
+
+.lpa-side-l {
+  left: 0;
+}
+
+.lpa-side-r {
+  right: 0;
+}
+
+.lpa-side-blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(6px);
+}
+
+.lpa-side-l .lpa-side-blur {
+  mask-image: linear-gradient(to right, black 0%, black 40%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 40%, transparent 90%);
+}
+
+.lpa-side-r .lpa-side-blur {
+  mask-image: linear-gradient(to left, black 0%, black 40%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to left, black 0%, black 40%, transparent 90%);
+}
+
+.lpa-side-l .lpa-side-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%);
+}
+
+.lpa-side-r .lpa-side-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%);
 }
 
 /* The dissolve — the storyboard's Rectangle 1: the bottom half of the
@@ -107,27 +203,17 @@
 .lpa-scrim-blur {
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(5px);
 }
 
 .lpa-scrim-blur:nth-child(1) {
-  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 45%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 45%);
 }
 
 .lpa-scrim-blur:nth-child(2) {
-  mask-image: linear-gradient(to bottom, transparent 25%, black 55%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 25%, black 55%);
-}
-
-.lpa-scrim-blur:nth-child(3) {
-  mask-image: linear-gradient(to bottom, transparent 50%, black 80%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 50%, black 80%);
-}
-
-.lpa-scrim-blur:nth-child(4) {
-  mask-image: linear-gradient(to bottom, transparent 75%, black 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 75%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 45%, black 95%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 45%, black 95%);
 }
 
 /* The white wash rides on top of the blur stack — the storyboard's
@@ -136,4 +222,149 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 6.76%, #ffffff);
+}
+
+/* ── The motion timeline ─────────────────────────────────────────────────
+   A read-out of the cycle under the banner: ω (spin), zoom, and the label
+   envelope over one cycle, hold shaded, with a live playhead. Not part of
+   the piece — a dev aid. */
+.lpa-timeline {
+  width: 90vw;
+}
+
+.lpa-timeline svg {
+  display: block;
+  width: 100%;
+  height: 120px;
+}
+
+.lpa-tl-hold {
+  fill: rgba(36, 33, 31, 0.05);
+}
+
+.lpa-tl-mark {
+  stroke: rgba(36, 33, 31, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-omega {
+  fill: none;
+  stroke: #7d8a66;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-zoom {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-label {
+  fill: none;
+  stroke: #b9952f;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-playhead {
+  stroke: #24211f;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #928c88;
+}
+
+.lpa-tl-key-zoom {
+  color: #2563eb;
+}
+
+.lpa-tl-key-omega {
+  color: #7d8a66;
+}
+
+.lpa-tl-key-label {
+  color: #b9952f;
+}
+
+/* Scrub affordance */
+.lpa-tl-svg {
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+/* Curve-edit handles */
+.lpa-tl-handle {
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.lpa-tl-handle-om {
+  fill: #7d8a66;
+}
+
+.lpa-tl-handle-zm {
+  fill: #2563eb;
+}
+
+.lpa-tl-stem {
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lpa-tl-stem-om {
+  stroke: rgba(125, 138, 102, 0.45);
+}
+
+.lpa-tl-stem-zm {
+  stroke: rgba(37, 99, 235, 0.4);
+}
+
+.lpa-tl-vals {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #b9b4b0;
+  user-select: all;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+/* Timeline visibility toggle — IconEyeOpen (3495-1536) */
+.lpa-tl-toggle {
+  display: block;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0 0 6px auto;
+  border: none;
+  background: none;
+  color: #928c88;
+  cursor: pointer;
+}
+
+.lpa-tl-toggle:hover {
+  color: #24211f;
+}
+
+.lpa-tl-toggle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lpa-tl-body-hidden {
+  display: none;
 }
